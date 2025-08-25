@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -20,6 +21,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import { CloudUpload } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { insertOpportunitySchema } from "@shared/schema";
@@ -36,13 +42,41 @@ const formSchema = insertOpportunitySchema.pick({
   cnpj: true,
   phone: true,
   hasRegistration: true,
+  proposalOrigin: true,
+  businessTemperature: true,
+  needCategory: true,
+  clientNeeds: true,
 }).extend({
   cpf: z.string().nullable().optional(),
   cnpj: z.string().nullable().optional(),
   hasRegistration: z.boolean().nullable().optional(),
+  proposalOrigin: z.string().nullable().optional(),
+  businessTemperature: z.string().nullable().optional(),
 });
 
 type FormData = z.infer<typeof formSchema>;
+
+const PROPOSAL_ORIGINS = [
+  "Redes Sociais",
+  "Indicação",
+  "Busca ativa",
+  "Visita em Obra",
+  "Indicação de Diretoria",
+  "SDR",
+  "Renovação",
+  "Whatsapp",
+  "Dropdesk"
+];
+
+const NEED_CATEGORIES = [
+  "Andaimes",
+  "Escoras",
+  "Painel de Escoramento",
+  "Ferramentas",
+  "Plataformas Elevatórias",
+  "Imóveis",
+  "Veículos"
+];
 
 export default function NewOpportunityModal({ open, onOpenChange }: NewOpportunityModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -58,13 +92,18 @@ export default function NewOpportunityModal({ open, onOpenChange }: NewOpportuni
       cnpj: null,
       phone: "",
       hasRegistration: false,
+      proposalOrigin: null,
+      businessTemperature: null,
+      needCategory: "",
+      clientNeeds: "",
     },
   });
 
   const createOpportunityMutation = useMutation({
     mutationFn: (data: FormData) => apiRequest("POST", "/api/opportunities", {
       ...data,
-      phase: "prospeccao"
+      phase: "prospeccao",
+      documents: []
     }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/opportunities"] });
@@ -95,7 +134,7 @@ export default function NewOpportunityModal({ open, onOpenChange }: NewOpportuni
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md" data-testid="new-opportunity-modal">
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto" data-testid="new-opportunity-modal">
         <DialogHeader>
           <DialogTitle>Nova Oportunidade</DialogTitle>
         </DialogHeader>
@@ -108,7 +147,7 @@ export default function NewOpportunityModal({ open, onOpenChange }: NewOpportuni
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>
-                    <i className="fas fa-user mr-1"></i>Contato
+                    <i className="fas fa-user mr-1"></i>Contato *
                   </FormLabel>
                   <FormControl>
                     <Input 
@@ -190,7 +229,7 @@ export default function NewOpportunityModal({ open, onOpenChange }: NewOpportuni
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>
-                    <i className="fas fa-phone mr-1"></i>Telefone
+                    <i className="fas fa-phone mr-1"></i>Telefone *
                   </FormLabel>
                   <FormControl>
                     <Input 
@@ -222,6 +261,125 @@ export default function NewOpportunityModal({ open, onOpenChange }: NewOpportuni
                 </FormItem>
               )}
             />
+
+            <FormField
+              control={form.control}
+              name="proposalOrigin"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>
+                    <i className="fas fa-source mr-1"></i>Origem da oportunidade
+                  </FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value || ""}>
+                    <FormControl>
+                      <SelectTrigger data-testid="select-proposal-origin">
+                        <SelectValue placeholder="Selecione a origem" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {PROPOSAL_ORIGINS.map((origin) => (
+                        <SelectItem key={origin} value={origin}>
+                          {origin}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="businessTemperature"
+              render={({ field }) => (
+                <FormItem className="space-y-3">
+                  <FormLabel>
+                    <i className="fas fa-thermometer-half mr-1"></i>Temperatura do negócio
+                  </FormLabel>
+                  <FormControl>
+                    <RadioGroup
+                      onValueChange={field.onChange}
+                      value={field.value || ""}
+                      className="flex flex-row space-x-6"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="frio" id="frio" />
+                        <Label htmlFor="frio">Frio</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="morno" id="morno" />
+                        <Label htmlFor="morno">Morno</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="quente" id="quente" />
+                        <Label htmlFor="quente">Quente</Label>
+                      </div>
+                    </RadioGroup>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="needCategory"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>
+                    <i className="fas fa-tags mr-1"></i>Categoria de necessidade *
+                  </FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger data-testid="select-need-category">
+                        <SelectValue placeholder="Selecione a categoria" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {NEED_CATEGORIES.map((category) => (
+                        <SelectItem key={category} value={category}>
+                          {category}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="clientNeeds"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>
+                    <i className="fas fa-clipboard-list mr-1"></i>Necessidades do Cliente *
+                  </FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="Descreva as necessidades específicas do cliente..."
+                      rows={4}
+                      {...field}
+                      data-testid="textarea-client-needs"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">
+                <i className="fas fa-file-upload mr-1"></i>Documentos
+              </Label>
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center cursor-pointer hover:border-gray-400 transition-colors">
+                <CloudUpload className="text-gray-400 text-xl mb-2 mx-auto" />
+                <p className="text-sm text-gray-500">Clique para fazer upload de documentos</p>
+                <input type="file" className="hidden" multiple accept="image/*,.pdf,.doc,.docx" data-testid="input-documents" />
+              </div>
+            </div>
 
             <div className="flex justify-end space-x-3 pt-4">
               <Button 

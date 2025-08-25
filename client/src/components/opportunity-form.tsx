@@ -81,15 +81,9 @@ export default function OpportunityForm({ phase }: OpportunityFormProps) {
 
   const renderProspeccaoForm = () => (
     <div className="text-center">
-      <Button 
-        onClick={() => createOpportunityMutation.mutate({ company: "Nova Oportunidade" })}
-        className="w-full bg-orange-500 hover:bg-orange-600 text-white"
-        disabled={createOpportunityMutation.isPending}
-        data-testid="button-create-opportunity"
-      >
-        <Plus className="mr-2 h-4 w-4" />
-        {createOpportunityMutation.isPending ? "Criando..." : "Nova oportunidade"}
-      </Button>
+      <p className="text-sm text-gray-600 mb-4">
+        Clique no botão "Nova Oportunidade" no cabeçalho da coluna para criar uma nova oportunidade.
+      </p>
     </div>
   );
 

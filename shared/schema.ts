@@ -12,6 +12,11 @@ export const opportunities = pgTable("opportunities", {
   cnpj: text("cnpj"),
   phone: text("phone").notNull(),
   hasRegistration: boolean("has_registration").default(false),
+  proposalOrigin: text("proposal_origin"),
+  businessTemperature: text("business_temperature"),
+  needCategory: text("need_category").notNull(),
+  clientNeeds: text("client_needs").notNull(),
+  documents: text("documents").array(),
   
   // Fase 2: Prospecção
   opportunityNumber: text("opportunity_number"),
