@@ -1,10 +1,6 @@
-import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus } from "lucide-react";
 import OpportunityCard from "./opportunity-card";
-import OpportunityForm from "./opportunity-form";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { Opportunity } from "@shared/schema";
@@ -28,7 +24,6 @@ interface SalesPipelineColumnProps {
 }
 
 export default function SalesPipelineColumn({ phase, opportunities, isLoading }: SalesPipelineColumnProps) {
-  const [showCustomFields, setShowCustomFields] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -126,43 +121,18 @@ export default function SalesPipelineColumn({ phase, opportunities, isLoading }:
           )}
         </div>
 
-        {/* Form Section */}
-        <div className={`p-4 border-t ${phase.borderColor} ${phase.bgColor.replace('bg-', 'bg-').replace('-200', '-50')}`}>
-          {phase.key === "prospeccao" ? (
-            <OpportunityForm phase={phase.key} />
-          ) : (phase.key === "em-atendimento" || phase.key === "ganho" || phase.key === "perdido") && !showCustomFields ? (
-            <div className="text-center py-6">
-              <Plus className="text-4xl mb-2 mx-auto opacity-40" />
-              <p className="text-sm text-gray-600 mb-3">Adicione campos personalizados para esta fase</p>
-              <Button 
-                onClick={() => setShowCustomFields(true)}
-                className={phase.key === "ganho" ? "bg-green-500 hover:bg-green-600" : 
-                          phase.key === "perdido" ? "bg-red-500 hover:bg-red-600" : 
-                          "bg-purple-500 hover:bg-purple-600"}
-                size="sm"
-                data-testid={`button-add-fields-${phase.key}`}
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Adicionar campos
-              </Button>
-            </div>
-          ) : phase.key !== "prospeccao" ? (
-            <OpportunityForm phase={phase.key} />
-          ) : null}
-
-          {/* Success/Loss Messages */}
-          {phase.successMessage && (
-            <div className={`pt-3 border-t ${phase.borderColor.replace('border-', 'border-').replace('-200', '-300')}`}>
-              <p className="text-sm text-gray-600 text-center">{phase.successMessage}</p>
-            </div>
-          )}
-          
-          {phase.lossMessage && (
-            <div className={`pt-3 border-t ${phase.borderColor.replace('border-', 'border-').replace('-200', '-300')}`}>
-              <p className="text-sm text-gray-600 text-center">{phase.lossMessage}</p>
-            </div>
-          )}
-        </div>
+        {/* Success/Loss Messages */}
+        {phase.successMessage && (
+          <div className={`p-4 border-t ${phase.borderColor}`}>
+            <p className="text-sm text-gray-600 text-center">{phase.successMessage}</p>
+          </div>
+        )}
+        
+        {phase.lossMessage && (
+          <div className={`p-4 border-t ${phase.borderColor}`}>
+            <p className="text-sm text-gray-600 text-center">{phase.lossMessage}</p>
+          </div>
+        )}
       </div>
     </div>
   );
