@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -30,6 +29,7 @@ import { Calendar, User, FileText, X, MapPin, Upload, DollarSign, Handshake } fr
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { Opportunity } from "@shared/schema";
+import { masks } from "@/lib/masks";
 
 interface OpportunityDetailsModalProps {
   opportunity: Opportunity | null;
@@ -198,19 +198,19 @@ export default function OpportunityDetailsModal({
 
   const handleSubmit = async (data: any) => {
     if (!opportunity) return;
-    
+
     setIsSubmitting(true);
-    
+
     // Primeiro atualiza os dados da oportunidade
     await updateOpportunityMutation.mutateAsync({ ...data, id: opportunity.id });
-    
+
     // Perguntar se quer mover para próxima fase
     const nextPhase = getNextPhase(opportunity.phase);
     if (nextPhase) {
       const moveToNext = window.confirm(
         `Dados salvos com sucesso! Deseja mover esta oportunidade para a próxima fase?`
       );
-      
+
       if (moveToNext) {
         await moveToNextPhaseMutation.mutateAsync({ 
           opportunityId: opportunity.id, 
@@ -318,6 +318,7 @@ export default function OpportunityDetailsModal({
                           type="datetime-local"
                           placeholder="Selecione uma data e hora"
                           {...field}
+                          onChange={(e) => field.onChange(masks.date(e.target.value))}
                         />
                       </FormControl>
                       <FormMessage />
@@ -391,6 +392,7 @@ export default function OpportunityDetailsModal({
                           type="datetime-local"
                           placeholder="Selecione uma data e hora"
                           {...field}
+                          onChange={(e) => field.onChange(masks.date(e.target.value))}
                         />
                       </FormControl>
                       <FormMessage />
@@ -442,6 +444,7 @@ export default function OpportunityDetailsModal({
                         <Input
                           type="datetime-local"
                           {...field}
+                          onChange={(e) => field.onChange(masks.date(e.target.value))}
                         />
                       </FormControl>
                       <FormMessage />
@@ -462,6 +465,7 @@ export default function OpportunityDetailsModal({
                         <Input
                           type="datetime-local"
                           {...field}
+                          onChange={(e) => field.onChange(masks.date(e.target.value))}
                         />
                       </FormControl>
                       <FormMessage />
@@ -524,7 +528,7 @@ export default function OpportunityDetailsModal({
                           * Número do orçamento
                         </FormLabel>
                         <FormControl>
-                          <Input placeholder="ORC-001" {...field} />
+                          <Input placeholder="ORC-001" {...field} onChange={(e) => field.onChange(masks.cnpjOrCpf(e.target.value))} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -541,7 +545,7 @@ export default function OpportunityDetailsModal({
                           * Valor do orçamento
                         </FormLabel>
                         <FormControl>
-                          <Input placeholder="R$ 50.000,00" {...field} />
+                          <Input placeholder="R$ 50.000,00" {...field} onChange={(e) => field.onChange(masks.currency(e.target.value))} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -557,7 +561,7 @@ export default function OpportunityDetailsModal({
                       <FormItem>
                         <FormLabel>Desconto (%)</FormLabel>
                         <FormControl>
-                          <Input placeholder="10" {...field} />
+                          <Input placeholder="10" {...field} onChange={(e) => field.onChange(masks.percent(e.target.value))} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -574,7 +578,7 @@ export default function OpportunityDetailsModal({
                           * Data de validade
                         </FormLabel>
                         <FormControl>
-                          <Input type="date" {...field} />
+                          <Input type="date" {...field} onChange={(e) => field.onChange(masks.date(e.target.value))} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -664,7 +668,7 @@ export default function OpportunityDetailsModal({
                         * Valor final negociado
                       </FormLabel>
                       <FormControl>
-                        <Input placeholder="R$ 45.000,00" {...field} />
+                        <Input placeholder="R$ 45.000,00" {...field} onChange={(e) => field.onChange(masks.currency(e.target.value))} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -696,7 +700,11 @@ export default function OpportunityDetailsModal({
                     <FormItem>
                       <FormLabel>Número do contrato</FormLabel>
                       <FormControl>
-                        <Input placeholder="CONT-001" {...field} />
+                        <Input 
+                          placeholder="CONT-001" 
+                          {...field}
+                          onChange={(e) => field.onChange(masks.uppercase(e.target.value))}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -710,7 +718,11 @@ export default function OpportunityDetailsModal({
                     <FormItem>
                       <FormLabel>Número da nota fiscal</FormLabel>
                       <FormControl>
-                        <Input placeholder="NF-001" {...field} />
+                        <Input 
+                          placeholder="NF-001" 
+                          {...field}
+                          onChange={(e) => field.onChange(masks.uppercase(e.target.value))}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

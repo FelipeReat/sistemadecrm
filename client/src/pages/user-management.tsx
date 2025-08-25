@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { Plus, Edit, Trash2, Eye, EyeOff } from "lucide-react";
 import type { User, InsertUser, UpdateUser, UserRole } from "@shared/schema";
+import { masks } from "@/lib/masks";
 
 export default function UserManagement() {
   const { user: currentUser } = useAuth();
@@ -108,7 +109,7 @@ export default function UserManagement() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (editingUser) {
       // Remove password if empty in update
       const updateData = { ...formData } as UpdateUser;
@@ -181,7 +182,7 @@ export default function UserManagement() {
             Gerencie os usuários do sistema CRM
           </p>
         </div>
-        
+
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
             <Button data-testid="button-add-user">
@@ -208,7 +209,7 @@ export default function UserManagement() {
                   required
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="email">Email *</Label>
                 <Input
@@ -221,7 +222,7 @@ export default function UserManagement() {
                   required
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="password">Senha *</Label>
                 <div className="relative">
@@ -246,7 +247,7 @@ export default function UserManagement() {
                   </Button>
                 </div>
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="role">Função</Label>
                 <Select
@@ -263,7 +264,7 @@ export default function UserManagement() {
                   </SelectContent>
                 </Select>
               </div>
-              
+
               <div className="flex items-center space-x-2">
                 <input
                   id="isActive"
@@ -274,7 +275,7 @@ export default function UserManagement() {
                 />
                 <Label htmlFor="isActive">Usuário ativo</Label>
               </div>
-              
+
               <div className="flex justify-end space-x-2 pt-4">
                 <Button
                   type="button"
@@ -395,7 +396,7 @@ export default function UserManagement() {
                 required
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="edit-email">Email *</Label>
               <Input
@@ -408,7 +409,7 @@ export default function UserManagement() {
                 required
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="edit-password">Nova Senha (deixe em branco para manter a atual)</Label>
               <div className="relative">
@@ -432,7 +433,7 @@ export default function UserManagement() {
                 </Button>
               </div>
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="edit-role">Função</Label>
               <Select
@@ -449,7 +450,7 @@ export default function UserManagement() {
                 </SelectContent>
               </Select>
             </div>
-            
+
             <div className="flex items-center space-x-2">
               <input
                 id="edit-isActive"
@@ -460,7 +461,7 @@ export default function UserManagement() {
               />
               <Label htmlFor="edit-isActive">Usuário ativo</Label>
             </div>
-            
+
             <div className="flex justify-end space-x-2 pt-4">
               <Button
                 type="button"

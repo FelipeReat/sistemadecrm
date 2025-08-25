@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -29,6 +28,7 @@ import { CloudUpload } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { insertOpportunitySchema } from "@shared/schema";
+import { masks } from "@/lib/masks";
 
 interface NewOpportunityModalProps {
   open: boolean;
@@ -173,7 +173,8 @@ export default function NewOpportunityModal({ open, onOpenChange }: NewOpportuni
                     <Input 
                       placeholder="000.000.000-00" 
                       {...field}
-                      value={field.value || ""}
+                      value={field.value ?? ""}
+                      onChange={(e) => field.onChange(masks.cpf(e.target.value))}
                       data-testid="input-cpf"
                     />
                   </FormControl>
@@ -214,7 +215,8 @@ export default function NewOpportunityModal({ open, onOpenChange }: NewOpportuni
                     <Input 
                       placeholder="00.000.000/0000-00" 
                       {...field}
-                      value={field.value || ""}
+                      value={field.value ?? ""}
+                      onChange={(e) => field.onChange(masks.cnpj(e.target.value))}
                       data-testid="input-cnpj"
                     />
                   </FormControl>
@@ -235,6 +237,8 @@ export default function NewOpportunityModal({ open, onOpenChange }: NewOpportuni
                     <Input 
                       placeholder="(00) 00000-0000" 
                       {...field} 
+                      value={field.value ?? ""}
+                      onChange={(e) => field.onChange(masks.phone(e.target.value))}
                       data-testid="input-phone"
                     />
                   </FormControl>
@@ -250,7 +254,7 @@ export default function NewOpportunityModal({ open, onOpenChange }: NewOpportuni
                 <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                   <FormControl>
                     <Checkbox
-                      checked={field.value || false}
+                      checked={field.value ?? false}
                       onCheckedChange={field.onChange}
                       data-testid="checkbox-has-registration"
                     />
@@ -270,7 +274,7 @@ export default function NewOpportunityModal({ open, onOpenChange }: NewOpportuni
                   <FormLabel>
                     <i className="fas fa-source mr-1"></i>Origem da oportunidade
                   </FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value || ""}>
+                  <Select onValueChange={field.onChange} value={field.value ?? ""}>
                     <FormControl>
                       <SelectTrigger data-testid="select-proposal-origin">
                         <SelectValue placeholder="Selecione a origem" />
@@ -300,7 +304,7 @@ export default function NewOpportunityModal({ open, onOpenChange }: NewOpportuni
                   <FormControl>
                     <RadioGroup
                       onValueChange={field.onChange}
-                      value={field.value || ""}
+                      value={field.value ?? ""}
                       className="flex flex-row space-x-6"
                     >
                       <div className="flex items-center space-x-2">

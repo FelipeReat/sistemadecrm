@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -19,10 +18,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Plus, Upload, CloudUpload, Calendar, User, FileText } from "lucide-react";
+import { Plus, Upload, CloudUpload, Calendar, User, FileText, Phone, Building, Target, DollarSign, CheckCircle2, X } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { PHASES, insertOpportunitySchema } from "@shared/schema";
+import { masks } from "@/lib/masks";
 
 interface OpportunityFormProps {
   phase: string;
@@ -155,11 +155,12 @@ export default function OpportunityForm({ phase }: OpportunityFormProps) {
         </Label>
         <Input
           id="nextActivityDate"
-          type="datetime-local"
+          type="text"
           placeholder="Selecione uma data e hora"
           className="mt-1"
           onChange={(e) => handleInputChange("nextActivityDate", e.target.value)}
           data-testid="form-next-activity-date"
+          {...masks.date}
         />
       </div>
     </div>
@@ -169,7 +170,7 @@ export default function OpportunityForm({ phase }: OpportunityFormProps) {
     <div className="space-y-3">
       <div>
         <Label htmlFor="contact" className="text-sm font-medium text-gray-700">
-          <i className="fas fa-user mr-1"></i>Contato
+          <User className="h-4 w-4 mr-2"/>Contato
         </Label>
         <Input
           id="contact"
@@ -181,7 +182,7 @@ export default function OpportunityForm({ phase }: OpportunityFormProps) {
       </div>
       <div>
         <Label htmlFor="cpf" className="text-sm font-medium text-gray-700">
-          <i className="fas fa-id-card mr-1"></i>CPF
+          <FileText className="h-4 w-4 mr-2"/>CPF
         </Label>
         <Input
           id="cpf"
@@ -189,11 +190,12 @@ export default function OpportunityForm({ phase }: OpportunityFormProps) {
           className="mt-1"
           onChange={(e) => handleInputChange("cpf", e.target.value)}
           data-testid="form-cpf"
+          {...masks.cpf}
         />
       </div>
       <div>
         <Label htmlFor="cnpj" className="text-sm font-medium text-gray-700">
-          <i className="fas fa-building mr-1"></i>CNPJ
+          <Building className="h-4 w-4 mr-2"/>CNPJ
         </Label>
         <Input
           id="cnpj"
@@ -201,11 +203,12 @@ export default function OpportunityForm({ phase }: OpportunityFormProps) {
           className="mt-1"
           onChange={(e) => handleInputChange("cnpj", e.target.value)}
           data-testid="form-cnpj"
+          {...masks.cnpj}
         />
       </div>
       <div>
         <Label htmlFor="phone" className="text-sm font-medium text-gray-700">
-          <i className="fas fa-phone mr-1"></i>Telefone
+          <Phone className="h-4 w-4 mr-2"/>Telefone
         </Label>
         <Input
           id="phone"
@@ -213,6 +216,7 @@ export default function OpportunityForm({ phase }: OpportunityFormProps) {
           className="mt-1"
           onChange={(e) => handleInputChange("phone", e.target.value)}
           data-testid="form-phone"
+          {...masks.phone}
         />
       </div>
       <div className="flex items-center space-x-3">
@@ -227,7 +231,7 @@ export default function OpportunityForm({ phase }: OpportunityFormProps) {
       </div>
       <div>
         <Label htmlFor="statement" className="text-sm font-medium text-gray-700">
-          <i className="fas fa-file-alt mr-1"></i>Statement
+          <FileText className="h-4 w-4 mr-2"/>Statement
         </Label>
         <Textarea
           id="statement"
@@ -251,10 +255,11 @@ export default function OpportunityForm({ phase }: OpportunityFormProps) {
         </Label>
         <Input
           id="visitSchedule"
-          type="datetime-local"
+          type="text"
           className="mt-1"
           onChange={(e) => handleInputChange("visitSchedule", e.target.value)}
           data-testid="form-visit-schedule"
+          {...masks.datetime}
         />
       </div>
 
@@ -266,10 +271,11 @@ export default function OpportunityForm({ phase }: OpportunityFormProps) {
         </Label>
         <Input
           id="visitRealization"
-          type="datetime-local"
+          type="text"
           className="mt-1"
           onChange={(e) => handleInputChange("visitRealization", e.target.value)}
           data-testid="form-visit-realization"
+          {...masks.datetime}
         />
       </div>
 
@@ -293,16 +299,17 @@ export default function OpportunityForm({ phase }: OpportunityFormProps) {
       {/* Descontos */}
       <div>
         <Label htmlFor="discount" className="text-sm font-medium text-gray-700 flex items-center">
-          <i className="fas fa-percentage mr-1"></i>
+          <DollarSign className="h-4 w-4 mr-2" />
           Descontos
         </Label>
         <Input
           id="discount"
-          type="number"
+          type="text"
           placeholder="0,00"
           className="mt-1"
           onChange={(e) => handleInputChange("discount", e.target.value)}
           data-testid="form-discount"
+          {...masks.currency}
         />
       </div>
 
@@ -317,7 +324,7 @@ export default function OpportunityForm({ phase }: OpportunityFormProps) {
       {/* Descritivo de descontos */}
       <div>
         <Label htmlFor="discountDescription" className="text-sm font-medium text-gray-700 flex items-center">
-          <i className="fas fa-align-left mr-1"></i>
+          <FileText className="h-4 w-4 mr-2" />
           Descritivo de descontos
         </Label>
         <Textarea
@@ -338,11 +345,12 @@ export default function OpportunityForm({ phase }: OpportunityFormProps) {
         </Label>
         <Input
           id="validityDate"
-          type="date"
+          type="text"
           placeholder="Selecione uma data"
           className="mt-1"
           onChange={(e) => handleInputChange("validityDate", e.target.value)}
           data-testid="form-validity-date"
+          {...masks.date}
         />
       </div>
 
@@ -364,16 +372,17 @@ export default function OpportunityForm({ phase }: OpportunityFormProps) {
       {/* Orçamento */}
       <div>
         <Label htmlFor="budget" className="text-sm font-medium text-gray-700 flex items-center">
-          <i className="fas fa-dollar-sign mr-1"></i>
+          <DollarSign className="h-4 w-4 mr-2" />
           Orçamento
         </Label>
         <Input
           id="budget"
-          type="number"
+          type="text"
           placeholder="R$ 0,00"
           className="mt-1"
           onChange={(e) => handleInputChange("budget", e.target.value)}
           data-testid="form-budget"
+          {...masks.currency}
         />
         <div className="mt-1">
           <Button variant="link" size="sm" className="text-blue-500 h-auto p-0">
@@ -385,7 +394,7 @@ export default function OpportunityForm({ phase }: OpportunityFormProps) {
       {/* Cliente cadastra no Locador? */}
       <div>
         <Label className="text-sm font-medium text-gray-700 flex items-center">
-          <i className="fas fa-question-circle mr-1"></i>
+          <FileText className="h-4 w-4 mr-2" />
           * Cliente cadastra no Locador?
         </Label>
         <RadioGroup 
@@ -410,7 +419,7 @@ export default function OpportunityForm({ phase }: OpportunityFormProps) {
       {/* Status */}
       <div>
         <Label htmlFor="status" className="text-sm font-medium text-gray-700 flex items-center">
-          <i className="fas fa-info-circle mr-1"></i>
+          <FileText className="h-4 w-4 mr-2" />
           * Status
         </Label>
         <Select onValueChange={(value) => handleInputChange("status", value)}>
@@ -429,16 +438,17 @@ export default function OpportunityForm({ phase }: OpportunityFormProps) {
       {/* Valor final da oportunidade */}
       <div>
         <Label htmlFor="finalValue" className="text-sm font-medium text-gray-700 flex items-center">
-          <i className="fas fa-dollar-sign mr-1"></i>
+          <DollarSign className="h-4 w-4 mr-2" />
           * Valor final da oportunidade
         </Label>
         <Input
           id="finalValue"
-          type="number"
+          type="text"
           placeholder="0,00"
           className="mt-1"
           onChange={(e) => handleInputChange("finalValue", e.target.value)}
           data-testid="form-final-value"
+          {...masks.currency}
         />
       </div>
 
@@ -491,7 +501,7 @@ export default function OpportunityForm({ phase }: OpportunityFormProps) {
       {/* Motivo da perda */}
       <div>
         <Label htmlFor="lossReason" className="text-sm font-medium text-gray-700 flex items-center">
-          <i className="fas fa-times-circle mr-1"></i>
+          <X className="h-4 w-4 mr-2" />
           * Motivo da perda
         </Label>
         <Textarea
@@ -512,11 +522,12 @@ export default function OpportunityForm({ phase }: OpportunityFormProps) {
         </Label>
         <Input
           id="closingDate"
-          type="date"
+          type="text"
           placeholder="Selecione uma data"
           className="mt-1"
           onChange={(e) => handleInputChange("closingDate", e.target.value)}
           data-testid="form-closing-date"
+          {...masks.date}
         />
       </div>
     </div>
