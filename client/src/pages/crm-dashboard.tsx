@@ -1,11 +1,14 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Settings, ChartLine, Trophy, Clock, DollarSign } from "lucide-react";
+import { Settings, ChartLine, Trophy, Clock, DollarSign, Plus } from "lucide-react";
 import SalesPipelineColumn from "@/components/sales-pipeline-column";
+import NewOpportunityModal from "@/components/new-opportunity-modal";
 import { PHASES } from "@shared/schema";
 import type { Opportunity } from "@shared/schema";
 
 export default function CrmDashboard() {
+  const [isNewOpportunityModalOpen, setIsNewOpportunityModalOpen] = useState(false);
 
   // Fetch all opportunities
   const { data: opportunities = [], isLoading: isLoadingOpportunities } = useQuery<Opportunity[]>({
@@ -103,6 +106,13 @@ export default function CrmDashboard() {
               </h1>
             </div>
             <div className="flex items-center space-x-4">
+              <Button 
+                onClick={() => setIsNewOpportunityModalOpen(true)}
+                data-testid="button-new-opportunity"
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Nova Oportunidade
+              </Button>
               <Button variant="outline" data-testid="button-settings">
                 <Settings className="mr-2 h-4 w-4" />
                 Configurações
@@ -196,6 +206,10 @@ export default function CrmDashboard() {
         </div>
       </main>
 
+      <NewOpportunityModal 
+        open={isNewOpportunityModalOpen}
+        onOpenChange={setIsNewOpportunityModalOpen}
+      />
     </div>
   );
 }
