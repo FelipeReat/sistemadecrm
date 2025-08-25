@@ -41,7 +41,7 @@ export const opportunities = pgTable("opportunities", {
   lossReason: text("loss_reason"),
   
   // Controle de fase
-  phase: text("phase").notNull().default("nova-oportunidade"),
+  phase: text("phase").notNull().default("prospeccao"),
   
   // Timestamps
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
@@ -74,7 +74,6 @@ export type Automation = typeof automations.$inferSelect;
 
 // Phases enum
 export const PHASES = {
-  NOVA_OPORTUNIDADE: 'nova-oportunidade',
   PROSPECCAO: 'prospeccao',
   EM_ATENDIMENTO: 'em-atendimento',
   VISITA_TECNICA: 'visita-tecnica',

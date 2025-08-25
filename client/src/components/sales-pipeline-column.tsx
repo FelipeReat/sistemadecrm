@@ -128,7 +128,9 @@ export default function SalesPipelineColumn({ phase, opportunities, isLoading }:
 
         {/* Form Section */}
         <div className={`p-4 border-t ${phase.borderColor} ${phase.bgColor.replace('bg-', 'bg-').replace('-200', '-50')}`}>
-          {(phase.key === "em-atendimento" || phase.key === "ganho" || phase.key === "perdido") && !showCustomFields ? (
+          {phase.key === "prospeccao" ? (
+            <OpportunityForm phase={phase.key} />
+          ) : (phase.key === "em-atendimento" || phase.key === "ganho" || phase.key === "perdido") && !showCustomFields ? (
             <div className="text-center py-6">
               <Plus className="text-4xl mb-2 mx-auto opacity-40" />
               <p className="text-sm text-gray-600 mb-3">Adicione campos personalizados para esta fase</p>
@@ -144,9 +146,9 @@ export default function SalesPipelineColumn({ phase, opportunities, isLoading }:
                 Adicionar campos
               </Button>
             </div>
-          ) : (
+          ) : phase.key !== "prospeccao" ? (
             <OpportunityForm phase={phase.key} />
-          )}
+          ) : null}
 
           {/* Success/Loss Messages */}
           {phase.successMessage && (

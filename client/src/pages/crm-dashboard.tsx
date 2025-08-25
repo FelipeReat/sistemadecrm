@@ -1,14 +1,11 @@
-import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Plus, Settings, ChartLine, Trophy, Clock, DollarSign } from "lucide-react";
+import { Settings, ChartLine, Trophy, Clock, DollarSign } from "lucide-react";
 import SalesPipelineColumn from "@/components/sales-pipeline-column";
-import NewOpportunityModal from "@/components/new-opportunity-modal";
 import { PHASES } from "@shared/schema";
 import type { Opportunity } from "@shared/schema";
 
 export default function CrmDashboard() {
-  const [isNewOpportunityModalOpen, setIsNewOpportunityModalOpen] = useState(false);
 
   // Fetch all opportunities
   const { data: opportunities = [], isLoading: isLoadingOpportunities } = useQuery<Opportunity[]>({
@@ -16,7 +13,7 @@ export default function CrmDashboard() {
   });
 
   // Fetch stats
-  const { data: stats } = useQuery({
+  const { data: stats = {} } = useQuery({
     queryKey: ["/api/stats"],
   });
 
@@ -31,21 +28,13 @@ export default function CrmDashboard() {
 
   const phaseConfig = [
     {
-      key: PHASES.NOVA_OPORTUNIDADE,
-      title: "Nova oportunidade",
-      icon: "lightbulb",
-      bgColor: "bg-nova-oportunidade",
-      borderColor: "border-yellow-200",
-      badgeColor: "bg-yellow-100 text-yellow-800",
-      description: "Este é o formulário que coleta informações sobre uma nova solicitação e preenche o pipe com cards.",
-    },
-    {
       key: PHASES.PROSPECCAO,
       title: "Prospecção",
       icon: "search",
       bgColor: "bg-prospeccao",
       borderColor: "border-orange-200",
       badgeColor: "bg-orange-100 text-orange-800",
+      description: "Este é o formulário que coleta informações sobre uma nova solicitação e preenche o pipe com cards.",
     },
     {
       key: PHASES.EM_ATENDIMENTO,
@@ -114,14 +103,6 @@ export default function CrmDashboard() {
               </h1>
             </div>
             <div className="flex items-center space-x-4">
-              <Button 
-                className="bg-blue-500 hover:bg-blue-600 text-white" 
-                onClick={() => setIsNewOpportunityModalOpen(true)}
-                data-testid="button-new-opportunity"
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Nova Oportunidade
-              </Button>
               <Button variant="outline" data-testid="button-settings">
                 <Settings className="mr-2 h-4 w-4" />
                 Configurações
@@ -145,7 +126,7 @@ export default function CrmDashboard() {
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-500">Total de Oportunidades</p>
                 <p className="text-2xl font-bold text-gray-900" data-testid="stat-total-opportunities">
-                  {stats?.totalOpportunities || 0}
+                  {(stats as any)?.totalOpportunities || 0}
                 </p>
               </div>
             </div>
@@ -161,7 +142,7 @@ export default function CrmDashboard() {
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-500">Oportunidades Ganhas</p>
                 <p className="text-2xl font-bold text-gray-900" data-testid="stat-won-opportunities">
-                  {stats?.wonOpportunities || 0}
+                  {(stats as any)?.wonOpportunities || 0}
                 </p>
               </div>
             </div>
@@ -177,7 +158,7 @@ export default function CrmDashboard() {
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-500">Em Andamento</p>
                 <p className="text-2xl font-bold text-gray-900" data-testid="stat-active-opportunities">
-                  {stats?.activeOpportunities || 0}
+                  {(stats as any)?.activeOpportunities || 0}
                 </p>
               </div>
             </div>
@@ -193,7 +174,7 @@ export default function CrmDashboard() {
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-500">Receita Projetada</p>
                 <p className="text-2xl font-bold text-gray-900" data-testid="stat-projected-revenue">
-                  {stats?.projectedRevenue || "R$ 0,00"}
+                  {(stats as any)?.projectedRevenue || "R$ 0,00"}
                 </p>
               </div>
             </div>
@@ -215,11 +196,6 @@ export default function CrmDashboard() {
         </div>
       </main>
 
-      {/* New Opportunity Modal */}
-      <NewOpportunityModal
-        open={isNewOpportunityModalOpen}
-        onOpenChange={setIsNewOpportunityModalOpen}
-      />
     </div>
   );
 }

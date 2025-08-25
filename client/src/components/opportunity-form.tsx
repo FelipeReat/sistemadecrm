@@ -1,4 +1,16 @@
 import { useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -6,95 +18,218 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Plus, Upload, CloudUpload } from "lucide-react";
-import { PHASES } from "@shared/schema";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { PHASES, insertOpportunitySchema } from "@shared/schema";
 
 interface OpportunityFormProps {
   phase: string;
 }
 
+// Form schema for Prospecção (creation)
+const prospeccaoFormSchema = insertOpportunitySchema.pick({
+  contact: true,
+  cpf: true,
+  company: true,
+  cnpj: true,
+  phone: true,
+  hasRegistration: true,
+}).extend({
+  cpf: z.string().nullable().optional(),
+  cnpj: z.string().nullable().optional(),
+  hasRegistration: z.boolean().nullable().optional(),
+});
+
+type ProspeccaoFormData = z.infer<typeof prospeccaoFormSchema>;
+
 export default function OpportunityForm({ phase }: OpportunityFormProps) {
   const [formData, setFormData] = useState<Record<string, any>>({});
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  // Form for Prospecção phase (creation)
+  const prospeccaoForm = useForm<ProspeccaoFormData>({
+    resolver: zodResolver(prospeccaoFormSchema),
+    defaultValues: {
+      contact: "",
+      cpf: null,
+      company: "",
+      cnpj: null,
+      phone: "",
+      hasRegistration: false,
+    },
+  });
+
+  const createOpportunityMutation = useMutation({
+    mutationFn: (data: ProspeccaoFormData) => apiRequest("POST", "/api/opportunities", {
+      ...data,
+      phase: "prospeccao"
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/opportunities"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
+      toast({
+        title: "Sucesso",
+        description: "Nova oportunidade criada com sucesso!",
+      });
+      prospeccaoForm.reset();
+    },
+    onError: () => {
+      toast({
+        title: "Erro",
+        description: "Erro ao criar oportunidade.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const onSubmitProspeccao = async (data: ProspeccaoFormData) => {
+    createOpportunityMutation.mutate(data);
+  };
 
   const handleInputChange = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const renderNovaOportunidadeForm = () => (
-    <div className="space-y-3">
-      <div>
-        <Label htmlFor="contact" className="text-sm font-medium text-gray-700">
-          <i className="fas fa-user mr-1"></i>Contato
-        </Label>
-        <Input
-          id="contact"
-          placeholder="Nome do contato"
-          className="mt-1"
-          onChange={(e) => handleInputChange("contact", e.target.value)}
-          data-testid="form-contact"
+  const renderProspeccaoForm = () => (
+    <Form {...prospeccaoForm}>
+      <form onSubmit={prospeccaoForm.handleSubmit(onSubmitProspeccao)} className="space-y-3">
+        <FormField
+          control={prospeccaoForm.control}
+          name="contact"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="text-sm font-medium text-gray-700">
+                <i className="fas fa-user mr-1"></i>Contato
+              </FormLabel>
+              <FormControl>
+                <Input 
+                  placeholder="Nome do contato" 
+                  {...field} 
+                  data-testid="form-contact"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
         />
-      </div>
-      <div>
-        <Label htmlFor="cpf" className="text-sm font-medium text-gray-700">
-          <i className="fas fa-id-card mr-1"></i>CPF
-        </Label>
-        <Input
-          id="cpf"
-          placeholder="000.000.000-00"
-          className="mt-1"
-          onChange={(e) => handleInputChange("cpf", e.target.value)}
-          data-testid="form-cpf"
+
+        <FormField
+          control={prospeccaoForm.control}
+          name="cpf"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="text-sm font-medium text-gray-700">
+                <i className="fas fa-id-card mr-1"></i>CPF
+              </FormLabel>
+              <FormControl>
+                <Input 
+                  placeholder="000.000.000-00" 
+                  {...field}
+                  value={field.value || ""}
+                  data-testid="form-cpf"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
         />
-      </div>
-      <div>
-        <Label htmlFor="company" className="text-sm font-medium text-gray-700">
-          <i className="fas fa-building mr-1"></i>Empresa
-        </Label>
-        <Input
-          id="company"
-          placeholder="Nome da empresa"
-          className="mt-1"
-          onChange={(e) => handleInputChange("company", e.target.value)}
-          data-testid="form-company"
+
+        <FormField
+          control={prospeccaoForm.control}
+          name="company"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="text-sm font-medium text-gray-700">
+                <i className="fas fa-building mr-1"></i>Empresa
+              </FormLabel>
+              <FormControl>
+                <Input 
+                  placeholder="Nome da empresa" 
+                  {...field} 
+                  data-testid="form-company"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
         />
-      </div>
-      <div>
-        <Label htmlFor="cnpj" className="text-sm font-medium text-gray-700">
-          <i className="fas fa-building mr-1"></i>CNPJ
-        </Label>
-        <Input
-          id="cnpj"
-          placeholder="00.000.000/0000-00"
-          className="mt-1"
-          onChange={(e) => handleInputChange("cnpj", e.target.value)}
-          data-testid="form-cnpj"
+
+        <FormField
+          control={prospeccaoForm.control}
+          name="cnpj"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="text-sm font-medium text-gray-700">
+                <i className="fas fa-building mr-1"></i>CNPJ
+              </FormLabel>
+              <FormControl>
+                <Input 
+                  placeholder="00.000.000/0000-00" 
+                  {...field}
+                  value={field.value || ""}
+                  data-testid="form-cnpj"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
         />
-      </div>
-      <div>
-        <Label htmlFor="phone" className="text-sm font-medium text-gray-700">
-          <i className="fas fa-phone mr-1"></i>Telefone
-        </Label>
-        <Input
-          id="phone"
-          placeholder="(00) 00000-0000"
-          className="mt-1"
-          onChange={(e) => handleInputChange("phone", e.target.value)}
-          data-testid="form-phone"
+
+        <FormField
+          control={prospeccaoForm.control}
+          name="phone"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="text-sm font-medium text-gray-700">
+                <i className="fas fa-phone mr-1"></i>Telefone
+              </FormLabel>
+              <FormControl>
+                <Input 
+                  placeholder="(00) 00000-0000" 
+                  {...field} 
+                  data-testid="form-phone"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
         />
-      </div>
-      <div className="flex items-center space-x-3">
-        <Checkbox
-          id="hasRegistration"
-          onCheckedChange={(value) => handleInputChange("hasRegistration", value)}
-          data-testid="form-has-registration"
+
+        <FormField
+          control={prospeccaoForm.control}
+          name="hasRegistration"
+          render={({ field }) => (
+            <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+              <FormControl>
+                <Checkbox
+                  checked={field.value || false}
+                  onCheckedChange={field.onChange}
+                  data-testid="form-has-registration"
+                />
+              </FormControl>
+              <div className="space-y-1 leading-none">
+                <FormLabel className="text-sm font-medium text-gray-700">
+                  Possui cadastro no Locador?
+                </FormLabel>
+              </div>
+            </FormItem>
+          )}
         />
-        <Label htmlFor="hasRegistration" className="text-sm font-medium text-gray-700">
-          Possui cadastro no Locador?
-        </Label>
-      </div>
-    </div>
+
+        <Button 
+          type="submit" 
+          className="w-full bg-orange-500 hover:bg-orange-600 text-white"
+          disabled={createOpportunityMutation.isPending}
+          data-testid="button-create-opportunity"
+        >
+          {createOpportunityMutation.isPending ? "Criando..." : "Criar Oportunidade"}
+        </Button>
+      </form>
+    </Form>
   );
 
-  const renderProspeccaoForm = () => (
+  const renderEmAtendimentoForm = () => (
     <div className="space-y-3">
       <div>
         <Label htmlFor="opportunityNumber" className="text-sm font-medium text-gray-700">
@@ -412,10 +547,10 @@ export default function OpportunityForm({ phase }: OpportunityFormProps) {
 
   const renderFormByPhase = () => {
     switch (phase) {
-      case PHASES.NOVA_OPORTUNIDADE:
-        return renderNovaOportunidadeForm();
       case PHASES.PROSPECCAO:
         return renderProspeccaoForm();
+      case PHASES.EM_ATENDIMENTO:
+        return renderEmAtendimentoForm();
       case PHASES.VISITA_TECNICA:
         return renderVisitaTecnicaForm();
       case PHASES.PROPOSTA:

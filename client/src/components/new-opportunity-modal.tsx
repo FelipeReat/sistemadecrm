@@ -36,6 +36,10 @@ const formSchema = insertOpportunitySchema.pick({
   cnpj: true,
   phone: true,
   hasRegistration: true,
+}).extend({
+  cpf: z.string().nullable().optional(),
+  cnpj: z.string().nullable().optional(),
+  hasRegistration: z.boolean().nullable().optional(),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -49,9 +53,9 @@ export default function NewOpportunityModal({ open, onOpenChange }: NewOpportuni
     resolver: zodResolver(formSchema),
     defaultValues: {
       contact: "",
-      cpf: "",
+      cpf: null,
       company: "",
-      cnpj: "",
+      cnpj: null,
       phone: "",
       hasRegistration: false,
     },
@@ -60,7 +64,7 @@ export default function NewOpportunityModal({ open, onOpenChange }: NewOpportuni
   const createOpportunityMutation = useMutation({
     mutationFn: (data: FormData) => apiRequest("POST", "/api/opportunities", {
       ...data,
-      phase: "nova-oportunidade"
+      phase: "prospeccao"
     }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/opportunities"] });
@@ -129,7 +133,8 @@ export default function NewOpportunityModal({ open, onOpenChange }: NewOpportuni
                   <FormControl>
                     <Input 
                       placeholder="000.000.000-00" 
-                      {...field} 
+                      {...field}
+                      value={field.value || ""}
                       data-testid="input-cpf"
                     />
                   </FormControl>
@@ -169,7 +174,8 @@ export default function NewOpportunityModal({ open, onOpenChange }: NewOpportuni
                   <FormControl>
                     <Input 
                       placeholder="00.000.000/0000-00" 
-                      {...field} 
+                      {...field}
+                      value={field.value || ""}
                       data-testid="input-cnpj"
                     />
                   </FormControl>
@@ -205,7 +211,7 @@ export default function NewOpportunityModal({ open, onOpenChange }: NewOpportuni
                 <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                   <FormControl>
                     <Checkbox
-                      checked={field.value}
+                      checked={field.value || false}
                       onCheckedChange={field.onChange}
                       data-testid="checkbox-has-registration"
                     />

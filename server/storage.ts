@@ -41,7 +41,8 @@ export class MemStorage implements IStorage {
     const id = randomUUID();
     const now = new Date();
     const opportunity: Opportunity = { 
-      ...insertOpportunity, 
+      ...insertOpportunity,
+      status: insertOpportunity.status || null,
       id,
       createdAt: now,
       updatedAt: now
