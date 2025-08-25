@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -17,7 +18,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
-import { Plus, Upload, CloudUpload } from "lucide-react";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Plus, Upload, CloudUpload, Calendar, User, FileText } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { PHASES, insertOpportunitySchema } from "@shared/schema";
@@ -80,10 +82,86 @@ export default function OpportunityForm({ phase }: OpportunityFormProps) {
   };
 
   const renderProspeccaoForm = () => (
-    <div className="text-center">
-      <p className="text-sm text-gray-600 mb-4">
-        Clique no botão "Nova Oportunidade" no cabeçalho da coluna para criar uma nova oportunidade.
-      </p>
+    <div className="space-y-4">
+      {/* Número da oportunidade */}
+      <div>
+        <Label htmlFor="opportunityNumber" className="text-sm font-medium text-gray-700 flex items-center">
+          <FileText className="h-4 w-4 mr-2" />
+          Número da oportunidade
+        </Label>
+        <Input
+          id="opportunityNumber"
+          placeholder="#9999"
+          className="mt-1"
+          onChange={(e) => handleInputChange("opportunityNumber", e.target.value)}
+          data-testid="form-opportunity-number"
+        />
+      </div>
+
+      {/* Vendedor responsável */}
+      <div>
+        <Label htmlFor="salesperson" className="text-sm font-medium text-gray-700 flex items-center">
+          <User className="h-4 w-4 mr-2" />
+          * Vendedor responsável
+        </Label>
+        <Select onValueChange={(value) => handleInputChange("salesperson", value)}>
+          <SelectTrigger className="mt-1" data-testid="form-salesperson">
+            <SelectValue placeholder="+ Adicionar responsável" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="carlos">Carlos Mendes</SelectItem>
+            <SelectItem value="ana">Ana Silva</SelectItem>
+            <SelectItem value="pedro">Pedro Santos</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Necessário Visita? */}
+      <div>
+        <Label className="text-sm font-medium text-gray-700">* Necessário Visita?</Label>
+        <RadioGroup 
+          className="flex flex-row space-x-4 mt-2"
+          onValueChange={(value) => handleInputChange("requiresVisit", value === "sim")}
+        >
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="sim" id="visit-sim" />
+            <Label htmlFor="visit-sim">Sim</Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="nao" id="visit-nao" />
+            <Label htmlFor="visit-nao">Não</Label>
+          </div>
+        </RadioGroup>
+      </div>
+
+      {/* Atividades */}
+      <div>
+        <Label className="text-sm font-medium text-gray-700 flex items-center">
+          <Calendar className="h-4 w-4 mr-2" />
+          Atividades
+        </Label>
+        <div className="mt-2 p-3 bg-blue-50 rounded-md">
+          <p className="text-sm text-blue-700">
+            📝 Lembre-se de logar suas atividades no menu de Atividades ou na forma de comentário!
+          </p>
+        </div>
+      </div>
+
+      {/* Data da próxima atividade */}
+      <div>
+        <Label htmlFor="nextActivityDate" className="text-sm font-medium text-gray-700 flex items-center">
+          <Calendar className="h-4 w-4 mr-2" />
+          Data da próxima atividade
+        </Label>
+        <Input
+          id="nextActivityDate"
+          type="datetime-local"
+          placeholder="Selecione uma data e hora"
+          className="mt-1"
+          onChange={(e) => handleInputChange("nextActivityDate", e.target.value)}
+          data-testid="form-next-activity-date"
+        />
+      </div>
     </div>
   );
 
@@ -148,43 +226,6 @@ export default function OpportunityForm({ phase }: OpportunityFormProps) {
         </Label>
       </div>
       <div>
-        <Label htmlFor="opportunityNumber" className="text-sm font-medium text-gray-700">
-          <i className="fas fa-hashtag mr-1"></i>Número da oportunidade
-        </Label>
-        <Input
-          id="opportunityNumber"
-          placeholder="OP-001"
-          className="mt-1"
-          onChange={(e) => handleInputChange("opportunityNumber", e.target.value)}
-          data-testid="form-opportunity-number"
-        />
-      </div>
-      <div>
-        <Label htmlFor="salesperson" className="text-sm font-medium text-gray-700">
-          <i className="fas fa-user-tie mr-1"></i>Vendedor responsável
-        </Label>
-        <Select onValueChange={(value) => handleInputChange("salesperson", value)}>
-          <SelectTrigger className="mt-1" data-testid="form-salesperson">
-            <SelectValue placeholder="Selecione o vendedor" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="carlos">Carlos Mendes</SelectItem>
-            <SelectItem value="ana">Ana Silva</SelectItem>
-            <SelectItem value="pedro">Pedro Santos</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-      <div className="flex items-center space-x-3">
-        <Checkbox
-          id="requiresVisit"
-          onCheckedChange={(value) => handleInputChange("requiresVisit", value)}
-          data-testid="form-requires-visit"
-        />
-        <Label htmlFor="requiresVisit" className="text-sm font-medium text-gray-700">
-          Necessário Visita?
-        </Label>
-      </div>
-      <div>
         <Label htmlFor="statement" className="text-sm font-medium text-gray-700">
           <i className="fas fa-file-alt mr-1"></i>Statement
         </Label>
@@ -197,26 +238,16 @@ export default function OpportunityForm({ phase }: OpportunityFormProps) {
           data-testid="form-statement"
         />
       </div>
-      <div>
-        <Label htmlFor="nextActivityDate" className="text-sm font-medium text-gray-700">
-          <i className="fas fa-calendar-alt mr-1"></i>Data da próxima atividade
-        </Label>
-        <Input
-          id="nextActivityDate"
-          type="date"
-          className="mt-1"
-          onChange={(e) => handleInputChange("nextActivityDate", e.target.value)}
-          data-testid="form-next-activity-date"
-        />
-      </div>
     </div>
   );
 
   const renderVisitaTecnicaForm = () => (
-    <div className="space-y-3">
+    <div className="space-y-4">
+      {/* Agendamento de Visita */}
       <div>
-        <Label htmlFor="visitSchedule" className="text-sm font-medium text-gray-700">
-          <i className="fas fa-calendar-plus mr-1"></i>Agendamento de Visita
+        <Label htmlFor="visitSchedule" className="text-sm font-medium text-gray-700 flex items-center">
+          <Calendar className="h-4 w-4 mr-2" />
+          Agendamento de Visita
         </Label>
         <Input
           id="visitSchedule"
@@ -226,9 +257,12 @@ export default function OpportunityForm({ phase }: OpportunityFormProps) {
           data-testid="form-visit-schedule"
         />
       </div>
+
+      {/* Data e Hora de Realização da Visita */}
       <div>
-        <Label htmlFor="visitRealization" className="text-sm font-medium text-gray-700">
-          <i className="fas fa-clock mr-1"></i>Data e Hora de Realização da Visita
+        <Label htmlFor="visitRealization" className="text-sm font-medium text-gray-700 flex items-center">
+          <Calendar className="h-4 w-4 mr-2" />
+          Data e Hora de Realização da Visita
         </Label>
         <Input
           id="visitRealization"
@@ -238,9 +272,12 @@ export default function OpportunityForm({ phase }: OpportunityFormProps) {
           data-testid="form-visit-realization"
         />
       </div>
+
+      {/* Registro Fotográfico de Visita */}
       <div>
-        <Label htmlFor="visitPhotos" className="text-sm font-medium text-gray-700">
-          <i className="fas fa-camera mr-1"></i>Registro Fotográfico de Visita
+        <Label htmlFor="visitPhotos" className="text-sm font-medium text-gray-700 flex items-center">
+          <CloudUpload className="h-4 w-4 mr-2" />
+          Registro Fotográfico de Visita
         </Label>
         <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center mt-1 cursor-pointer hover:border-gray-400 transition-colors">
           <CloudUpload className="text-gray-400 text-xl mb-2 mx-auto" />
@@ -252,73 +289,83 @@ export default function OpportunityForm({ phase }: OpportunityFormProps) {
   );
 
   const renderPropostaForm = () => (
-    <div className="space-y-3">
+    <div className="space-y-4">
+      {/* Descontos */}
       <div>
-        <Label htmlFor="discount" className="text-sm font-medium text-gray-700">
-          <i className="fas fa-percentage mr-1"></i>Descontos
+        <Label htmlFor="discount" className="text-sm font-medium text-gray-700 flex items-center">
+          <i className="fas fa-percentage mr-1"></i>
+          Descontos
         </Label>
         <Input
           id="discount"
           type="number"
-          placeholder="0%"
+          placeholder="0,00"
           className="mt-1"
           onChange={(e) => handleInputChange("discount", e.target.value)}
           data-testid="form-discount"
         />
       </div>
-      <div>
-        <Label htmlFor="statementProposta" className="text-sm font-medium text-gray-700">
-          <i className="fas fa-file-alt mr-1"></i>Statement
-        </Label>
-        <Textarea
-          id="statementProposta"
-          placeholder="Statement-feddf1835-1561-63f5-ab..."
-          rows={2}
-          className="mt-1"
-          onChange={(e) => handleInputChange("statement", e.target.value)}
-          data-testid="form-statement-proposta"
-        />
+
+      {/* Lembre-se de atualizar o valor final do negócio */}
+      <div className="p-3 bg-yellow-50 rounded-md">
+        <p className="text-sm text-yellow-700 flex items-center">
+          <i className="fas fa-exclamation-triangle mr-2"></i>
+          Lembre-se de atualizar o valor final do negócio à esquerda!
+        </p>
       </div>
+
+      {/* Descritivo de descontos */}
       <div>
-        <Label htmlFor="discountDescription" className="text-sm font-medium text-gray-700">
-          <i className="fas fa-align-left mr-1"></i>Descritivo de descontos
+        <Label htmlFor="discountDescription" className="text-sm font-medium text-gray-700 flex items-center">
+          <i className="fas fa-align-left mr-1"></i>
+          Descritivo de descontos
         </Label>
         <Textarea
           id="discountDescription"
           placeholder="Descreva os descontos aplicados..."
-          rows={3}
+          rows={4}
           className="mt-1"
           onChange={(e) => handleInputChange("discountDescription", e.target.value)}
           data-testid="form-discount-description"
         />
       </div>
+
+      {/* Data de validade da proposta */}
       <div>
-        <Label htmlFor="validityDate" className="text-sm font-medium text-gray-700">
-          <i className="fas fa-calendar-times mr-1"></i>Data de validade da proposta
+        <Label htmlFor="validityDate" className="text-sm font-medium text-gray-700 flex items-center">
+          <Calendar className="h-4 w-4 mr-2" />
+          Data de validade da proposta
         </Label>
         <Input
           id="validityDate"
           type="date"
+          placeholder="Selecione uma data"
           className="mt-1"
           onChange={(e) => handleInputChange("validityDate", e.target.value)}
           data-testid="form-validity-date"
         />
       </div>
+
+      {/* Nº de Orçamento */}
       <div>
-        <Label htmlFor="budgetNumber" className="text-sm font-medium text-gray-700">
-          <i className="fas fa-hashtag mr-1"></i>Nº de Orçamento
+        <Label htmlFor="budgetNumber" className="text-sm font-medium text-gray-700 flex items-center">
+          <FileText className="h-4 w-4 mr-2" />
+          Nº de Orçamento
         </Label>
         <Input
           id="budgetNumber"
-          placeholder="ORC-001"
+          placeholder="0"
           className="mt-1"
           onChange={(e) => handleInputChange("budgetNumber", e.target.value)}
           data-testid="form-budget-number"
         />
       </div>
+
+      {/* Orçamento */}
       <div>
-        <Label htmlFor="budget" className="text-sm font-medium text-gray-700">
-          <i className="fas fa-dollar-sign mr-1"></i>Orçamento
+        <Label htmlFor="budget" className="text-sm font-medium text-gray-700 flex items-center">
+          <i className="fas fa-dollar-sign mr-1"></i>
+          Orçamento
         </Label>
         <Input
           id="budget"
@@ -328,87 +375,148 @@ export default function OpportunityForm({ phase }: OpportunityFormProps) {
           onChange={(e) => handleInputChange("budget", e.target.value)}
           data-testid="form-budget"
         />
+        <div className="mt-1">
+          <Button variant="link" size="sm" className="text-blue-500 h-auto p-0">
+            + Upload file
+          </Button>
+        </div>
+      </div>
+
+      {/* Cliente cadastra no Locador? */}
+      <div>
+        <Label className="text-sm font-medium text-gray-700 flex items-center">
+          <i className="fas fa-question-circle mr-1"></i>
+          * Cliente cadastra no Locador?
+        </Label>
+        <RadioGroup 
+          className="flex flex-row space-x-4 mt-2"
+          onValueChange={(value) => handleInputChange("clientRegistration", value === "sim")}
+        >
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="sim" id="client-sim" />
+            <Label htmlFor="client-sim">Sim</Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="nao" id="client-nao" />
+            <Label htmlFor="client-nao">Não</Label>
+          </div>
+        </RadioGroup>
       </div>
     </div>
   );
 
   const renderNegociacaoForm = () => (
-    <div className="space-y-3">
+    <div className="space-y-4">
+      {/* Status */}
       <div>
-        <Label htmlFor="status" className="text-sm font-medium text-gray-700">
-          <i className="fas fa-info-circle mr-1"></i>Status
+        <Label htmlFor="status" className="text-sm font-medium text-gray-700 flex items-center">
+          <i className="fas fa-info-circle mr-1"></i>
+          * Status
         </Label>
         <Select onValueChange={(value) => handleInputChange("status", value)}>
           <SelectTrigger className="mt-1" data-testid="form-status">
-            <SelectValue placeholder="Selecione o status" />
+            <SelectValue placeholder="Ganho ou Perdido" />
           </SelectTrigger>
           <SelectContent>
+            <SelectItem value="ganho">Ganho</SelectItem>
+            <SelectItem value="perdido">Perdido</SelectItem>
             <SelectItem value="em-negociacao">Em negociação</SelectItem>
             <SelectItem value="aguardando-resposta">Aguardando resposta</SelectItem>
-            <SelectItem value="aguardando-documentacao">Aguardando documentação</SelectItem>
-            <SelectItem value="pronto-para-fechar">Pronto para fechar</SelectItem>
           </SelectContent>
         </Select>
       </div>
+
+      {/* Valor final da oportunidade */}
       <div>
-        <Label htmlFor="finalValue" className="text-sm font-medium text-gray-700">
-          <i className="fas fa-trophy mr-1"></i>Valor final da oportunidade
+        <Label htmlFor="finalValue" className="text-sm font-medium text-gray-700 flex items-center">
+          <i className="fas fa-dollar-sign mr-1"></i>
+          * Valor final da oportunidade
         </Label>
         <Input
           id="finalValue"
           type="number"
-          placeholder="R$ 0,00"
+          placeholder="0,00"
           className="mt-1"
           onChange={(e) => handleInputChange("finalValue", e.target.value)}
           data-testid="form-final-value"
         />
       </div>
+
+      {/* Informações da negociação */}
       <div>
-        <Label htmlFor="negotiationInfo" className="text-sm font-medium text-gray-700">
-          <i className="fas fa-comments mr-1"></i>Informações da negociação
+        <Label htmlFor="negotiationInfo" className="text-sm font-medium text-gray-700 flex items-center">
+          <FileText className="h-4 w-4 mr-2" />
+          Informações da negociação
         </Label>
         <Textarea
           id="negotiationInfo"
           placeholder="Detalhes da negociação..."
-          rows={3}
+          rows={4}
           className="mt-1"
           onChange={(e) => handleInputChange("negotiationInfo", e.target.value)}
           data-testid="form-negotiation-info"
         />
       </div>
+
+      {/* Contrato */}
       <div>
-        <Label htmlFor="contract" className="text-sm font-medium text-gray-700">
-          <i className="fas fa-file-signature mr-1"></i>Contrato
+        <Label htmlFor="contract" className="text-sm font-medium text-gray-700 flex items-center">
+          <Upload className="h-4 w-4 mr-2" />
+          Contrato
         </Label>
         <div className="border-2 border-dashed border-gray-300 rounded-lg p-3 text-center mt-1 cursor-pointer hover:border-gray-400 transition-colors">
           <Upload className="text-gray-400 text-lg mb-1 mx-auto" />
-          <p className="text-xs text-gray-500">Upload do contrato</p>
+          <Button variant="link" size="sm" className="text-blue-500 h-auto p-0">
+            + Upload file
+          </Button>
           <input type="file" className="hidden" accept=".pdf,.doc,.docx" data-testid="form-contract" />
         </div>
       </div>
+
+      {/* Nº de Fatura */}
       <div>
-        <Label htmlFor="invoiceNumber" className="text-sm font-medium text-gray-700">
-          <i className="fas fa-receipt mr-1"></i>Nº de Fatura
+        <Label htmlFor="invoiceNumber" className="text-sm font-medium text-gray-700 flex items-center">
+          <FileText className="h-4 w-4 mr-2" />
+          Nº de Fatura
         </Label>
         <Input
           id="invoiceNumber"
-          placeholder="FAT-001"
+          placeholder="0"
           className="mt-1"
           onChange={(e) => handleInputChange("invoiceNumber", e.target.value)}
           data-testid="form-invoice-number"
         />
       </div>
+
+      {/* Motivo da perda */}
       <div>
-        <Label htmlFor="lossReason" className="text-sm font-medium text-gray-700">
-          <i className="fas fa-times-circle mr-1"></i>Motivo da perda
+        <Label htmlFor="lossReason" className="text-sm font-medium text-gray-700 flex items-center">
+          <i className="fas fa-times-circle mr-1"></i>
+          * Motivo da perda
         </Label>
         <Textarea
           id="lossReason"
           placeholder="Caso a oportunidade seja perdida..."
-          rows={2}
+          rows={3}
           className="mt-1"
           onChange={(e) => handleInputChange("lossReason", e.target.value)}
           data-testid="form-loss-reason"
+        />
+      </div>
+
+      {/* Data de fechamento */}
+      <div>
+        <Label htmlFor="closingDate" className="text-sm font-medium text-gray-700 flex items-center">
+          <Calendar className="h-4 w-4 mr-2" />
+          Data de fechamento
+        </Label>
+        <Input
+          id="closingDate"
+          type="date"
+          placeholder="Selecione uma data"
+          className="mt-1"
+          onChange={(e) => handleInputChange("closingDate", e.target.value)}
+          data-testid="form-closing-date"
         />
       </div>
     </div>
