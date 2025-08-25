@@ -26,18 +26,9 @@ interface OpportunityFormProps {
   phase: string;
 }
 
-// Form schema for Prospecção (creation)
+// Form schema for Prospecção (creation) - simplified
 const prospeccaoFormSchema = insertOpportunitySchema.pick({
-  contact: true,
-  cpf: true,
   company: true,
-  cnpj: true,
-  phone: true,
-  hasRegistration: true,
-}).extend({
-  cpf: z.string().nullable().optional(),
-  cnpj: z.string().nullable().optional(),
-  hasRegistration: z.boolean().nullable().optional(),
 });
 
 type ProspeccaoFormData = z.infer<typeof prospeccaoFormSchema>;
@@ -51,18 +42,15 @@ export default function OpportunityForm({ phase }: OpportunityFormProps) {
   const prospeccaoForm = useForm<ProspeccaoFormData>({
     resolver: zodResolver(prospeccaoFormSchema),
     defaultValues: {
-      contact: "",
-      cpf: null,
       company: "",
-      cnpj: null,
-      phone: "",
-      hasRegistration: false,
     },
   });
 
   const createOpportunityMutation = useMutation({
     mutationFn: (data: ProspeccaoFormData) => apiRequest("POST", "/api/opportunities", {
       ...data,
+      contact: data.company, // Use company name as contact initially
+      phone: "", // Will be filled in later phases
       phase: "prospeccao"
     }),
     onSuccess: () => {
@@ -96,123 +84,18 @@ export default function OpportunityForm({ phase }: OpportunityFormProps) {
       <form onSubmit={prospeccaoForm.handleSubmit(onSubmitProspeccao)} className="space-y-3">
         <FormField
           control={prospeccaoForm.control}
-          name="contact"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="text-sm font-medium text-gray-700">
-                <i className="fas fa-user mr-1"></i>Contato
-              </FormLabel>
-              <FormControl>
-                <Input 
-                  placeholder="Nome do contato" 
-                  {...field} 
-                  data-testid="form-contact"
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={prospeccaoForm.control}
-          name="cpf"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="text-sm font-medium text-gray-700">
-                <i className="fas fa-id-card mr-1"></i>CPF
-              </FormLabel>
-              <FormControl>
-                <Input 
-                  placeholder="000.000.000-00" 
-                  {...field}
-                  value={field.value || ""}
-                  data-testid="form-cpf"
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={prospeccaoForm.control}
           name="company"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-sm font-medium text-gray-700">
-                <i className="fas fa-building mr-1"></i>Empresa
-              </FormLabel>
               <FormControl>
                 <Input 
-                  placeholder="Nome da empresa" 
+                  placeholder="Nome da empresa/pessoa" 
                   {...field} 
                   data-testid="form-company"
+                  className="text-center"
                 />
               </FormControl>
               <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={prospeccaoForm.control}
-          name="cnpj"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="text-sm font-medium text-gray-700">
-                <i className="fas fa-building mr-1"></i>CNPJ
-              </FormLabel>
-              <FormControl>
-                <Input 
-                  placeholder="00.000.000/0000-00" 
-                  {...field}
-                  value={field.value || ""}
-                  data-testid="form-cnpj"
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={prospeccaoForm.control}
-          name="phone"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="text-sm font-medium text-gray-700">
-                <i className="fas fa-phone mr-1"></i>Telefone
-              </FormLabel>
-              <FormControl>
-                <Input 
-                  placeholder="(00) 00000-0000" 
-                  {...field} 
-                  data-testid="form-phone"
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={prospeccaoForm.control}
-          name="hasRegistration"
-          render={({ field }) => (
-            <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-              <FormControl>
-                <Checkbox
-                  checked={field.value || false}
-                  onCheckedChange={field.onChange}
-                  data-testid="form-has-registration"
-                />
-              </FormControl>
-              <div className="space-y-1 leading-none">
-                <FormLabel className="text-sm font-medium text-gray-700">
-                  Possui cadastro no Locador?
-                </FormLabel>
-              </div>
             </FormItem>
           )}
         />
@@ -223,7 +106,8 @@ export default function OpportunityForm({ phase }: OpportunityFormProps) {
           disabled={createOpportunityMutation.isPending}
           data-testid="button-create-opportunity"
         >
-          {createOpportunityMutation.isPending ? "Criando..." : "Criar Oportunidade"}
+          <Plus className="mr-2 h-4 w-4" />
+          {createOpportunityMutation.isPending ? "Criando..." : "Nova oportunidade"}
         </Button>
       </form>
     </Form>
@@ -231,6 +115,64 @@ export default function OpportunityForm({ phase }: OpportunityFormProps) {
 
   const renderEmAtendimentoForm = () => (
     <div className="space-y-3">
+      <div>
+        <Label htmlFor="contact" className="text-sm font-medium text-gray-700">
+          <i className="fas fa-user mr-1"></i>Contato
+        </Label>
+        <Input
+          id="contact"
+          placeholder="Nome do contato"
+          className="mt-1"
+          onChange={(e) => handleInputChange("contact", e.target.value)}
+          data-testid="form-contact"
+        />
+      </div>
+      <div>
+        <Label htmlFor="cpf" className="text-sm font-medium text-gray-700">
+          <i className="fas fa-id-card mr-1"></i>CPF
+        </Label>
+        <Input
+          id="cpf"
+          placeholder="000.000.000-00"
+          className="mt-1"
+          onChange={(e) => handleInputChange("cpf", e.target.value)}
+          data-testid="form-cpf"
+        />
+      </div>
+      <div>
+        <Label htmlFor="cnpj" className="text-sm font-medium text-gray-700">
+          <i className="fas fa-building mr-1"></i>CNPJ
+        </Label>
+        <Input
+          id="cnpj"
+          placeholder="00.000.000/0000-00"
+          className="mt-1"
+          onChange={(e) => handleInputChange("cnpj", e.target.value)}
+          data-testid="form-cnpj"
+        />
+      </div>
+      <div>
+        <Label htmlFor="phone" className="text-sm font-medium text-gray-700">
+          <i className="fas fa-phone mr-1"></i>Telefone
+        </Label>
+        <Input
+          id="phone"
+          placeholder="(00) 00000-0000"
+          className="mt-1"
+          onChange={(e) => handleInputChange("phone", e.target.value)}
+          data-testid="form-phone"
+        />
+      </div>
+      <div className="flex items-center space-x-3">
+        <Checkbox
+          id="hasRegistration"
+          onCheckedChange={(value) => handleInputChange("hasRegistration", value)}
+          data-testid="form-has-registration"
+        />
+        <Label htmlFor="hasRegistration" className="text-sm font-medium text-gray-700">
+          Possui cadastro no Locador?
+        </Label>
+      </div>
       <div>
         <Label htmlFor="opportunityNumber" className="text-sm font-medium text-gray-700">
           <i className="fas fa-hashtag mr-1"></i>Número da oportunidade
