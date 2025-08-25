@@ -1,12 +1,140 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertOpportunitySchema, insertAutomationSchema } from "@shared/schema";
+import { insertOpportunitySchema, insertAutomationSchema, insertUserSchema, updateUserSchema, loginSchema } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
+import { getSession, isAuthenticated, isAdmin, isManagerOrAdmin } from "./auth";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Setup session middleware
+  app.use(getSession());
+
+  // Auth routes
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      const { email, password } = loginSchema.parse(req.body);
+      const user = await storage.validateUserPassword(email, password);
+      
+      if (!user) {
+        return res.status(401).json({ message: "Email ou senha inválidos" });
+      }
+      
+      req.session.userId = user.id;
+      req.session.user = user;
+      
+      // Remove password from response
+      const { password: _, ...userWithoutPassword } = user;
+      res.json({ user: userWithoutPassword });
+    } catch (error: any) {
+      if (error.name === "ZodError") {
+        const validationError = fromZodError(error);
+        return res.status(400).json({ message: validationError.message });
+      }
+      res.status(500).json({ message: "Erro interno do servidor" });
+    }
+  });
+
+  app.post("/api/auth/logout", (req, res) => {
+    req.session.destroy((err) => {
+      if (err) {
+        return res.status(500).json({ message: "Erro ao fazer logout" });
+      }
+      res.json({ message: "Logout realizado com sucesso" });
+    });
+  });
+
+  app.get("/api/auth/me", isAuthenticated, async (req, res) => {
+    const { password: _, ...userWithoutPassword } = req.session.user!;
+    res.json(userWithoutPassword);
+  });
+
+  // Users routes
+  app.get("/api/users", isAuthenticated, isManagerOrAdmin, async (req, res) => {
+    try {
+      const users = await storage.getUsers();
+      // Remove passwords from response
+      const usersWithoutPasswords = users.map(({ password: _, ...user }) => user);
+      res.json(usersWithoutPasswords);
+    } catch (error) {
+      res.status(500).json({ message: "Erro ao buscar usuários" });
+    }
+  });
+
+  app.post("/api/users", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const validatedData = insertUserSchema.parse(req.body);
+      
+      // Check if email already exists
+      const existingUser = await storage.getUserByEmail(validatedData.email);
+      if (existingUser) {
+        return res.status(400).json({ message: "Email já está em uso" });
+      }
+      
+      const user = await storage.createUser(validatedData);
+      const { password: _, ...userWithoutPassword } = user;
+      res.status(201).json(userWithoutPassword);
+    } catch (error: any) {
+      if (error.name === "ZodError") {
+        const validationError = fromZodError(error);
+        return res.status(400).json({ message: validationError.message });
+      }
+      res.status(500).json({ message: "Erro ao criar usuário" });
+    }
+  });
+
+  app.patch("/api/users/:id", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const validatedData = updateUserSchema.parse(req.body);
+      
+      // Check if email already exists (if updating email)
+      if (validatedData.email) {
+        const existingUser = await storage.getUserByEmail(validatedData.email);
+        if (existingUser && existingUser.id !== id) {
+          return res.status(400).json({ message: "Email já está em uso" });
+        }
+      }
+      
+      const user = await storage.updateUser(id, validatedData);
+      
+      if (!user) {
+        return res.status(404).json({ message: "Usuário não encontrado" });
+      }
+      
+      const { password: _, ...userWithoutPassword } = user;
+      res.json(userWithoutPassword);
+    } catch (error: any) {
+      if (error.name === "ZodError") {
+        const validationError = fromZodError(error);
+        return res.status(400).json({ message: validationError.message });
+      }
+      res.status(500).json({ message: "Erro ao atualizar usuário" });
+    }
+  });
+
+  app.delete("/api/users/:id", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      
+      // Prevent deleting the current user
+      if (id === req.session.userId) {
+        return res.status(400).json({ message: "Você não pode excluir sua própria conta" });
+      }
+      
+      const deleted = await storage.deleteUser(id);
+      
+      if (!deleted) {
+        return res.status(404).json({ message: "Usuário não encontrado" });
+      }
+      
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Erro ao excluir usuário" });
+    }
+  });
+
   // Opportunities routes
-  app.get("/api/opportunities", async (req, res) => {
+  app.get("/api/opportunities", isAuthenticated, async (req, res) => {
     try {
       const opportunities = await storage.getOpportunities();
       res.json(opportunities);
@@ -15,7 +143,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/opportunities/phase/:phase", async (req, res) => {
+  app.get("/api/opportunities/phase/:phase", isAuthenticated, async (req, res) => {
     try {
       const { phase } = req.params;
       const opportunities = await storage.getOpportunitiesByPhase(phase);
@@ -25,7 +153,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/opportunities/:id", async (req, res) => {
+  app.get("/api/opportunities/:id", isAuthenticated, async (req, res) => {
     try {
       const { id } = req.params;
       const opportunity = await storage.getOpportunity(id);
@@ -40,7 +168,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/opportunities", async (req, res) => {
+  app.post("/api/opportunities", isAuthenticated, async (req, res) => {
     try {
       const validatedData = insertOpportunitySchema.parse(req.body);
       const opportunity = await storage.createOpportunity(validatedData);
@@ -54,7 +182,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/opportunities/:id", async (req, res) => {
+  app.patch("/api/opportunities/:id", isAuthenticated, async (req, res) => {
     try {
       const { id } = req.params;
       const validatedData = insertOpportunitySchema.partial().parse(req.body);
@@ -74,7 +202,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/opportunities/:id/move/:phase", async (req, res) => {
+  app.patch("/api/opportunities/:id/move/:phase", isAuthenticated, async (req, res) => {
     try {
       const { id, phase } = req.params;
       const opportunity = await storage.moveOpportunityToPhase(id, phase);
@@ -89,7 +217,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/opportunities/:id", async (req, res) => {
+  app.delete("/api/opportunities/:id", isAuthenticated, async (req, res) => {
     try {
       const { id } = req.params;
       const deleted = await storage.deleteOpportunity(id);
@@ -105,7 +233,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Automations routes
-  app.get("/api/automations", async (req, res) => {
+  app.get("/api/automations", isAuthenticated, async (req, res) => {
     try {
       const automations = await storage.getAutomations();
       res.json(automations);
@@ -114,7 +242,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/automations/phase/:phase", async (req, res) => {
+  app.get("/api/automations/phase/:phase", isAuthenticated, async (req, res) => {
     try {
       const { phase } = req.params;
       const automations = await storage.getAutomationsByPhase(phase);
@@ -124,7 +252,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/automations", async (req, res) => {
+  app.post("/api/automations", isAuthenticated, async (req, res) => {
     try {
       const validatedData = insertAutomationSchema.parse(req.body);
       const automation = await storage.createAutomation(validatedData);
@@ -138,7 +266,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/automations/:id", async (req, res) => {
+  app.delete("/api/automations/:id", isAuthenticated, async (req, res) => {
     try {
       const { id } = req.params;
       const deleted = await storage.deleteAutomation(id);
@@ -154,7 +282,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Stats endpoint
-  app.get("/api/stats", async (req, res) => {
+  app.get("/api/stats", isAuthenticated, async (req, res) => {
     try {
       const opportunities = await storage.getOpportunities();
       
