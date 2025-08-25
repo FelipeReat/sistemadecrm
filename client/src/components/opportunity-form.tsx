@@ -487,7 +487,7 @@ export default function OpportunityForm({ phase }: OpportunityFormProps) {
   return (
     <div className="space-y-4">
       {renderFormByPhase()}
-      {renderAutomationSection()}
+      {phase !== PHASES.PROSPECCAO && renderAutomationSection()}
     </div>
   );
 }
