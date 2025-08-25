@@ -8,11 +8,10 @@ export function useAuth() {
   const { data: user, isLoading, error } = useQuery({
     queryKey: ["/api/auth/me"],
     retry: false,
-    staleTime: Infinity, // Cache indefinitely until explicitly invalidated
+    staleTime: 5 * 60 * 1000, // 5 minutes
     refetchOnWindowFocus: false,
-    refetchOnMount: false,
+    refetchOnMount: true,
     refetchInterval: false,
-    enabled: true, // Only query once
     queryFn: async () => {
       try {
         const response = await fetch("/api/auth/me", {
@@ -40,8 +39,9 @@ export function useAuth() {
       const response = await apiRequest("POST", "/api/auth/login", credentials);
       return response.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+    onSuccess: (data) => {
+      // Set the user data directly in the cache instead of invalidating
+      queryClient.setQueryData(["/api/auth/me"], data.user);
     },
   });
 
@@ -51,6 +51,7 @@ export function useAuth() {
       return response.json();
     },
     onSuccess: () => {
+      queryClient.setQueryData(["/api/auth/me"], null);
       queryClient.clear();
       window.location.href = "/login";
     },

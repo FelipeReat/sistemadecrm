@@ -34,7 +34,7 @@ export default function Login() {
         title: "Sucesso",
         description: "Login realizado com sucesso!",
       });
-      navigate("/");
+      // Don't navigate manually, let the auth state change handle it
     } catch (error: any) {
       toast({
         title: "Erro de Login",

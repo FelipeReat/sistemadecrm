@@ -102,6 +102,7 @@ function NavBar() {
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
+  const [location] = useLocation();
   
   if (isLoading) {
     return (
@@ -109,6 +110,18 @@ function Router() {
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
       </div>
     );
+  }
+
+  // Redirect to dashboard if authenticated and on login page
+  if (isAuthenticated && location === "/login") {
+    window.location.href = "/";
+    return null;
+  }
+
+  // Redirect to login if not authenticated and not on login page
+  if (!isAuthenticated && location !== "/login") {
+    window.location.href = "/login";
+    return null;
   }
 
   return (
