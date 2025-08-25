@@ -174,7 +174,7 @@ export default function NewOpportunityModal({ open, onOpenChange }: NewOpportuni
                       placeholder="000.000.000-00" 
                       {...field}
                       value={field.value ?? ""}
-                      onChange={(e) => field.onChange(masks.cpf(e.target.value))}
+                      mask={masks.cpf}
                       data-testid="input-cpf"
                     />
                   </FormControl>
@@ -216,7 +216,7 @@ export default function NewOpportunityModal({ open, onOpenChange }: NewOpportuni
                       placeholder="00.000.000/0000-00" 
                       {...field}
                       value={field.value ?? ""}
-                      onChange={(e) => field.onChange(masks.cnpj(e.target.value))}
+                      mask={masks.cnpj}
                       data-testid="input-cnpj"
                     />
                   </FormControl>
@@ -238,7 +238,7 @@ export default function NewOpportunityModal({ open, onOpenChange }: NewOpportuni
                       placeholder="(00) 00000-0000" 
                       {...field} 
                       value={field.value ?? ""}
-                      onChange={(e) => field.onChange(masks.phone(e.target.value))}
+                      mask={masks.phone}
                       data-testid="input-phone"
                     />
                   </FormControl>
