@@ -80,37 +80,17 @@ export default function OpportunityForm({ phase }: OpportunityFormProps) {
   };
 
   const renderProspeccaoForm = () => (
-    <Form {...prospeccaoForm}>
-      <form onSubmit={prospeccaoForm.handleSubmit(onSubmitProspeccao)} className="space-y-3">
-        <FormField
-          control={prospeccaoForm.control}
-          name="company"
-          render={({ field }) => (
-            <FormItem>
-              <FormControl>
-                <Input 
-                  placeholder="Nome da empresa/pessoa" 
-                  {...field} 
-                  data-testid="form-company"
-                  className="text-center"
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <Button 
-          type="submit" 
-          className="w-full bg-orange-500 hover:bg-orange-600 text-white"
-          disabled={createOpportunityMutation.isPending}
-          data-testid="button-create-opportunity"
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          {createOpportunityMutation.isPending ? "Criando..." : "Nova oportunidade"}
-        </Button>
-      </form>
-    </Form>
+    <div className="text-center">
+      <Button 
+        onClick={() => createOpportunityMutation.mutate({ company: "Nova Oportunidade" })}
+        className="w-full bg-orange-500 hover:bg-orange-600 text-white"
+        disabled={createOpportunityMutation.isPending}
+        data-testid="button-create-opportunity"
+      >
+        <Plus className="mr-2 h-4 w-4" />
+        {createOpportunityMutation.isPending ? "Criando..." : "Nova oportunidade"}
+      </Button>
+    </div>
   );
 
   const renderEmAtendimentoForm = () => (
