@@ -208,7 +208,7 @@ export default function CrmDashboard() {
 
       <NewOpportunityModal 
         open={isNewOpportunityModalOpen}
-        onOpenChange={setIsNewOpportunityModalOpen}pen}
+        onOpenChange={setIsNewOpportunityModalOpen}
       />
     </div>
   );
