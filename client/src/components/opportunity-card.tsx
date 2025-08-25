@@ -7,9 +7,10 @@ import type { Opportunity } from "@shared/schema";
 
 interface OpportunityCardProps {
   opportunity: Opportunity;
+  onViewDetails?: (opportunity: Opportunity) => void;
 }
 
-export default function OpportunityCard({ opportunity }: OpportunityCardProps) {
+export default function OpportunityCard({ opportunity, onViewDetails }: OpportunityCardProps) {
   const handleDragStart = (e: React.DragEvent) => {
     e.dataTransfer.setData("text/plain", opportunity.id);
   };
@@ -177,7 +178,12 @@ export default function OpportunityCard({ opportunity }: OpportunityCardProps) {
         <span className="text-xs text-gray-500" data-testid={`opportunity-created-${opportunity.id}`}>
           {formatDate(opportunity.createdAt)}
         </span>
-        <Button variant="ghost" size="sm" className="text-blue-500 hover:text-blue-600 text-sm font-medium h-auto p-1">
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          className="text-blue-500 hover:text-blue-600 text-sm font-medium h-auto p-1"
+          onClick={() => onViewDetails?.(opportunity)}
+        >
           Ver detalhes
         </Button>
       </div>

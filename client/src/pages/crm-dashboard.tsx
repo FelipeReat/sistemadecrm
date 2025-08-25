@@ -6,9 +6,12 @@ import SalesPipelineColumn from "@/components/sales-pipeline-column";
 import NewOpportunityModal from "@/components/new-opportunity-modal";
 import { PHASES } from "@shared/schema";
 import type { Opportunity } from "@shared/schema";
+import OpportunityDetailsModal from "@/components/opportunity-details-modal";
 
 export default function CrmDashboard() {
   const [isNewOpportunityModalOpen, setIsNewOpportunityModalOpen] = useState(false);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+  const [selectedOpportunity, setSelectedOpportunity] = useState<Opportunity | null>(null);
 
   // Fetch all opportunities
   const { data: opportunities = [], isLoading: isLoadingOpportunities } = useQuery<Opportunity[]>({
@@ -94,6 +97,11 @@ export default function CrmDashboard() {
     },
   ];
 
+  const handleViewDetails = (opportunity: Opportunity) => {
+    setSelectedOpportunity(opportunity);
+    setIsDetailsModalOpen(true);
+  };
+
   return (
     <div className="bg-gray-50 min-h-screen font-inter">
       {/* Header */}
@@ -106,7 +114,7 @@ export default function CrmDashboard() {
               </h1>
             </div>
             <div className="flex items-center space-x-4">
-              <Button 
+              <Button
                 onClick={() => setIsNewOpportunityModalOpen(true)}
                 data-testid="button-new-opportunity"
               >
@@ -141,7 +149,7 @@ export default function CrmDashboard() {
               </div>
             </div>
           </div>
-          
+
           <div className="bg-white rounded-lg shadow-sm p-4 border">
             <div className="flex items-center">
               <div className="flex-shrink-0">
@@ -157,7 +165,7 @@ export default function CrmDashboard() {
               </div>
             </div>
           </div>
-          
+
           <div className="bg-white rounded-lg shadow-sm p-4 border">
             <div className="flex items-center">
               <div className="flex-shrink-0">
@@ -173,7 +181,7 @@ export default function CrmDashboard() {
               </div>
             </div>
           </div>
-          
+
           <div className="bg-white rounded-lg shadow-sm p-4 border">
             <div className="flex items-center">
               <div className="flex-shrink-0">
@@ -200,15 +208,22 @@ export default function CrmDashboard() {
                 phase={phase}
                 opportunities={opportunitiesByPhase[phase.key] || []}
                 isLoading={isLoadingOpportunities}
+                onViewDetails={handleViewDetails}
               />
             ))}
           </div>
         </div>
       </main>
 
-      <NewOpportunityModal 
+      <NewOpportunityModal
         open={isNewOpportunityModalOpen}
         onOpenChange={setIsNewOpportunityModalOpen}
+      />
+
+      <OpportunityDetailsModal
+        open={isDetailsModalOpen}
+        onOpenChange={setIsDetailsModalOpen}
+        opportunity={selectedOpportunity}
       />
     </div>
   );

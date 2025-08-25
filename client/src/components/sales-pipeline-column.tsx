@@ -21,9 +21,10 @@ interface SalesPipelineColumnProps {
   phase: PhaseConfig;
   opportunities: Opportunity[];
   isLoading: boolean;
+  onViewDetails?: (opportunity: Opportunity) => void;
 }
 
-export default function SalesPipelineColumn({ phase, opportunities, isLoading }: SalesPipelineColumnProps) {
+export default function SalesPipelineColumn({ phase, opportunities, isLoading, onViewDetails }: SalesPipelineColumnProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -116,7 +117,11 @@ export default function SalesPipelineColumn({ phase, opportunities, isLoading }:
             </div>
           ) : (
             opportunities.map((opportunity) => (
-              <OpportunityCard key={opportunity.id} opportunity={opportunity} />
+              <OpportunityCard 
+                key={opportunity.id} 
+                opportunity={opportunity} 
+                onViewDetails={onViewDetails}
+              />
             ))
           )}
         </div>
