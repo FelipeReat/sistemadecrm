@@ -394,6 +394,145 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Reports endpoints
+  app.get("/api/reports/dashboard", isAuthenticated, async (req, res) => {
+    try {
+      const opportunities = await storage.getOpportunities();
+      
+      // Calculate average sales cycle (in days)
+      const wonOpportunities = opportunities.filter(o => o.phase === 'ganho' && o.createdAt);
+      const avgSalesCycle = wonOpportunities.length > 0 
+        ? wonOpportunities.reduce((sum, opp) => {
+            const created = new Date(opp.createdAt!);
+            const now = new Date();
+            const daysDiff = (now.getTime() - created.getTime()) / (1000 * 3600 * 24);
+            return sum + daysDiff;
+          }, 0) / wonOpportunities.length
+        : 0;
+
+      // Calculate total revenue from won opportunities
+      const totalRevenue = wonOpportunities.reduce((sum, opp) => {
+        return sum + (opp.finalValue ? parseFloat(opp.finalValue.toString()) : 
+                     opp.budget ? parseFloat(opp.budget.toString()) : 0);
+      }, 0);
+
+      // Opportunities by phase
+      const phaseNames = {
+        'prospeccao': 'Prospecção',
+        'em-atendimento': 'Em Atendimento',
+        'visita-tecnica': 'Visita Técnica',
+        'proposta': 'Proposta',
+        'negociacao': 'Negociação',
+        'ganho': 'Ganho',
+        'perdido': 'Perdido'
+      };
+
+      const opportunitiesByPhase = Object.entries(phaseNames).map(([phase, phaseName]) => ({
+        phase,
+        phaseName,
+        count: opportunities.filter(o => o.phase === phase).length
+      })).filter(item => item.count > 0);
+
+      // Business temperatures
+      const temperatureCounts = opportunities.reduce((acc, opp) => {
+        const temp = opp.businessTemperature || 'morno';
+        acc[temp] = (acc[temp] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+
+      const total = opportunities.length;
+      const businessTemperatures = Object.entries(temperatureCounts).map(([temperature, count]) => ({
+        temperature: temperature.charAt(0).toUpperCase() + temperature.slice(1),
+        count,
+        percentage: total > 0 ? Math.round((count / total) * 100) : 0
+      }));
+
+      // Loss reasons
+      const lostOpportunities = opportunities.filter(o => o.phase === 'perdido');
+      const lossReasonCounts = lostOpportunities.reduce((acc, opp) => {
+        const reason = opp.lossReason || 'Não informado';
+        acc[reason] = (acc[reason] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+
+      const lossReasons = Object.entries(lossReasonCounts).map(([reason, count]) => ({
+        reason,
+        count
+      })).sort((a, b) => b.count - a.count);
+
+      // Opportunities by salesperson
+      const salespersonCounts = opportunities.reduce((acc, opp) => {
+        const salesperson = opp.salesperson || 'Não atribuído';
+        acc[salesperson] = (acc[salesperson] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+
+      const opportunitiesBySalesperson = Object.entries(salespersonCounts).map(([salesperson, count]) => ({
+        salesperson,
+        count,
+        percentage: total > 0 ? Math.round((count / total) * 100) : 0
+      })).sort((a, b) => b.count - a.count);
+
+      // Monthly stats
+      const monthlyStats = {
+        totalOpportunities: opportunities.length,
+        wonOpportunities: opportunities.filter(o => o.phase === 'ganho').length,
+        lostOpportunities: opportunities.filter(o => o.phase === 'perdido').length,
+        activeOpportunities: opportunities.filter(o => !['ganho', 'perdido'].includes(o.phase)).length
+      };
+
+      const reportData = {
+        avgSalesCycle,
+        totalRevenue,
+        opportunitiesByPhase,
+        businessTemperatures,
+        lossReasons,
+        opportunitiesBySalesperson,
+        monthlyStats
+      };
+
+      res.json(reportData);
+    } catch (error) {
+      console.error("Reports dashboard error:", error);
+      res.status(500).json({ message: "Erro ao buscar dados do relatório" });
+    }
+  });
+
+  app.get("/api/reports/monthly-trend", isAuthenticated, async (req, res) => {
+    try {
+      const opportunities = await storage.getOpportunities();
+      
+      // Group opportunities by month
+      const monthlyData = opportunities.reduce((acc, opp) => {
+        if (!opp.createdAt) return acc;
+        
+        const date = new Date(opp.createdAt);
+        const monthKey = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
+        
+        if (!acc[monthKey]) {
+          acc[monthKey] = {
+            month: monthKey,
+            total: 0,
+            won: 0,
+            lost: 0
+          };
+        }
+        
+        acc[monthKey].total++;
+        if (opp.phase === 'ganho') acc[monthKey].won++;
+        if (opp.phase === 'perdido') acc[monthKey].lost++;
+        
+        return acc;
+      }, {} as Record<string, any>);
+
+      const trend = Object.values(monthlyData).sort((a: any, b: any) => a.month.localeCompare(b.month));
+      
+      res.json(trend);
+    } catch (error) {
+      res.status(500).json({ message: "Erro ao buscar tendência mensal" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

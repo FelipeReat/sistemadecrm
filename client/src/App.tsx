@@ -6,10 +6,11 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
 import NotFound from "@/pages/not-found";
 import CrmDashboard from "@/pages/crm-dashboard";
+import ReportsDashboard from "@/pages/reports-dashboard";
 import Login from "@/pages/login";
 import UserManagement from "@/pages/user-management";
 import { Button } from "@/components/ui/button";
-import { LogOut, Users, Home } from "lucide-react";
+import { LogOut, Users, Home, BarChart3 } from "lucide-react";
 import { useEffect } from "react";
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
@@ -63,6 +64,14 @@ function NavBar() {
               >
                 <Home className="h-4 w-4 mr-2" />
                 Dashboard
+              </Button>
+              <Button
+                variant={location === "/reports" ? "default" : "ghost"}
+                onClick={() => navigate("/reports")}
+                data-testid="nav-reports"
+              >
+                <BarChart3 className="h-4 w-4 mr-2" />
+                Relatórios
               </Button>
               {user?.role === "admin" && (
                 <Button
@@ -131,6 +140,9 @@ function Router() {
         <Route path="/login" component={Login} />
         <Route path="/users">
           <ProtectedRoute component={UserManagement} />
+        </Route>
+        <Route path="/reports">
+          <ProtectedRoute component={ReportsDashboard} />
         </Route>
         <Route path="/">
           <ProtectedRoute component={CrmDashboard} />
