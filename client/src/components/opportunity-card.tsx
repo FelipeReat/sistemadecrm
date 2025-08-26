@@ -60,8 +60,8 @@ export default function OpportunityCard({ opportunity, onViewDetails }: Opportun
       data-testid={`opportunity-card-${opportunity.id}`}
     >
       <div className="flex justify-between items-start mb-2">
-        <h4 className="font-medium text-gray-900" data-testid={`opportunity-company-${opportunity.id}`}>
-          {opportunity.company}
+        <h4 className="font-bold text-gray-900" data-testid={`opportunity-contact-title-${opportunity.id}`}>
+          {opportunity.contact}
         </h4>
         <div className="flex items-center space-x-2">
           {getStatusBadge()}
