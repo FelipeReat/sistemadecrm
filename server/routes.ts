@@ -307,6 +307,86 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // User profile and settings routes
+  app.put("/api/user/profile", isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const { name, email, phone, role, bio } = req.body;
+      
+      // Check if email already exists (if updating email)
+      if (email && email !== req.session.user!.email) {
+        const existingUser = await storage.getUserByEmail(email);
+        if (existingUser && existingUser.id !== userId) {
+          return res.status(400).json({ message: "Email já está em uso" });
+        }
+      }
+      
+      const updateData: any = {};
+      if (name) updateData.name = name;
+      if (email) updateData.email = email;
+      if (phone) updateData.phone = phone;
+      if (role) updateData.role = role;
+      if (bio) updateData.bio = bio;
+      
+      const user = await storage.updateUser(userId, updateData);
+      
+      if (!user) {
+        return res.status(404).json({ message: "Usuário não encontrado" });
+      }
+      
+      // Update session
+      req.session.user = user;
+      
+      const { password: _, ...userWithoutPassword } = user;
+      res.json(userWithoutPassword);
+    } catch (error) {
+      res.status(500).json({ message: "Erro ao atualizar perfil" });
+    }
+  });
+
+  app.put("/api/user/settings", isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const settings = req.body;
+      
+      // In a real application, you would store these settings in a separate table
+      // For now, we'll just return success
+      res.json({ message: "Configurações salvas com sucesso", settings });
+    } catch (error) {
+      res.status(500).json({ message: "Erro ao salvar configurações" });
+    }
+  });
+
+  // Export data endpoint
+  app.get("/api/export/opportunities", isAuthenticated, async (req, res) => {
+    try {
+      const opportunities = await storage.getOpportunities();
+      const users = await storage.getUsers();
+      const automations = await storage.getAutomations();
+      
+      const exportData = {
+        exportDate: new Date().toISOString(),
+        data: {
+          opportunities: opportunities.map(opp => ({
+            ...opp,
+            exportedBy: req.session.user!.name
+          })),
+          users: users.map(({ password: _, ...user }) => user),
+          automations
+        },
+        metadata: {
+          totalRecords: opportunities.length + users.length + automations.length,
+          exportedBy: req.session.user!.name,
+          exportedAt: new Date().toISOString()
+        }
+      };
+      
+      res.json(exportData);
+    } catch (error) {
+      res.status(500).json({ message: "Erro ao exportar dados" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

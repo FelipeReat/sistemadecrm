@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Settings, ChartLine, Trophy, Clock, DollarSign, Plus } from "lucide-react";
 import SalesPipelineColumn from "@/components/sales-pipeline-column";
 import NewOpportunityModal from "@/components/new-opportunity-modal";
+import SettingsModal from "@/components/settings-modal";
 import { PHASES } from "@shared/schema";
 import type { Opportunity } from "@shared/schema";
 import OpportunityDetailsModal from "@/components/opportunity-details-modal";
@@ -11,6 +12,7 @@ import OpportunityDetailsModal from "@/components/opportunity-details-modal";
 export default function CrmDashboard() {
   const [isNewOpportunityModalOpen, setIsNewOpportunityModalOpen] = useState(false);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [selectedOpportunity, setSelectedOpportunity] = useState<Opportunity | null>(null);
 
   // Fetch all opportunities
@@ -121,7 +123,11 @@ export default function CrmDashboard() {
                 <Plus className="mr-2 h-4 w-4" />
                 Nova Oportunidade
               </Button>
-              <Button variant="outline" data-testid="button-settings">
+              <Button 
+                variant="outline" 
+                onClick={() => setIsSettingsModalOpen(true)}
+                data-testid="button-settings"
+              >
                 <Settings className="mr-2 h-4 w-4" />
                 Configurações
               </Button>
@@ -224,6 +230,11 @@ export default function CrmDashboard() {
         open={isDetailsModalOpen}
         onOpenChange={setIsDetailsModalOpen}
         opportunity={selectedOpportunity}
+      />
+
+      <SettingsModal
+        open={isSettingsModalOpen}
+        onOpenChange={setIsSettingsModalOpen}
       />
     </div>
   );

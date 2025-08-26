@@ -107,6 +107,8 @@ export const users = pgTable("users", {
   email: varchar("email").unique().notNull(),
   password: varchar("password").notNull(),
   name: varchar("name").notNull(),
+  phone: varchar("phone"),
+  bio: text("bio"),
   role: varchar("role").notNull().default("usuario"),
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
