@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertOpportunitySchema, insertAutomationSchema, insertUserSchema, updateUserSchema, loginSchema } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
-import { getSession, isAuthenticated, isAdmin, isManagerOrAdmin } from "./auth";
+import { getSession, isAuthenticated, isAdmin, isManagerOrAdmin, canEditAllOpportunities, canViewReports } from "./auth";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup session middleware
@@ -186,12 +186,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { id } = req.params;
       const validatedData = insertOpportunitySchema.partial().parse(req.body);
-      const opportunity = await storage.updateOpportunity(id, validatedData);
       
-      if (!opportunity) {
+      // Busca a oportunidade existente para verificar permissões
+      const existingOpportunity = await storage.getOpportunity(id);
+      if (!existingOpportunity) {
         return res.status(404).json({ message: "Oportunidade não encontrada" });
       }
       
+      // Usuários comuns só podem editar suas próprias oportunidades
+      if (req.session.user!.role === 'usuario' && existingOpportunity.salesperson !== req.session.user!.name) {
+        return res.status(403).json({ message: "Você só pode editar suas próprias oportunidades" });
+      }
+      
+      const opportunity = await storage.updateOpportunity(id, validatedData);
       res.json(opportunity);
     } catch (error: any) {
       if (error.name === "ZodError") {
@@ -217,7 +224,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/opportunities/:id", isAuthenticated, async (req, res) => {
+  app.delete("/api/opportunities/:id", isAuthenticated, canEditAllOpportunities, async (req, res) => {
     try {
       const { id } = req.params;
       const deleted = await storage.deleteOpportunity(id);
@@ -281,8 +288,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Stats endpoint
-  app.get("/api/stats", isAuthenticated, async (req, res) => {
+  // Stats endpoint - apenas Admin e Gerente podem ver estatísticas completas
+  app.get("/api/stats", isAuthenticated, canViewReports, async (req, res) => {
     try {
       const opportunities = await storage.getOpportunities();
       
@@ -357,8 +364,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Export data endpoint
-  app.get("/api/export/opportunities", isAuthenticated, async (req, res) => {
+  // Export data endpoint - apenas Admin e Gerente podem exportar dados
+  app.get("/api/export/opportunities", isAuthenticated, canViewReports, async (req, res) => {
     try {
       const opportunities = await storage.getOpportunities();
       const users = await storage.getUsers();

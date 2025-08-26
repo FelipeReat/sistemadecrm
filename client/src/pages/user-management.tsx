@@ -165,7 +165,7 @@ export default function UserManagement() {
         <Card>
           <CardContent className="pt-6">
             <p className="text-center text-muted-foreground">
-              Você não tem permissão para acessar esta página.
+              Você não tem permissão para acessar esta página. Apenas administradores podem gerenciar usuários.
             </p>
           </CardContent>
         </Card>

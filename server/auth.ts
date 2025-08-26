@@ -62,3 +62,19 @@ export const isManagerOrAdmin: RequestHandler = async (req, res, next) => {
   }
   next();
 };
+
+// Middleware para verificar se pode editar oportunidades de outros usuários
+export const canEditAllOpportunities: RequestHandler = async (req, res, next) => {
+  if (!req.session.user || !['admin', 'gerente'].includes(req.session.user.role)) {
+    return res.status(403).json({ message: "Acesso negado - Apenas Admin e Gerente podem editar oportunidades de outros usuários" });
+  }
+  next();
+};
+
+// Middleware para verificar se pode ver relatórios e estatísticas
+export const canViewReports: RequestHandler = async (req, res, next) => {
+  if (!req.session.user || !['admin', 'gerente'].includes(req.session.user.role)) {
+    return res.status(403).json({ message: "Acesso negado - Apenas Admin e Gerente podem ver relatórios" });
+  }
+  next();
+};
