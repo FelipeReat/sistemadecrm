@@ -175,9 +175,14 @@ export default function OpportunityCard({ opportunity, onViewDetails }: Opportun
       </div>
 
       <div className="flex justify-between items-center mt-3">
-        <span className="text-xs text-gray-500" data-testid={`opportunity-created-${opportunity.id}`}>
-          {formatDate(opportunity.createdAt)}
-        </span>
+        <div className="flex flex-col text-xs text-gray-500">
+          <span data-testid={`opportunity-created-${opportunity.id}`}>
+            Criado {formatDate(opportunity.createdAt)}
+          </span>
+          <span data-testid={`opportunity-phase-time-${opportunity.id}`} className="text-blue-600 font-medium">
+            Nesta fase {formatDate(opportunity.phaseUpdatedAt || opportunity.updatedAt)}
+          </span>
+        </div>
         <Button 
           variant="ghost" 
           size="sm" 

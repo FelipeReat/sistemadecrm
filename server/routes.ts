@@ -4,6 +4,16 @@ import { storage } from "./storage";
 import { insertOpportunitySchema, insertAutomationSchema, insertUserSchema, updateUserSchema, loginSchema } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import { getSession, isAuthenticated, isAdmin, isManagerOrAdmin, canEditAllOpportunities, canViewReports } from "./auth";
+import * as crypto from "crypto";
+import * as z from "zod";
+
+// Mock DB and schema for demonstration purposes. Replace with your actual database logic.
+// Assuming 'db' and 'opportunities' are available and configured for your ORM (e.g., Drizzle ORM)
+// const db = { ... }; // Your database client instance
+// const opportunities = { ... }; // Your opportunities table schema
+
+// Mock requireAuth function as it's used in the changes but not defined in the original code
+const requireAuth = isAuthenticated;
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup session middleware
@@ -14,14 +24,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { email, password } = loginSchema.parse(req.body);
       const user = await storage.validateUserPassword(email, password);
-      
+
       if (!user) {
         return res.status(401).json({ message: "Email ou senha inválidos" });
       }
-      
+
       req.session.userId = user.id;
       req.session.user = user;
-      
+
       // Remove password from response
       const { password: _, ...userWithoutPassword } = user;
       res.json({ user: userWithoutPassword });
@@ -63,13 +73,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/users", isAuthenticated, isAdmin, async (req, res) => {
     try {
       const validatedData = insertUserSchema.parse(req.body);
-      
+
       // Check if email already exists
       const existingUser = await storage.getUserByEmail(validatedData.email);
       if (existingUser) {
         return res.status(400).json({ message: "Email já está em uso" });
       }
-      
+
       const user = await storage.createUser(validatedData);
       const { password: _, ...userWithoutPassword } = user;
       res.status(201).json(userWithoutPassword);
@@ -86,7 +96,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { id } = req.params;
       const validatedData = updateUserSchema.parse(req.body);
-      
+
       // Check if email already exists (if updating email)
       if (validatedData.email) {
         const existingUser = await storage.getUserByEmail(validatedData.email);
@@ -94,13 +104,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(400).json({ message: "Email já está em uso" });
         }
       }
-      
+
       const user = await storage.updateUser(id, validatedData);
-      
+
       if (!user) {
         return res.status(404).json({ message: "Usuário não encontrado" });
       }
-      
+
       const { password: _, ...userWithoutPassword } = user;
       res.json(userWithoutPassword);
     } catch (error: any) {
@@ -115,18 +125,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/users/:id", isAuthenticated, isAdmin, async (req, res) => {
     try {
       const { id } = req.params;
-      
+
       // Prevent deleting the current user
       if (id === req.session.userId) {
         return res.status(400).json({ message: "Você não pode excluir sua própria conta" });
       }
-      
+
       const deleted = await storage.deleteUser(id);
-      
+
       if (!deleted) {
         return res.status(404).json({ message: "Usuário não encontrado" });
       }
-      
+
       res.status(204).send();
     } catch (error) {
       res.status(500).json({ message: "Erro ao excluir usuário" });
@@ -157,17 +167,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { id } = req.params;
       const opportunity = await storage.getOpportunity(id);
-      
+
       if (!opportunity) {
         return res.status(404).json({ message: "Oportunidade não encontrada" });
       }
-      
+
       res.json(opportunity);
     } catch (error) {
       res.status(500).json({ message: "Erro ao buscar oportunidade" });
     }
   });
 
+  // Create opportunity
   app.post("/api/opportunities", isAuthenticated, async (req, res) => {
     try {
       const validatedData = insertOpportunitySchema.parse(req.body);
@@ -186,18 +197,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { id } = req.params;
       const validatedData = insertOpportunitySchema.partial().parse(req.body);
-      
+
       // Busca a oportunidade existente para verificar permissões
       const existingOpportunity = await storage.getOpportunity(id);
       if (!existingOpportunity) {
         return res.status(404).json({ message: "Oportunidade não encontrada" });
       }
-      
+
       // Usuários comuns só podem editar suas próprias oportunidades
       if (req.session.user!.role === 'usuario' && existingOpportunity.salesperson !== req.session.user!.name) {
         return res.status(403).json({ message: "Você só pode editar suas próprias oportunidades" });
       }
-      
+
       const opportunity = await storage.updateOpportunity(id, validatedData);
       res.json(opportunity);
     } catch (error: any) {
@@ -209,15 +220,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Move opportunity to new phase
   app.patch("/api/opportunities/:id/move/:phase", isAuthenticated, async (req, res) => {
     try {
       const { id, phase } = req.params;
       const opportunity = await storage.moveOpportunityToPhase(id, phase);
-      
+
       if (!opportunity) {
         return res.status(404).json({ message: "Oportunidade não encontrada" });
       }
-      
+
       res.json(opportunity);
     } catch (error) {
       res.status(500).json({ message: "Erro ao mover oportunidade" });
@@ -228,11 +240,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { id } = req.params;
       const deleted = await storage.deleteOpportunity(id);
-      
+
       if (!deleted) {
         return res.status(404).json({ message: "Oportunidade não encontrada" });
       }
-      
+
       res.status(204).send();
     } catch (error) {
       res.status(500).json({ message: "Erro ao excluir oportunidade" });
@@ -277,11 +289,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { id } = req.params;
       const deleted = await storage.deleteAutomation(id);
-      
+
       if (!deleted) {
         return res.status(404).json({ message: "Automação não encontrada" });
       }
-      
+
       res.status(204).send();
     } catch (error) {
       res.status(500).json({ message: "Erro ao excluir automação" });
@@ -292,13 +304,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/stats", isAuthenticated, canViewReports, async (req, res) => {
     try {
       const opportunities = await storage.getOpportunities();
-      
+
       const totalOpportunities = opportunities.length;
       const wonOpportunities = opportunities.filter(o => o.phase === 'ganho').length;
       const activeOpportunities = opportunities.filter(o => 
         !['ganho', 'perdido'].includes(o.phase)
       ).length;
-      
+
       const projectedRevenue = opportunities
         .filter(o => o.budget && !['ganho', 'perdido'].includes(o.phase))
         .reduce((sum, o) => sum + parseFloat(o.budget!.toString()), 0);
@@ -319,7 +331,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.session.userId!;
       const { name, email, phone, role, bio } = req.body;
-      
+
       // Check if email already exists (if updating email)
       if (email && email !== req.session.user!.email) {
         const existingUser = await storage.getUserByEmail(email);
@@ -327,23 +339,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(400).json({ message: "Email já está em uso" });
         }
       }
-      
+
       const updateData: any = {};
       if (name) updateData.name = name;
       if (email) updateData.email = email;
       if (phone) updateData.phone = phone;
       if (role) updateData.role = role;
       if (bio) updateData.bio = bio;
-      
+
       const user = await storage.updateUser(userId, updateData);
-      
+
       if (!user) {
         return res.status(404).json({ message: "Usuário não encontrado" });
       }
-      
+
       // Update session
       req.session.user = user;
-      
+
       const { password: _, ...userWithoutPassword } = user;
       res.json(userWithoutPassword);
     } catch (error) {
@@ -355,7 +367,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.session.userId!;
       const settings = req.body;
-      
+
       // In a real application, you would store these settings in a separate table
       // For now, we'll just return success
       res.json({ message: "Configurações salvas com sucesso", settings });
@@ -370,7 +382,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const opportunities = await storage.getOpportunities();
       const users = await storage.getUsers();
       const automations = await storage.getAutomations();
-      
+
       const exportData = {
         exportDate: new Date().toISOString(),
         data: {
@@ -387,7 +399,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           exportedAt: new Date().toISOString()
         }
       };
-      
+
       res.json(exportData);
     } catch (error) {
       res.status(500).json({ message: "Erro ao exportar dados" });
@@ -398,7 +410,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/reports/dashboard", isAuthenticated, async (req, res) => {
     try {
       const opportunities = await storage.getOpportunities();
-      
+
       // Calculate average sales cycle (in days)
       const wonOpportunities = opportunities.filter(o => o.phase === 'ganho' && o.createdAt);
       const avgSalesCycle = wonOpportunities.length > 0 
@@ -501,14 +513,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/reports/monthly-trend", isAuthenticated, async (req, res) => {
     try {
       const opportunities = await storage.getOpportunities();
-      
+
       // Group opportunities by month
       const monthlyData = opportunities.reduce((acc, opp) => {
         if (!opp.createdAt) return acc;
-        
+
         const date = new Date(opp.createdAt);
         const monthKey = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
-        
+
         if (!acc[monthKey]) {
           acc[monthKey] = {
             month: monthKey,
@@ -517,16 +529,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
             lost: 0
           };
         }
-        
+
         acc[monthKey].total++;
         if (opp.phase === 'ganho') acc[monthKey].won++;
         if (opp.phase === 'perdido') acc[monthKey].lost++;
-        
+
         return acc;
       }, {} as Record<string, any>);
 
       const trend = Object.values(monthlyData).sort((a: any, b: any) => a.month.localeCompare(b.month));
-      
+
       res.json(trend);
     } catch (error) {
       res.status(500).json({ message: "Erro ao buscar tendência mensal" });

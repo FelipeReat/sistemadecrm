@@ -17,26 +17,26 @@ export const opportunities = pgTable("opportunities", {
   needCategory: text("need_category").notNull(),
   clientNeeds: text("client_needs").notNull(),
   documents: text("documents").array(),
-  
+
   // Fase 2: Prospecção
   opportunityNumber: text("opportunity_number"),
   salesperson: text("salesperson"),
   requiresVisit: boolean("requires_visit").default(false),
   statement: text("statement"),
   nextActivityDate: timestamp("next_activity_date"),
-  
+
   // Fase 4: Visita Técnica
   visitSchedule: timestamp("visit_schedule"),
   visitRealization: timestamp("visit_realization"),
   visitPhotos: text("visit_photos").array(),
-  
+
   // Fase 5: Proposta
   discount: decimal("discount", { precision: 5, scale: 2 }),
   discountDescription: text("discount_description"),
   validityDate: timestamp("validity_date"),
   budgetNumber: text("budget_number"),
   budget: decimal("budget", { precision: 12, scale: 2 }),
-  
+
   // Fase 6: Negociação
   status: text("status"),
   finalValue: decimal("final_value", { precision: 12, scale: 2 }),
@@ -44,13 +44,14 @@ export const opportunities = pgTable("opportunities", {
   contract: text("contract"),
   invoiceNumber: text("invoice_number"),
   lossReason: text("loss_reason"),
-  
+
   // Controle de fase
   phase: text("phase").notNull().default("prospeccao"),
-  
+
   // Timestamps
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
   updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+  phaseUpdatedAt: timestamp("phase_updated_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
 });
 
 export const automations = pgTable("automations", {
@@ -61,10 +62,13 @@ export const automations = pgTable("automations", {
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
 });
 
-export const insertOpportunitySchema = createInsertSchema(opportunities).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
+export const insertOpportunitySchema = createInsertSchema(opportunities, {
+  budget: z.coerce.number().optional(),
+  finalValue: z.coerce.number().optional(),
+  nextActivityDate: z.string().optional(),
+  visitSchedule: z.string().optional(),
+  validityDate: z.string().optional(),
+  phaseUpdatedAt: z.string().optional(),
 });
 
 export const insertAutomationSchema = createInsertSchema(automations).omit({
