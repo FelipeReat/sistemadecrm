@@ -376,6 +376,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get salespeople (users who can be assigned as salespeople)
+  app.get("/api/users/salespeople", isAuthenticated, async (req, res) => {
+    try {
+      const users = await storage.getUsers();
+      // Filter active users and return only necessary fields
+      const salespeople = users
+        .filter(user => user.isActive)
+        .map(user => ({
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role
+        }));
+      res.json(salespeople);
+    } catch (error) {
+      res.status(500).json({ message: "Erro ao buscar vendedores" });
+    }
+  });
+
   // Export data endpoint - apenas Admin e Gerente podem exportar dados
   app.get("/api/export/opportunities", isAuthenticated, canViewReports, async (req, res) => {
     try {

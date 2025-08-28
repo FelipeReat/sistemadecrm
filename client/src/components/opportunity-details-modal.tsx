@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { z } from "zod";
 import {
   Dialog,
@@ -93,6 +93,13 @@ export default function OpportunityDetailsModal({
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { invalidateAllData } = useReportsSync();
+
+  // Query para buscar usuários que podem ser vendedores
+  const { data: salespeople, isLoading: isLoadingSalespeople } = useQuery({
+    queryKey: ["salespeople"],
+    queryFn: () => apiRequest("GET", "/api/users?role=vendedor"), // Assumindo que este endpoint existe e retorna vendedores
+    staleTime: 1000 * 60 * 5, // 5 minutos
+  });
 
   const prospeccaoForm = useForm<ProspeccaoFormData>({
     resolver: zodResolver(prospeccaoSchema),
@@ -263,13 +270,21 @@ export default function OpportunityDetailsModal({
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="+ Adicionar responsável" />
+                            <SelectValue placeholder="Selecione o vendedor" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="carlos">Carlos Mendes</SelectItem>
-                          <SelectItem value="ana">Ana Silva</SelectItem>
-                          <SelectItem value="pedro">Pedro Santos</SelectItem>
+                          {isLoadingSalespeople ? (
+                            <SelectItem value="" disabled>Carregando vendedores...</SelectItem>
+                          ) : salespeople && salespeople.length > 0 ? (
+                            salespeople.map((user: any) => (
+                              <SelectItem key={user.id} value={user.name}>
+                                {user.name} ({user.role === 'admin' ? 'Admin' : user.role === 'gerente' ? 'Gerente' : 'Usuário'})
+                              </SelectItem>
+                            ))
+                          ) : (
+                            <SelectItem value="" disabled>Nenhum vendedor encontrado</SelectItem>
+                          )}
                         </SelectContent>
                       </Select>
                       <FormMessage />

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -39,6 +39,11 @@ export default function OpportunityForm({ phase }: OpportunityFormProps) {
   const [formData, setFormData] = useState<Record<string, any>>({});
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Fetch salespeople from users endpoint
+  const { data: salespeople = [] } = useQuery({
+    queryKey: ["/api/users/salespeople"],
+  });
 
   // Form for Prospecção phase (creation)
   const prospeccaoForm = useForm<ProspeccaoFormData>({
@@ -109,9 +114,11 @@ export default function OpportunityForm({ phase }: OpportunityFormProps) {
             <SelectValue placeholder="+ Adicionar responsável" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="carlos">Carlos Mendes</SelectItem>
-            <SelectItem value="ana">Ana Silva</SelectItem>
-            <SelectItem value="pedro">Pedro Santos</SelectItem>
+            {salespeople.map((salesperson) => (
+              <SelectItem key={salesperson.id} value={salesperson.name}>
+                {salesperson.name}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>
@@ -119,7 +126,7 @@ export default function OpportunityForm({ phase }: OpportunityFormProps) {
       {/* Necessário Visita? */}
       <div>
         <Label className="text-sm font-medium text-gray-700">* Necessário Visita?</Label>
-        <RadioGroup 
+        <RadioGroup
           className="flex flex-row space-x-4 mt-2"
           onValueChange={(value) => handleInputChange("requiresVisit", value === "sim")}
         >
@@ -397,7 +404,7 @@ export default function OpportunityForm({ phase }: OpportunityFormProps) {
           <FileText className="h-4 w-4 mr-2" />
           * Cliente cadastra no Locador?
         </Label>
-        <RadioGroup 
+        <RadioGroup
           className="flex flex-row space-x-4 mt-2"
           onValueChange={(value) => handleInputChange("clientRegistration", value === "sim")}
         >
@@ -567,9 +574,9 @@ export default function OpportunityForm({ phase }: OpportunityFormProps) {
             </SelectContent>
           </Select>
         </div>
-        <Button 
-          variant="ghost" 
-          size="sm" 
+        <Button
+          variant="ghost"
+          size="sm"
           className="text-blue-500 hover:text-blue-600 p-0 h-auto"
           data-testid="button-add-automation"
         >
