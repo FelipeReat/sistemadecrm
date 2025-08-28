@@ -10,7 +10,7 @@ import ReportsDashboard from "@/pages/reports-dashboard";
 import Login from "@/pages/login";
 import UserManagement from "@/pages/user-management";
 import { Button } from "@/components/ui/button";
-import { LogOut, Users, Home, BarChart3 } from "lucide-react";
+import { LogOut, Users, Home, BarChart3, DollarSign } from "lucide-react";
 import { useEffect } from "react";
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
@@ -39,68 +39,54 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
 }
 
 function NavBar() {
-  const { user, logout, isLogoutPending } = useAuth();
+  const { logout } = useAuth();
   const [location, navigate] = useLocation();
 
   const handleLogout = async () => {
-    try {
-      await logout();
-    } catch (error) {
-      console.error("Logout error:", error);
-    }
+    await logout();
+    navigate("/login");
   };
 
+  const navItems = [
+    { path: "/", label: "Dashboard", icon: Home },
+    { path: "/reports", label: "Relatórios", icon: BarChart3 },
+    { path: "/billing", label: "Faturamento", icon: DollarSign },
+    { path: "/users", label: "Usuários", icon: Users },
+  ];
+
   return (
-    <nav className="bg-white dark:bg-gray-800 shadow-sm border-b">
-      <div className="container mx-auto px-4">
-        <div className="flex justify-between items-center h-16">
-          <div className="flex items-center space-x-4">
-            <h1 className="text-xl font-bold">Sistema CRM</h1>
-            <div className="hidden md:flex space-x-2">
-              <Button
-                variant={location === "/" ? "default" : "ghost"}
-                onClick={() => navigate("/")}
-                data-testid="nav-home"
-              >
-                <Home className="h-4 w-4 mr-2" />
-                Dashboard
-              </Button>
-              <Button
-                variant={location === "/reports" ? "default" : "ghost"}
-                onClick={() => navigate("/reports")}
-                data-testid="nav-reports"
-              >
-                <BarChart3 className="h-4 w-4 mr-2" />
-                Relatórios
-              </Button>
-              {user?.role === "admin" && (
-                <Button
-                  variant={location === "/users" ? "default" : "ghost"}
-                  onClick={() => navigate("/users")}
-                  data-testid="nav-users"
-                >
-                  <Users className="h-4 w-4 mr-2" />
-                  Usuários
-                </Button>
-              )}
+    <nav className="bg-white shadow-sm border-b">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between h-16">
+          <div className="flex space-x-8">
+            <div className="flex-shrink-0 flex items-center">
+              <h1 className="text-xl font-bold text-gray-900">CRM Dashboard</h1>
+            </div>
+            <div className="flex space-x-4">
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = location === item.path;
+                return (
+                  <button
+                    key={item.path}
+                    onClick={() => navigate(item.path)}
+                    className={`inline-flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                      isActive
+                        ? "bg-gray-100 text-gray-900"
+                        : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+                    }`}
+                  >
+                    <Icon className="h-4 w-4 mr-2" />
+                    {item.label}
+                  </button>
+                );
+              })}
             </div>
           </div>
-          
-          <div className="flex items-center space-x-4">
-            <span className="text-sm text-muted-foreground" data-testid="text-user-name">
-              Olá, {user?.name}
-            </span>
-            <Button
-              variant="outline"
-              onClick={handleLogout}
-              disabled={isLogoutPending}
-              data-testid="button-logout"
-            >
-              {isLogoutPending ? (
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900"></div>
-              ) : (
-                <LogOut className="h-4 w-4" />
-              )}
+          <div className="flex items-center">
+            <Button onClick={handleLogout} variant="ghost" size="sm">
+              <LogOut className="h-4 w-4 mr-2" />
+              Sair
             </Button>
           </div>
         </div>
@@ -112,7 +98,7 @@ function NavBar() {
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
   const [location] = useLocation();
-  
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -143,6 +129,10 @@ function Router() {
         </Route>
         <Route path="/reports">
           <ProtectedRoute component={ReportsDashboard} />
+        </Route>
+        <Route path="/billing">
+          {/* Placeholder for Billing Report Component */}
+          <ProtectedRoute component={() => <div>Billing Report Page</div>} />
         </Route>
         <Route path="/">
           <ProtectedRoute component={CrmDashboard} />
