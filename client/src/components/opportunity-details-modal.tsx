@@ -275,7 +275,7 @@ export default function OpportunityDetailsModal({
                         </FormControl>
                         <SelectContent>
                           {isLoadingSalespeople ? (
-                            <SelectItem value="" disabled>Carregando vendedores...</SelectItem>
+                            <SelectItem value="loading" disabled>Carregando vendedores...</SelectItem>
                           ) : salespeople && salespeople.length > 0 ? (
                             salespeople.map((user: any) => (
                               <SelectItem key={user.id} value={user.name}>
@@ -283,7 +283,7 @@ export default function OpportunityDetailsModal({
                               </SelectItem>
                             ))
                           ) : (
-                            <SelectItem value="" disabled>Nenhum vendedor encontrado</SelectItem>
+                            <SelectItem value="no-salespeople" disabled>Nenhum vendedor encontrado</SelectItem>
                           )}
                         </SelectContent>
                       </Select>
