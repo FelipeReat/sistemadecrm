@@ -10,7 +10,7 @@ import ReportsDashboard from "@/pages/reports-dashboard";
 import Login from "@/pages/login";
 import UserManagement from "@/pages/user-management";
 import { Button } from "@/components/ui/button";
-import { LogOut, Users, Home, BarChart3, DollarSign } from "lucide-react";
+import { LogOut, Users, Home, BarChart3 } from "lucide-react";
 import { useEffect } from "react";
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
@@ -50,7 +50,6 @@ function NavBar() {
   const navItems = [
     { path: "/", label: "Dashboard", icon: Home },
     { path: "/reports", label: "Relatórios", icon: BarChart3 },
-    { path: "/billing", label: "Faturamento", icon: DollarSign },
     { path: "/users", label: "Usuários", icon: Users },
   ];
 
@@ -129,10 +128,6 @@ function Router() {
         </Route>
         <Route path="/reports">
           <ProtectedRoute component={ReportsDashboard} />
-        </Route>
-        <Route path="/billing">
-          {/* Placeholder for Billing Report Component */}
-          <ProtectedRoute component={() => <div>Billing Report Page</div>} />
         </Route>
         <Route path="/">
           <ProtectedRoute component={CrmDashboard} />
