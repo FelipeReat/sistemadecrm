@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Settings, ChartLine, Trophy, Clock, DollarSign, Plus } from "lucide-react";
 import SalesPipelineColumn from "@/components/sales-pipeline-column";
@@ -10,6 +10,7 @@ import type { Opportunity } from "@shared/schema";
 import OpportunityDetailsModal from "@/components/opportunity-details-modal";
 
 export default function CrmDashboard() {
+  const queryClient = useQueryClient();
   const [isNewOpportunityModalOpen, setIsNewOpportunityModalOpen] = useState(false);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
@@ -103,6 +104,15 @@ export default function CrmDashboard() {
     setSelectedOpportunity(opportunity);
     setIsDetailsModalOpen(true);
   };
+
+  // Invalidate reports when opportunities change to keep them in sync
+  useEffect(() => {
+    if (opportunities?.length >= 0) {
+      // Invalidate reports queries to ensure real-time sync
+      queryClient.invalidateQueries({ queryKey: ["/api/reports/dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/reports/monthly-trend"] });
+    }
+  }, [opportunities, queryClient]);
 
   return (
     <div className="bg-gray-50 min-h-screen font-inter">

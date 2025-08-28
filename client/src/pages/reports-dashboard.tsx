@@ -1,7 +1,9 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { 
   BarChart, 
   Bar, 
@@ -15,7 +17,7 @@ import {
   ResponsiveContainer,
   Legend 
 } from "recharts";
-import { Calendar, TrendingUp, DollarSign, Clock, Users, Target, AlertTriangle } from "lucide-react";
+import { Calendar, TrendingUp, DollarSign, Clock, Users, Target, AlertTriangle, RefreshCw, Activity } from "lucide-react";
 
 interface ReportData {
   // Métricas gerais
@@ -59,13 +61,44 @@ interface ReportData {
 }
 
 export default function ReportsDashboard() {
-  const { data: reportData, isLoading } = useQuery<ReportData>({
+  const queryClient = useQueryClient();
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+  const [autoRefresh, setAutoRefresh] = useState(true);
+
+  // Fetch report data with dependency on opportunities
+  const { data: reportData, isLoading, refetch: refetchReports } = useQuery<ReportData>({
     queryKey: ["/api/reports/dashboard"],
+    refetchInterval: autoRefresh ? 30000 : false, // Auto-refresh every 30 seconds
+    refetchOnWindowFocus: true,
   });
 
-  const { data: monthlyTrend } = useQuery({
+  const { data: monthlyTrend, refetch: refetchTrend } = useQuery({
     queryKey: ["/api/reports/monthly-trend"],
+    refetchInterval: autoRefresh ? 30000 : false,
   });
+
+  // Also fetch opportunities to stay in sync
+  const { data: opportunities } = useQuery({
+    queryKey: ["/api/opportunities"],
+  });
+
+  // Auto-refresh when opportunities change
+  useEffect(() => {
+    if (opportunities) {
+      setLastUpdated(new Date());
+      // Invalidate report queries when opportunities change
+      queryClient.invalidateQueries({ queryKey: ["/api/reports/dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/reports/monthly-trend"] });
+    }
+  }, [opportunities, queryClient]);
+
+  const handleManualRefresh = () => {
+    setLastUpdated(new Date());
+    refetchReports();
+    refetchTrend();
+    queryClient.invalidateQueries({ queryKey: ["/api/opportunities"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
+  };
 
   if (isLoading) {
     return (
@@ -123,12 +156,41 @@ export default function ReportsDashboard() {
       <div className="max-w-7xl mx-auto p-6">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900" data-testid="title-reports">
-            Relatórios e Análises
-          </h1>
-          <p className="text-gray-600 mt-2">
-            Visualize o desempenho do seu funil de vendas e métricas importantes
-          </p>
+          <div className="flex justify-between items-start">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900" data-testid="title-reports">
+                Relatórios e Análises
+              </h1>
+              <p className="text-gray-600 mt-2">
+                Dados em tempo real do seu funil de vendas - sincronizado com o dashboard
+              </p>
+            </div>
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center text-sm text-gray-500">
+                <Activity className="h-4 w-4 mr-1" />
+                Última atualização: {lastUpdated.toLocaleTimeString('pt-BR')}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleManualRefresh}
+                disabled={isLoading}
+                data-testid="button-refresh-reports"
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+                {isLoading ? 'Atualizando...' : 'Atualizar'}
+              </Button>
+              <Button
+                variant={autoRefresh ? "default" : "outline"}
+                size="sm"
+                onClick={() => setAutoRefresh(!autoRefresh)}
+                data-testid="button-auto-refresh"
+              >
+                <Activity className="h-4 w-4 mr-2" />
+                Auto-refresh {autoRefresh ? 'ON' : 'OFF'}
+              </Button>
+            </div>
+          </div>
         </div>
 
         {/* KPIs Cards */}
@@ -406,7 +468,10 @@ export default function ReportsDashboard() {
                         <div className="flex justify-between items-center">
                           <span className="text-sm">Top Performer</span>
                           <Badge variant="outline">
-                            {reportData?.opportunitiesBySalesperson?.[0]?.salesperson || 'N/A'}
+                            {reportData?.opportunitiesBySalesperson && reportData.opportunitiesBySalesperson.length > 0 
+                              ? reportData.opportunitiesBySalesperson[0].salesperson 
+                              : 'N/A'
+                            }
                           </Badge>
                         </div>
                       </div>

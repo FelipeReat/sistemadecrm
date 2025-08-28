@@ -28,6 +28,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar, User, FileText, X, MapPin, Upload, DollarSign, Handshake } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useReportsSync } from "@/hooks/useReportsSync";
 import type { Opportunity } from "@shared/schema";
 import { masks } from "@/lib/masks";
 
@@ -91,6 +92,7 @@ export default function OpportunityDetailsModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { invalidateAllData } = useReportsSync();
 
   const prospeccaoForm = useForm<ProspeccaoFormData>({
     resolver: zodResolver(prospeccaoSchema),
@@ -146,8 +148,7 @@ export default function OpportunityDetailsModal({
     mutationFn: (data: any & { id: string }) => 
       apiRequest("PATCH", `/api/opportunities/${data.id}`, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/opportunities"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
+      invalidateAllData(); // Sincroniza dashboard e relatórios
       toast({
         title: "Sucesso",
         description: "Oportunidade atualizada com sucesso!",
@@ -170,8 +171,7 @@ export default function OpportunityDetailsModal({
     mutationFn: ({ opportunityId, newPhase }: { opportunityId: string; newPhase: string }) =>
       apiRequest("PATCH", `/api/opportunities/${opportunityId}/move/${newPhase}`),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/opportunities"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
+      invalidateAllData(); // Sincroniza dashboard e relatórios
       toast({
         title: "Sucesso",
         description: "Oportunidade movida para a próxima fase!",

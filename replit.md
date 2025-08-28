@@ -1,6 +1,6 @@
 # Overview
 
-This is a React-based CRM (Customer Relationship Management) dashboard application for managing sales opportunities through a structured pipeline. The application allows users to track leads from initial contact through various sales phases including prospecting, technical visits, proposals, negotiations, and final outcomes (won/lost). The system is built with a modern full-stack architecture featuring a React frontend with shadcn/ui components and an Express.js backend with PostgreSQL database support.
+This is a React-based CRM (Customer Relationship Management) dashboard application for managing sales opportunities through a structured pipeline. The application allows users to track leads from initial contact through various sales phases including prospecting, technical visits, proposals, negotiations, and final outcomes (won/lost). The system features real-time reports and analytics that automatically sync with the main dashboard, providing live insights into sales performance. Built with a modern full-stack architecture featuring a React frontend with shadcn/ui components and an Express.js backend with PostgreSQL database support.
 
 # User Preferences
 

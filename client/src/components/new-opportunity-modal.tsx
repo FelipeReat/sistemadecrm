@@ -27,6 +27,7 @@ import { Label } from "@/components/ui/label";
 import { CloudUpload } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useReportsSync } from "@/hooks/useReportsSync";
 import { insertOpportunitySchema } from "@shared/schema";
 import { masks } from "@/lib/masks";
 
@@ -82,6 +83,7 @@ export default function NewOpportunityModal({ open, onOpenChange }: NewOpportuni
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { invalidateAllData } = useReportsSync();
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -106,8 +108,7 @@ export default function NewOpportunityModal({ open, onOpenChange }: NewOpportuni
       documents: []
     }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/opportunities"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
+      invalidateAllData(); // Sincroniza dashboard e relatórios
       toast({
         title: "Sucesso",
         description: "Nova oportunidade criada com sucesso!",
