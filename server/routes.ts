@@ -545,68 +545,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Billing report endpoint
-  app.get("/api/reports/billing", isAuthenticated, async (req, res) => {
-    try {
-      const opportunities = await storage.getOpportunities();
-
-      // Group opportunities by salesperson
-      const salespersonData = opportunities.reduce((acc, opp) => {
-        const salesperson = opp.salesperson || 'Não atribuído';
-        
-        if (!acc[salesperson]) {
-          acc[salesperson] = {
-            salesperson,
-            totalRevenue: 0,
-            totalOpportunities: 0,
-            wonOpportunities: 0,
-            opportunities: []
-          };
-        }
-
-        acc[salesperson].totalOpportunities++;
-        acc[salesperson].opportunities.push(opp);
-
-        if (opp.phase === 'ganho') {
-          acc[salesperson].wonOpportunities++;
-          const revenue = opp.finalValue ? parseFloat(opp.finalValue.toString()) : 
-                         opp.budget ? parseFloat(opp.budget.toString()) : 0;
-          acc[salesperson].totalRevenue += revenue;
-        }
-
-        return acc;
-      }, {} as Record<string, any>);
-
-      // Calculate metrics for each salesperson
-      const salespersonBilling = Object.values(salespersonData).map((data: any) => ({
-        salesperson: data.salesperson,
-        totalRevenue: data.totalRevenue,
-        totalOpportunities: data.totalOpportunities,
-        wonOpportunities: data.wonOpportunities,
-        avgTicket: data.wonOpportunities > 0 ? data.totalRevenue / data.wonOpportunities : 0,
-        conversionRate: data.totalOpportunities > 0 ? (data.wonOpportunities / data.totalOpportunities) * 100 : 0
-      })).sort((a, b) => b.totalRevenue - a.totalRevenue);
-
-      // Calculate overall metrics
-      const totalRevenue = salespersonBilling.reduce((sum, sp) => sum + sp.totalRevenue, 0);
-      const totalOpportunities = opportunities.length;
-      const totalWonOpportunities = opportunities.filter(o => o.phase === 'ganho').length;
-      const avgTicketOverall = totalWonOpportunities > 0 ? totalRevenue / totalWonOpportunities : 0;
-
-      const billingReport = {
-        salespersonBilling,
-        totalRevenue,
-        totalOpportunities,
-        totalWonOpportunities,
-        avgTicketOverall
-      };
-
-      res.json(billingReport);
-    } catch (error) {
-      console.error("Billing report error:", error);
-      res.status(500).json({ message: "Erro ao buscar relatório de faturamento" });
-    }
-  });
+  
 
   const httpServer = createServer(app);
   return httpServer;

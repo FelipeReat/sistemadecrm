@@ -211,6 +211,7 @@ export default function ReportsDashboard() {
             <TabsTrigger value="overview" data-testid="tab-overview">Visão Geral</TabsTrigger>
             <TabsTrigger value="performance" data-testid="tab-performance">Performance</TabsTrigger>
             <TabsTrigger value="analysis" data-testid="tab-analysis">Análise Detalhada</TabsTrigger>
+            <TabsTrigger value="sdr-opportunities" data-testid="tab-sdr-opportunities">Oportunidades SDR</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
@@ -415,8 +416,102 @@ export default function ReportsDashboard() {
               </Card>
             </div>
           </TabsContent>
+
+          <TabsContent value="sdr-opportunities" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Oportunidades SDR</CardTitle>
+                <CardDescription>
+                  {reportData?.monthlyStats?.totalOpportunities || 0} resultados - Selecione filtros do lado esquerdo e adicione fórmulas, altere colunas ou exporte dados usando os botões do lado direito.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse border border-gray-300">
+                    <thead>
+                      <tr className="bg-gray-50">
+                        <th className="border border-gray-300 px-4 py-2 text-left font-medium">Título</th>
+                        <th className="border border-gray-300 px-4 py-2 text-left font-medium">Fase atual</th>
+                        <th className="border border-gray-300 px-4 py-2 text-left font-medium">Criador</th>
+                        <th className="border border-gray-300 px-4 py-2 text-left font-medium">Criado em</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <SDROpportunitiesTable />
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
         </Tabs>
       </div>
     </div>
+  );
+}
+
+function SDROpportunitiesTable() {
+  const { data: opportunities } = useQuery({
+    queryKey: ["/api/opportunities"],
+  });
+
+  const getPhaseDisplayName = (phase: string) => {
+    const phaseNames: Record<string, string> = {
+      'prospeccao': 'Prospecção',
+      'em-atendimento': 'Em Atendimento',
+      'visita-tecnica': 'Visita Técnica',
+      'proposta': 'Proposta',
+      'negociacao': 'Negociação',
+      'ganho': 'Ganho',
+      'perdido': 'Perdido'
+    };
+    return phaseNames[phase] || phase;
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day} de ${getMonthName(month)} de ${year}`;
+  };
+
+  const getMonthName = (month: string) => {
+    const months = [
+      '', 'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
+      'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'
+    ];
+    return months[parseInt(month)];
+  };
+
+  if (!opportunities || opportunities.length === 0) {
+    return (
+      <tr>
+        <td colSpan={4} className="border border-gray-300 px-4 py-8 text-center text-gray-500">
+          Nenhuma oportunidade encontrada
+        </td>
+      </tr>
+    );
+  }
+
+  return (
+    <>
+      {opportunities.map((opportunity: any) => (
+        <tr key={opportunity.id} className="hover:bg-gray-50">
+          <td className="border border-gray-300 px-4 py-2">
+            {opportunity.company || opportunity.contact}
+          </td>
+          <td className="border border-gray-300 px-4 py-2">
+            {getPhaseDisplayName(opportunity.phase)}
+          </td>
+          <td className="border border-gray-300 px-4 py-2">
+            {opportunity.salesperson || 'Não atribuído'}
+          </td>
+          <td className="border border-gray-300 px-4 py-2">
+            {opportunity.createdAt ? formatDate(opportunity.createdAt) : '-'}
+          </td>
+        </tr>
+      ))}
+    </>
   );
 }
