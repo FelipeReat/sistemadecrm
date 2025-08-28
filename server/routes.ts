@@ -312,7 +312,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       ).length;
 
       const projectedRevenue = opportunities
-        .filter(o => o.budget && !['ganho', 'perdido'].includes(o.phase))
+        .filter(o => o.budget && ['proposta', 'negociacao', 'ganho'].includes(o.phase))
         .reduce((sum, o) => sum + parseFloat(o.budget!.toString()), 0);
 
       res.json({
