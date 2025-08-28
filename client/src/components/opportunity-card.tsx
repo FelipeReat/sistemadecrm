@@ -1,4 +1,4 @@
-import { MoreHorizontal, User, Phone, Building, Calendar, FileText, DollarSign, MapPin, TriangleAlert } from "lucide-react";
+import { User, Phone, Building, Calendar, FileText, DollarSign, MapPin, TriangleAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { formatDistanceToNow } from "date-fns";
@@ -65,8 +65,13 @@ export default function OpportunityCard({ opportunity, onViewDetails }: Opportun
         </h4>
         <div className="flex items-center space-x-2">
           {getStatusBadge()}
-          <Button variant="ghost" size="sm" className="h-auto p-1">
-            <MoreHorizontal className="h-4 w-4 text-gray-400" />
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="text-blue-500 hover:text-blue-600 text-xs font-medium h-auto p-1"
+            onClick={() => onViewDetails?.(opportunity)}
+          >
+            Ver detalhes
           </Button>
         </div>
       </div>
@@ -174,7 +179,7 @@ export default function OpportunityCard({ opportunity, onViewDetails }: Opportun
         )}
       </div>
 
-      <div className="flex justify-between items-center mt-3">
+      <div className="mt-3">
         <div className="flex flex-col text-xs text-gray-500">
           <span data-testid={`opportunity-created-${opportunity.id}`}>
             Criado {formatDate(opportunity.createdAt)}
@@ -183,14 +188,6 @@ export default function OpportunityCard({ opportunity, onViewDetails }: Opportun
             Nesta fase {formatDate(opportunity.phaseUpdatedAt || opportunity.updatedAt)}
           </span>
         </div>
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          className="text-blue-500 hover:text-blue-600 text-sm font-medium h-auto p-1"
-          onClick={() => onViewDetails?.(opportunity)}
-        >
-          Ver detalhes
-        </Button>
       </div>
     </div>
   );
