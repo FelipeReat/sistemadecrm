@@ -17,7 +17,8 @@ import {
   ResponsiveContainer,
   Legend 
 } from "recharts";
-import { Calendar, TrendingUp, DollarSign, Clock, Users, Target, AlertTriangle, RefreshCw, Activity } from "lucide-react";
+import { Calendar, TrendingUp, DollarSign, Clock, Users, Target, AlertTriangle, RefreshCw, Activity, Plus, Filter } from "lucide-react";
+import CustomReportsModal from "@/components/custom-reports-modal";
 
 interface ReportData {
   // Métricas gerais
@@ -64,6 +65,7 @@ export default function ReportsDashboard() {
   const queryClient = useQueryClient();
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [autoRefresh, setAutoRefresh] = useState(true);
+  const [customReportsOpen, setCustomReportsOpen] = useState(false);
 
   // Fetch report data with dependency on opportunities
   const { data: reportData, isLoading, refetch: refetchReports } = useQuery<ReportData>({
@@ -188,6 +190,13 @@ export default function ReportsDashboard() {
               >
                 <Activity className="h-4 w-4 mr-2" />
                 Auto-refresh {autoRefresh ? 'ON' : 'OFF'}
+              </Button>
+              <Button
+                onClick={() => setCustomReportsOpen(true)}
+                data-testid="button-custom-reports"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Criar Relatório
               </Button>
             </div>
           </div>
@@ -510,13 +519,18 @@ export default function ReportsDashboard() {
             </Card>
           </TabsContent>
         </Tabs>
+
+        <CustomReportsModal 
+          open={customReportsOpen} 
+          onOpenChange={setCustomReportsOpen} 
+        />
       </div>
     </div>
   );
 }
 
 function SDROpportunitiesTable() {
-  const { data: opportunities } = useQuery({
+  const { data: opportunities } = useQuery<any[]>({
     queryKey: ["/api/opportunities"],
   });
 

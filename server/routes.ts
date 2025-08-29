@@ -564,7 +564,141 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  
+  // Custom reports endpoint with filters
+  app.get("/api/reports/custom", isAuthenticated, canViewReports, async (req, res) => {
+    try {
+      const { salesperson, phase, businessTemperature, dateRange } = req.query;
+      let opportunities = await storage.getOpportunities();
+
+      // Apply filters
+      if (salesperson) {
+        opportunities = opportunities.filter(opp => 
+          opp.salesperson === salesperson
+        );
+      }
+
+      if (phase) {
+        opportunities = opportunities.filter(opp => 
+          opp.phase === phase
+        );
+      }
+
+      if (businessTemperature) {
+        opportunities = opportunities.filter(opp => 
+          opp.businessTemperature === businessTemperature
+        );
+      }
+
+      if (dateRange) {
+        const now = new Date();
+        let startDate = new Date();
+
+        switch (dateRange) {
+          case 'last-7-days':
+            startDate.setDate(now.getDate() - 7);
+            break;
+          case 'last-30-days':
+            startDate.setDate(now.getDate() - 30);
+            break;
+          case 'last-90-days':
+            startDate.setDate(now.getDate() - 90);
+            break;
+          case 'current-month':
+            startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+            break;
+          case 'last-month':
+            startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+            const endDate = new Date(now.getFullYear(), now.getMonth(), 0);
+            opportunities = opportunities.filter(opp => {
+              if (!opp.createdAt) return false;
+              const createdDate = new Date(opp.createdAt);
+              return createdDate >= startDate && createdDate <= endDate;
+            });
+            break;
+          case 'current-year':
+            startDate = new Date(now.getFullYear(), 0, 1);
+            break;
+        }
+
+        if (dateRange !== 'last-month') {
+          opportunities = opportunities.filter(opp => {
+            if (!opp.createdAt) return false;
+            return new Date(opp.createdAt) >= startDate;
+          });
+        }
+      }
+
+      // Calculate summary metrics
+      const totalOpportunities = opportunities.length;
+      const wonOpportunities = opportunities.filter(o => o.phase === 'ganho');
+      const totalRevenue = wonOpportunities.reduce((sum, opp) => {
+        return sum + (opp.finalValue ? parseFloat(opp.finalValue.toString()) : 
+                     opp.budget ? parseFloat(opp.budget.toString()) : 0);
+      }, 0);
+      const conversionRate = totalOpportunities > 0 
+        ? Math.round((wonOpportunities.length / totalOpportunities) * 100) 
+        : 0;
+      const averageTicket = wonOpportunities.length > 0 
+        ? totalRevenue / wonOpportunities.length 
+        : 0;
+
+      // Phase distribution
+      const phaseNames = {
+        'prospeccao': 'Prospecção',
+        'em-atendimento': 'Em Atendimento',
+        'visita-tecnica': 'Visita Técnica',
+        'proposta': 'Proposta',
+        'negociacao': 'Negociação',
+        'ganho': 'Ganho',
+        'perdido': 'Perdido'
+      };
+
+      const phaseDistribution = Object.entries(phaseNames).map(([phase, name]) => ({
+        name,
+        count: opportunities.filter(o => o.phase === phase).length
+      })).filter(item => item.count > 0);
+
+      // Temperature distribution
+      const temperatureCounts = opportunities.reduce((acc, opp) => {
+        const temp = opp.businessTemperature || 'morno';
+        acc[temp] = (acc[temp] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+
+      const temperatureDistribution = Object.entries(temperatureCounts).map(([temperature, count]) => ({
+        temperature: temperature.charAt(0).toUpperCase() + temperature.slice(1),
+        count
+      }));
+
+      const response = {
+        summary: {
+          totalOpportunities,
+          totalRevenue,
+          conversionRate,
+          averageTicket
+        },
+        charts: {
+          phaseDistribution: phaseDistribution.length > 0 ? phaseDistribution : null,
+          temperatureDistribution: temperatureDistribution.length > 0 ? temperatureDistribution : null
+        },
+        opportunities: opportunities.map(opp => ({
+          id: opp.id,
+          company: opp.company,
+          contact: opp.contact,
+          phase: opp.phase,
+          salesperson: opp.salesperson,
+          businessTemperature: opp.businessTemperature,
+          budget: opp.budget,
+          finalValue: opp.finalValue,
+          createdAt: opp.createdAt
+        }))
+      };
+
+      res.json(response);
+    } catch (error) {
+      res.status(500).json({ message: "Erro ao gerar relatório personalizado" });
+    }
+  });
 
   const httpServer = createServer(app);
   return httpServer;
