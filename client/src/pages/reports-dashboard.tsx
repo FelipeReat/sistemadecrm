@@ -104,20 +104,20 @@ export default function ReportsDashboard() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 p-6">
+      <div className="min-h-screen bg-background p-6">
         <div className="max-w-7xl mx-auto">
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900">Relatórios e Análises</h1>
-            <p className="text-gray-600 mt-2">Carregando dados...</p>
+            <h1 className="text-3xl font-bold text-foreground">Relatórios e Análises</h1>
+            <p className="text-muted-foreground mt-2">Carregando dados...</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             {[1, 2, 3, 4].map((i) => (
               <Card key={i} className="animate-pulse">
                 <CardHeader className="pb-2">
-                  <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                  <div className="h-4 bg-muted rounded w-3/4"></div>
                 </CardHeader>
                 <CardContent>
-                  <div className="h-8 bg-gray-200 rounded w-1/2"></div>
+                  <div className="h-8 bg-muted rounded w-1/2"></div>
                 </CardContent>
               </Card>
             ))}
@@ -154,21 +154,21 @@ export default function ReportsDashboard() {
   const temperatureColors = ['#f97316', '#06d6a0', '#ffd60a'];
 
   return (
-    <div className="min-h-screen bg-gray-50" data-testid="reports-dashboard">
+    <div className="min-h-screen bg-background" data-testid="reports-dashboard">
       <div className="max-w-7xl mx-auto p-6">
         {/* Header */}
         <div className="mb-8">
           <div className="flex justify-between items-start">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900" data-testid="title-reports">
+              <h1 className="text-3xl font-bold text-foreground" data-testid="title-reports">
                 Relatórios e Análises
               </h1>
-              <p className="text-gray-600 mt-2">
+              <p className="text-muted-foreground mt-2">
                 Dados em tempo real do seu funil de vendas - sincronizado com o dashboard
               </p>
             </div>
             <div className="flex items-center space-x-4">
-              <div className="flex items-center text-sm text-gray-500">
+              <div className="flex items-center text-sm text-muted-foreground">
                 <Activity className="h-4 w-4 mr-1" />
                 Última atualização: {lastUpdated.toLocaleTimeString('pt-BR')}
               </div>
@@ -367,7 +367,7 @@ export default function ReportsDashboard() {
                 <CardContent>
                   <div className="space-y-3">
                     {reportData?.lossReasons?.map((reason, index) => (
-                      <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div key={index} className="flex items-center justify-between p-3 bg-muted rounded-lg">
                         <div className="flex items-center space-x-2">
                           <AlertTriangle className="h-4 w-4 text-red-500" />
                           <span className="text-sm font-medium">{reason.reason || 'Não informado'}</span>
@@ -375,7 +375,7 @@ export default function ReportsDashboard() {
                         <Badge variant="secondary">{reason.count} cards</Badge>
                       </div>
                     )) || (
-                      <p className="text-sm text-gray-500 text-center py-4">
+                      <p className="text-sm text-muted-foreground text-center py-4">
                         Nenhuma oportunidade perdida registrada
                       </p>
                     )}
@@ -501,13 +501,13 @@ export default function ReportsDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="overflow-x-auto">
-                  <table className="w-full border-collapse border border-gray-300">
+                  <table className="w-full border-collapse border border-border">
                     <thead>
-                      <tr className="bg-gray-50">
-                        <th className="border border-gray-300 px-4 py-2 text-left font-medium">Título</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left font-medium">Fase atual</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left font-medium">Criador</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left font-medium">Criado em</th>
+                      <tr className="bg-muted">
+                        <th className="border border-border px-4 py-2 text-left font-medium">Título</th>
+                        <th className="border border-border px-4 py-2 text-left font-medium">Fase atual</th>
+                        <th className="border border-border px-4 py-2 text-left font-medium">Criador</th>
+                        <th className="border border-border px-4 py-2 text-left font-medium">Criado em</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -566,7 +566,7 @@ function SDROpportunitiesTable() {
   if (!opportunities || opportunities.length === 0) {
     return (
       <tr>
-        <td colSpan={4} className="border border-gray-300 px-4 py-8 text-center text-gray-500">
+        <td colSpan={4} className="border border-border px-4 py-8 text-center text-muted-foreground">
           Nenhuma oportunidade encontrada
         </td>
       </tr>
@@ -576,17 +576,17 @@ function SDROpportunitiesTable() {
   return (
     <>
       {opportunities.map((opportunity: any) => (
-        <tr key={opportunity.id} className="hover:bg-gray-50">
-          <td className="border border-gray-300 px-4 py-2">
+        <tr key={opportunity.id} className="hover:bg-muted/50">
+          <td className="border border-border px-4 py-2">
             {opportunity.company || opportunity.contact}
           </td>
-          <td className="border border-gray-300 px-4 py-2">
+          <td className="border border-border px-4 py-2">
             {getPhaseDisplayName(opportunity.phase)}
           </td>
-          <td className="border border-gray-300 px-4 py-2">
+          <td className="border border-border px-4 py-2">
             {opportunity.salesperson || 'Não atribuído'}
           </td>
-          <td className="border border-gray-300 px-4 py-2">
+          <td className="border border-border px-4 py-2">
             {opportunity.createdAt ? formatDate(opportunity.createdAt) : '-'}
           </td>
         </tr>
