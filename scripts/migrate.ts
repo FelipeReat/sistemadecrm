@@ -1,11 +1,8 @@
 
 import 'dotenv/config';
-import { migrate } from 'drizzle-orm/neon-serverless/migrator';
-import { Pool, neonConfig } from '@neondatabase/serverless';
-import { drizzle } from 'drizzle-orm/neon-serverless';
-import ws from "ws";
-
-neonConfig.webSocketConstructor = ws;
+import { migrate } from 'drizzle-orm/postgres-js/migrator';
+import postgres from 'postgres';
+import { drizzle } from 'drizzle-orm/postgres-js';
 
 async function runMigrations() {
   // Força NODE_ENV para production se não estiver definido
@@ -24,10 +21,16 @@ async function runMigrations() {
 
   console.log('🔗 URL do banco:', dbUrl.replace(/:[^:]*@/, ':***@')); // Oculta a senha no log
 
-  console.log('Conectando ao banco de dados de produção...');
+  console.log('Conectando ao banco de dados RDS...');
   
-  const pool = new Pool({ connectionString: dbUrl });
-  const db = drizzle({ client: pool });
+  // Use postgres-js para conectar ao RDS
+  const sql = postgres(dbUrl, { 
+    max: 1,
+    ssl: 'prefer', // Usar SSL se disponível
+    connect_timeout: 30 // 30 segundos de timeout
+  });
+  
+  const db = drizzle(sql);
 
   console.log('Executando migrações...');
   
@@ -38,7 +41,7 @@ async function runMigrations() {
     console.error('❌ Erro ao executar migrações:', error);
     throw error;
   } finally {
-    await pool.end();
+    await sql.end();
     console.log('Conexão fechada.');
   }
 }
