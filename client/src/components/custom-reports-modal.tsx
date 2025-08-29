@@ -64,7 +64,7 @@ export default function CustomReportsModal({ open, onOpenChange }: CustomReports
     try {
       const queryParams = new URLSearchParams();
       Object.entries(filters).forEach(([key, value]) => {
-        if (value) queryParams.append(key, value);
+        if (value && value !== 'all') queryParams.append(key, value);
       });
 
       const response = await fetch(`/api/reports/custom?${queryParams}`);
@@ -138,14 +138,14 @@ export default function CustomReportsModal({ open, onOpenChange }: CustomReports
             <div className="space-y-2">
               <Label htmlFor="salesperson-filter">Vendedor</Label>
               <Select 
-                value={filters.salesperson || ""} 
-                onValueChange={(value) => setFilters({...filters, salesperson: value || undefined})}
+                value={filters.salesperson || "all"} 
+                onValueChange={(value) => setFilters({...filters, salesperson: value === "all" ? undefined : value})}
               >
                 <SelectTrigger id="salesperson-filter" data-testid="select-salesperson">
                   <SelectValue placeholder="Todos os vendedores" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todos os vendedores</SelectItem>
+                  <SelectItem value="all">Todos os vendedores</SelectItem>
                   {salespeople?.map((person) => (
                     <SelectItem key={person.id} value={person.name}>
                       {person.name} ({person.role})
@@ -158,14 +158,14 @@ export default function CustomReportsModal({ open, onOpenChange }: CustomReports
             <div className="space-y-2">
               <Label htmlFor="phase-filter">Fase</Label>
               <Select 
-                value={filters.phase || ""} 
-                onValueChange={(value) => setFilters({...filters, phase: value || undefined})}
+                value={filters.phase || "all"} 
+                onValueChange={(value) => setFilters({...filters, phase: value === "all" ? undefined : value})}
               >
                 <SelectTrigger id="phase-filter" data-testid="select-phase">
                   <SelectValue placeholder="Todas as fases" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todas as fases</SelectItem>
+                  <SelectItem value="all">Todas as fases</SelectItem>
                   {PHASE_OPTIONS.map((phase) => (
                     <SelectItem key={phase.value} value={phase.value}>
                       {phase.label}
@@ -178,14 +178,14 @@ export default function CustomReportsModal({ open, onOpenChange }: CustomReports
             <div className="space-y-2">
               <Label htmlFor="temperature-filter">Temperatura do Negócio</Label>
               <Select 
-                value={filters.businessTemperature || ""} 
-                onValueChange={(value) => setFilters({...filters, businessTemperature: value || undefined})}
+                value={filters.businessTemperature || "all"} 
+                onValueChange={(value) => setFilters({...filters, businessTemperature: value === "all" ? undefined : value})}
               >
                 <SelectTrigger id="temperature-filter" data-testid="select-temperature">
                   <SelectValue placeholder="Todas as temperaturas" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todas as temperaturas</SelectItem>
+                  <SelectItem value="all">Todas as temperaturas</SelectItem>
                   {TEMPERATURE_OPTIONS.map((temp) => (
                     <SelectItem key={temp.value} value={temp.value}>
                       {temp.label}
@@ -198,14 +198,14 @@ export default function CustomReportsModal({ open, onOpenChange }: CustomReports
             <div className="space-y-2">
               <Label htmlFor="date-range-filter">Período</Label>
               <Select 
-                value={filters.dateRange || ""} 
-                onValueChange={(value) => setFilters({...filters, dateRange: value || undefined})}
+                value={filters.dateRange || "all"} 
+                onValueChange={(value) => setFilters({...filters, dateRange: value === "all" ? undefined : value})}
               >
                 <SelectTrigger id="date-range-filter" data-testid="select-date-range">
                   <SelectValue placeholder="Todo o período" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todo o período</SelectItem>
+                  <SelectItem value="all">Todo o período</SelectItem>
                   {DATE_RANGE_OPTIONS.map((range) => (
                     <SelectItem key={range.value} value={range.value}>
                       {range.label}
@@ -234,7 +234,7 @@ export default function CustomReportsModal({ open, onOpenChange }: CustomReports
               </Button>
             </div>
 
-            {Object.keys(filters).some(key => filters[key as keyof FilterOptions]) && (
+            {Object.keys(filters).some(key => filters[key as keyof FilterOptions] && filters[key as keyof FilterOptions] !== "all") && (
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm">Filtros Ativos</CardTitle>
