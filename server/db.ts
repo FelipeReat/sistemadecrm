@@ -19,7 +19,7 @@ function createDatabase() {
     }
     
     const sql = postgres(productionDbUrl, {
-      ssl: 'prefer',
+      ssl: { rejectUnauthorized: false },
       max: 10, // Pool de 10 conexões
       connect_timeout: 30
     });

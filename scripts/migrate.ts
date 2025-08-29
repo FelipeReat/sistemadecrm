@@ -26,7 +26,7 @@ async function runMigrations() {
   // Use postgres-js para conectar ao RDS
   const sql = postgres(dbUrl, { 
     max: 1,
-    ssl: 'prefer', // Usar SSL se disponível
+    ssl: { rejectUnauthorized: false },
     connect_timeout: 30 // 30 segundos de timeout
   });
   
