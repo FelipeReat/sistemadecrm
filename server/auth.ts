@@ -16,16 +16,20 @@ export function getSession() {
   const pgStore = connectPg(session);
   
   // Use a URL correta do banco de dados baseada no ambiente
-  const dbUrl = process.env.NODE_ENV === 'production' 
+  let dbUrl = process.env.NODE_ENV === 'production' 
     ? process.env.PROD_DATABASE_URL || process.env.DATABASE_URL
     : process.env.DATABASE_URL;
+    
+  // Forçar SSL para PostgreSQL em produção
+  if (process.env.NODE_ENV === 'production' && dbUrl && !dbUrl.includes('sslmode=')) {
+    dbUrl += dbUrl.includes('?') ? '&sslmode=require' : '?sslmode=require';
+  }
     
   const sessionStore = new pgStore({
     conString: dbUrl,
     createTableIfMissing: true,
     ttl: sessionTtl,
     tableName: "sessions",
-    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
   });
   
   return session({
