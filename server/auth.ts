@@ -20,9 +20,12 @@ export function getSession() {
     ? process.env.PROD_DATABASE_URL || process.env.DATABASE_URL
     : process.env.DATABASE_URL;
     
-  // Forçar SSL para PostgreSQL em produção
-  if (process.env.NODE_ENV === 'production' && dbUrl && !dbUrl.includes('sslmode=')) {
-    dbUrl += dbUrl.includes('?') ? '&sslmode=require' : '?sslmode=require';
+  // Configurar SSL para PostgreSQL em produção
+  if (process.env.NODE_ENV === 'production' && dbUrl) {
+    // Remove qualquer configuração SSL existente
+    dbUrl = dbUrl.replace(/[?&]sslmode=[^&]*/g, '');
+    // Adiciona configuração SSL que aceita certificados auto-assinados
+    dbUrl += dbUrl.includes('?') ? '&ssl=true&sslmode=require' : '?ssl=true&sslmode=require';
   }
     
   const sessionStore = new pgStore({
@@ -30,6 +33,11 @@ export function getSession() {
     createTableIfMissing: true,
     ttl: sessionTtl,
     tableName: "sessions",
+    ssl: process.env.NODE_ENV === 'production' ? {
+      rejectUnauthorized: false,
+      requestCert: true,
+      agent: false
+    } : false,
   });
   
   return session({
