@@ -8,11 +8,21 @@ import ws from "ws";
 neonConfig.webSocketConstructor = ws;
 
 async function runMigrations() {
+  // Força NODE_ENV para production se não estiver definido
+  if (!process.env.NODE_ENV) {
+    process.env.NODE_ENV = 'production';
+  }
+
   const dbUrl = process.env.PROD_DATABASE_URL || process.env.DATABASE_URL;
   
   if (!dbUrl) {
+    console.error('❌ Erro: DATABASE_URL não está definida!');
+    console.log('Configure a variável de ambiente DATABASE_URL com a string de conexão do seu banco PostgreSQL de produção.');
+    console.log('Exemplo: DATABASE_URL="postgresql://user:password@host:5432/database"');
     throw new Error('PROD_DATABASE_URL ou DATABASE_URL deve estar definida');
   }
+
+  console.log('🔗 URL do banco:', dbUrl.replace(/:[^:]*@/, ':***@')); // Oculta a senha no log
 
   console.log('Conectando ao banco de dados de produção...');
   
