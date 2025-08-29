@@ -96,8 +96,7 @@ export default function OpportunityDetailsModal({
 
   // Query para buscar usuários que podem ser vendedores
   const { data: salespeople, isLoading: isLoadingSalespeople } = useQuery({
-    queryKey: ["salespeople"],
-    queryFn: () => apiRequest("GET", "/api/users?role=vendedor"), // Assumindo que este endpoint existe e retorna vendedores
+    queryKey: ["/api/users/salespeople"],
     staleTime: 1000 * 60 * 5, // 5 minutos
   });
 
