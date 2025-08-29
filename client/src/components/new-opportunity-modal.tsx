@@ -24,7 +24,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { CloudUpload } from "lucide-react";
+import { CloudUpload, Calendar, User, FileText, Phone, Building, Target, DollarSign, CheckCircle2, X } from "lucide-react";
+import { FileUpload } from "@/components/ui/file-upload";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useReportsSync } from "@/hooks/useReportsSync";
@@ -379,11 +380,23 @@ export default function NewOpportunityModal({ open, onOpenChange }: NewOpportuni
               <Label className="text-sm font-medium">
                 <i className="fas fa-file-upload mr-1"></i>Documentos
               </Label>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center cursor-pointer hover:border-gray-400 transition-colors">
-                <CloudUpload className="text-gray-400 text-xl mb-2 mx-auto" />
-                <p className="text-sm text-gray-500">Clique para fazer upload de documentos</p>
-                <input type="file" className="hidden" multiple accept="image/*,.pdf,.doc,.docx" data-testid="input-documents" />
-              </div>
+              <FormField
+                control={form.control}
+                name="documents"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <FileUpload
+                        onFilesChange={field.onChange}
+                        multiple
+                        accept="image/*,.pdf,.doc,.docx"
+                        data-testid="input-documents"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </div>
 
             <div className="flex justify-end space-x-3 pt-4">

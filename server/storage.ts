@@ -94,6 +94,7 @@ export class MemStorage implements IStorage {
       validityDate: insertOpportunity.validityDate || null,
       budgetNumber: insertOpportunity.budgetNumber || null,
       budget: insertOpportunity.budget || null,
+      budgetFile: insertOpportunity.budgetFile || null,
       status: insertOpportunity.status || null,
       finalValue: insertOpportunity.finalValue || null,
       negotiationInfo: insertOpportunity.negotiationInfo || null,

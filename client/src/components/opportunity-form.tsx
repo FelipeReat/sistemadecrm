@@ -19,6 +19,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Plus, Upload, CloudUpload, Calendar, User, FileText, Phone, Building, Target, DollarSign, CheckCircle2, X } from "lucide-react";
+import { FileUpload } from "@/components/ui/file-upload";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { PHASES, insertOpportunitySchema } from "@shared/schema";
@@ -295,11 +296,14 @@ export default function OpportunityForm({ phase }: OpportunityFormProps) {
           <CloudUpload className="h-4 w-4 mr-2" />
           Registro Fotográfico de Visita
         </Label>
-        <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center mt-1 cursor-pointer hover:border-gray-400 transition-colors">
-          <CloudUpload className="text-gray-400 text-xl mb-2 mx-auto" />
-          <p className="text-sm text-gray-500">Clique para adicionar fotos ou arraste arquivos aqui</p>
-          <input type="file" className="hidden" multiple accept="image/*" data-testid="form-visit-photos" />
-        </div>
+        <FileUpload
+          multiple={true}
+          accept="image/*"
+          value={formData.visitPhotos || []}
+          onFilesChange={(files) => handleInputChange("visitPhotos", files)}
+          placeholder="Clique para adicionar fotos ou arraste arquivos aqui"
+          data-testid="form-visit-photos"
+        />
       </div>
     </div>
   );
@@ -394,11 +398,14 @@ export default function OpportunityForm({ phase }: OpportunityFormProps) {
           data-testid="form-budget"
           {...masks.currency}
         />
-        <div className="mt-1">
-          <Button variant="link" size="sm" className="text-blue-500 h-auto p-0">
-            + Upload file
-          </Button>
-        </div>
+        <FileUpload
+          multiple={false}
+          accept=".pdf,.doc,.docx,.xls,.xlsx"
+          value={formData.budgetFile ? [formData.budgetFile] : []}
+          onFilesChange={(files) => handleInputChange("budgetFile", files[0])}
+          placeholder="Clique para fazer upload do orçamento"
+          className="mt-1"
+        />
       </div>
 
       {/* Cliente cadastra no Locador? */}
@@ -484,13 +491,14 @@ export default function OpportunityForm({ phase }: OpportunityFormProps) {
           <Upload className="h-4 w-4 mr-2" />
           Contrato
         </Label>
-        <div className="border-2 border-dashed border-gray-300 rounded-lg p-3 text-center mt-1 cursor-pointer hover:border-gray-400 transition-colors">
-          <Upload className="text-gray-400 text-lg mb-1 mx-auto" />
-          <Button variant="link" size="sm" className="text-blue-500 h-auto p-0">
-            + Upload file
-          </Button>
-          <input type="file" className="hidden" accept=".pdf,.doc,.docx" data-testid="form-contract" />
-        </div>
+        <FileUpload
+          multiple={false}
+          accept=".pdf,.doc,.docx"
+          value={formData.contract ? [formData.contract] : []}
+          onFilesChange={(files) => handleInputChange("contract", files[0])}
+          placeholder="Clique para fazer upload do contrato"
+          data-testid="form-contract"
+        />
       </div>
 
       {/* Nº de Fatura */}

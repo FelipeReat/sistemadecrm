@@ -69,6 +69,34 @@ export const insertOpportunitySchema = createInsertSchema(opportunities, {
   visitSchedule: z.string().optional(),
   validityDate: z.string().optional(),
   phaseUpdatedAt: z.string().optional(),
+  documents: z.array(z.object({
+    id: z.string(),
+    name: z.string(),
+    size: z.number(),
+    type: z.string(),
+    url: z.string()
+  })).optional().default([]),
+  visitPhotos: z.array(z.object({
+    id: z.string(),
+    name: z.string(),
+    size: z.number(),
+    type: z.string(),
+    url: z.string()
+  })).optional().default([]),
+  contract: z.object({
+    id: z.string(),
+    name: z.string(),
+    size: z.number(),
+    type: z.string(),
+    url: z.string()
+  }).nullable().optional(),
+  budgetFile: z.object({
+    id: z.string(),
+    name: z.string(),
+    size: z.number(),
+    type: z.string(),
+    url: z.string()
+  }).nullable().optional(),
 });
 
 export const insertAutomationSchema = createInsertSchema(automations).omit({
