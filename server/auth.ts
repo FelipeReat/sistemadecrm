@@ -14,8 +14,14 @@ declare module 'express-session' {
 export function getSession() {
   const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
   const pgStore = connectPg(session);
+  
+  // Use a URL correta do banco de dados baseada no ambiente
+  const dbUrl = process.env.NODE_ENV === 'production' 
+    ? process.env.PROD_DATABASE_URL || process.env.DATABASE_URL
+    : process.env.DATABASE_URL;
+    
   const sessionStore = new pgStore({
-    conString: process.env.DATABASE_URL,
+    conString: dbUrl,
     createTableIfMissing: true,
     ttl: sessionTtl,
     tableName: "sessions",

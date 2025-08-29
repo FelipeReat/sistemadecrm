@@ -34,13 +34,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Remove password from response
       const { password: _, ...userWithoutPassword } = user;
-      res.json({ user: userWithoutPassword });
+      return res.json({ user: userWithoutPassword });
     } catch (error: any) {
       if (error.name === "ZodError") {
         const validationError = fromZodError(error);
         return res.status(400).json({ message: validationError.message });
       }
-      res.status(500).json({ message: "Erro interno do servidor" });
+      return res.status(500).json({ message: "Erro interno do servidor" });
     }
   });
 
