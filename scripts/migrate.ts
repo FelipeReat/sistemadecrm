@@ -33,7 +33,8 @@ async function runMigrations() {
     ssl: { 
       rejectUnauthorized: false,
       requestCert: false,
-      agent: false
+      agent: false,
+      checkServerIdentity: () => undefined
     },
     connect_timeout: 30 // 30 segundos de timeout
   });

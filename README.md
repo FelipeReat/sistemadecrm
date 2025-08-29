@@ -29,7 +29,17 @@ O sistema estará disponível em: http://localhost:5501
 npm run test:prod-connection
 ```
 
-### 6. Executar migrações em produção
+### 6. Validação Completa de Produção
+```bash
+npm run validate:prod
+```
+Este comando executa uma validação completa incluindo:
+- Teste de conexão postgres (db.ts)
+- Teste de connect-pg-simple (auth.ts)
+- Verificação de migrações
+- Verificação da estrutura do banco
+
+### 7. Executar migrações em produção
 ```bash
 npm run db:migrate:prod:win
 ```
@@ -52,7 +62,10 @@ Error: self-signed certificate in certificate chain
    - `sslmode=require` na URL de conexão
    - `rejectUnauthorized: false` para aceitar certificados auto-assinados
    - `requestCert: false` e `agent: false` para compatibilidade
+   - **`checkServerIdentity: () => undefined`** (essencial para biblioteca postgres)
 3. Testado e validado com script `test:prod-connection`
+
+**Nota importante**: A função `checkServerIdentity: () => undefined` é crucial para a biblioteca `postgres` funcionar corretamente com certificados auto-assinados do AWS RDS.
 
 ### Compatibilidade com Windows
 - Comandos `NODE_ENV` corrigidos para usar `set NODE_ENV=` (compatível com Windows)

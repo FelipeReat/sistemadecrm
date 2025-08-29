@@ -13,7 +13,10 @@
     "db:migrate:prod:win": "set NODE_ENV=production && tsx scripts/migrate.ts",
     "db:generate:prod": "drizzle-kit generate --config=drizzle.config.ts",
     "seed:admin": "set NODE_ENV=development && tsx scripts/seed-admin.ts",
-    "test:prod-connection": "set NODE_ENV=production && tsx scripts/test-prod-connection.ts"
+    "test:prod-connection": "set NODE_ENV=production && tsx scripts/test-prod-connection.ts",
+    "diagnose:ssl": "set NODE_ENV=production && tsx scripts/diagnose-ssl.ts",
+    "test:prod-exact": "set NODE_ENV=production && tsx scripts/test-production-exact.ts",
+    "validate:prod": "set NODE_ENV=production && tsx scripts/validate-production.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

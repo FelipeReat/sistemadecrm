@@ -26,7 +26,8 @@ function createDatabase() {
       ssl: { 
         rejectUnauthorized: false,
         requestCert: false,
-        agent: false
+        agent: false,
+        checkServerIdentity: () => undefined
       },
       max: 10, // Pool de 10 conexões
       connect_timeout: 30
