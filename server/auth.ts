@@ -41,46 +41,77 @@ export function getSession() {
 }
 
 export const isAuthenticated: RequestHandler = async (req, res, next) => {
-  if (!req.session.userId) {
-    return res.status(401).json({ message: "Não autorizado" });
-  }
+  try {
+    if (!req.session.userId) {
+      return res.status(401).json({ message: "Não autorizado" });
+    }
 
-  const user = await storage.getUser(req.session.userId);
-  if (!user || !user.isActive) {
-    req.session.destroy(() => {});
-    return res.status(401).json({ message: "Usuário inválido" });
-  }
+    const user = await storage.getUser(req.session.userId);
+    if (!user || !user.isActive) {
+      return req.session.destroy((err) => {
+        if (res.headersSent) return;
+        return res.status(401).json({ message: "Usuário inválido" });
+      });
+    }
 
-  req.session.user = user;
-  next();
+    req.session.user = user;
+    next();
+  } catch (error) {
+    if (res.headersSent) return;
+    return res.status(500).json({ message: "Erro interno do servidor" });
+  }
 };
 
 export const isAdmin: RequestHandler = async (req, res, next) => {
-  if (!req.session.user || req.session.user.role !== 'admin') {
-    return res.status(403).json({ message: "Acesso negado - Admin necessário" });
+  try {
+    if (!req.session.user || req.session.user.role !== 'admin') {
+      if (res.headersSent) return;
+      return res.status(403).json({ message: "Acesso negado - Admin necessário" });
+    }
+    next();
+  } catch (error) {
+    if (res.headersSent) return;
+    return res.status(500).json({ message: "Erro interno do servidor" });
   }
-  next();
 };
 
 export const isManagerOrAdmin: RequestHandler = async (req, res, next) => {
-  if (!req.session.user || !['admin', 'gerente'].includes(req.session.user.role)) {
-    return res.status(403).json({ message: "Acesso negado - Gerente ou Admin necessário" });
+  try {
+    if (!req.session.user || !['admin', 'gerente'].includes(req.session.user.role)) {
+      if (res.headersSent) return;
+      return res.status(403).json({ message: "Acesso negado - Gerente ou Admin necessário" });
+    }
+    next();
+  } catch (error) {
+    if (res.headersSent) return;
+    return res.status(500).json({ message: "Erro interno do servidor" });
   }
-  next();
 };
 
 // Middleware para verificar se pode editar oportunidades de outros usuários
 export const canEditAllOpportunities: RequestHandler = async (req, res, next) => {
-  if (!req.session.user || !['admin', 'gerente'].includes(req.session.user.role)) {
-    return res.status(403).json({ message: "Acesso negado - Apenas Admin e Gerente podem editar oportunidades de outros usuários" });
+  try {
+    if (!req.session.user || !['admin', 'gerente'].includes(req.session.user.role)) {
+      if (res.headersSent) return;
+      return res.status(403).json({ message: "Acesso negado - Apenas Admin e Gerente podem editar oportunidades de outros usuários" });
+    }
+    next();
+  } catch (error) {
+    if (res.headersSent) return;
+    return res.status(500).json({ message: "Erro interno do servidor" });
   }
-  next();
 };
 
 // Middleware para verificar se pode ver relatórios e estatísticas
 export const canViewReports: RequestHandler = async (req, res, next) => {
-  if (!req.session.user || !['admin', 'gerente'].includes(req.session.user.role)) {
-    return res.status(403).json({ message: "Acesso negado - Apenas Admin e Gerente podem ver relatórios" });
+  try {
+    if (!req.session.user || !['admin', 'gerente'].includes(req.session.user.role)) {
+      if (res.headersSent) return;
+      return res.status(403).json({ message: "Acesso negado - Apenas Admin e Gerente podem ver relatórios" });
+    }
+    next();
+  } catch (error) {
+    if (res.headersSent) return;
+    return res.status(500).json({ message: "Erro interno do servidor" });
   }
-  next();
 };
