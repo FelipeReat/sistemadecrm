@@ -61,7 +61,7 @@ export default function SalesPipelineColumn({ phase, opportunities, isLoading, o
   };
 
   const renderIcon = () => {
-    const iconClass = "text-gray-600 mr-2";
+    const iconClass = "text-muted-foreground mr-2";
     switch (phase.icon) {
       case "lightbulb": return <span className={`fas fa-lightbulb ${iconClass}`} />;
       case "search": return <span className={`fas fa-search ${iconClass}`} />;
@@ -88,14 +88,14 @@ export default function SalesPipelineColumn({ phase, opportunities, isLoading, o
           <div className="flex items-center justify-between">
             <div className="flex items-center">
               {renderIcon()}
-              <h3 className="text-lg font-semibold text-gray-900">{phase.title}</h3>
+              <h3 className="text-lg font-semibold text-foreground">{phase.title}</h3>
             </div>
             <Badge className={phase.badgeColor} data-testid={`count-${phase.key}`}>
               {opportunities.length}
             </Badge>
           </div>
           {phase.description && (
-            <p className="text-sm text-gray-600 mt-1">{phase.description}</p>
+            <p className="text-sm text-muted-foreground mt-1">{phase.description}</p>
           )}
         </div>
 

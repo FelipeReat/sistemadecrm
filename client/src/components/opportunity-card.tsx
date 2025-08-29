@@ -54,13 +54,13 @@ export default function OpportunityCard({ opportunity, onViewDetails }: Opportun
 
   return (
     <div
-      className="bg-white rounded-lg border border-gray-200 p-3 cursor-move hover:shadow-md transition-shadow"
+      className="bg-card rounded-lg border border-border p-3 cursor-move hover:shadow-md transition-shadow"
       draggable
       onDragStart={handleDragStart}
       data-testid={`opportunity-card-${opportunity.id}`}
     >
       <div className="flex justify-between items-start mb-2">
-        <h4 className="font-bold text-gray-900" data-testid={`opportunity-contact-title-${opportunity.id}`}>
+        <h4 className="font-bold text-card-foreground" data-testid={`opportunity-contact-title-${opportunity.id}`}>
           {opportunity.contact}
         </h4>
         <div className="flex items-center space-x-2">
@@ -76,115 +76,115 @@ export default function OpportunityCard({ opportunity, onViewDetails }: Opportun
         </div>
       </div>
 
-      <div className="space-y-1 text-sm text-gray-600">
+      <div className="space-y-1 text-sm text-muted-foreground">
         <div className="flex items-center">
-          <User className="h-3 w-3 text-gray-400 mr-2" />
+          <User className="h-3 w-3 text-muted-foreground mr-2" />
           <span data-testid={`opportunity-contact-${opportunity.id}`}>{opportunity.contact}</span>
         </div>
 
         <div className="flex items-center">
-          <Phone className="h-3 w-3 text-gray-400 mr-2" />
+          <Phone className="h-3 w-3 text-muted-foreground mr-2" />
           <span data-testid={`opportunity-phone-${opportunity.id}`}>{opportunity.phone}</span>
         </div>
 
         {opportunity.cnpj && (
           <div className="flex items-center">
-            <Building className="h-3 w-3 text-gray-400 mr-2" />
+            <Building className="h-3 w-3 text-muted-foreground mr-2" />
             <span data-testid={`opportunity-cnpj-${opportunity.id}`}>{opportunity.cnpj}</span>
           </div>
         )}
 
         {opportunity.phase === "prospeccao" && opportunity.salesperson && (
           <div className="flex items-center">
-            <User className="h-3 w-3 text-gray-400 mr-2" />
+            <User className="h-3 w-3 text-muted-foreground mr-2" />
             <span>Vendedor: {opportunity.salesperson}</span>
           </div>
         )}
 
         {opportunity.phase === "prospeccao" && opportunity.nextActivityDate && (
           <div className="flex items-center">
-            <Calendar className="h-3 w-3 text-gray-400 mr-2" />
+            <Calendar className="h-3 w-3 text-muted-foreground mr-2" />
             <span>Próxima atividade: {new Date(opportunity.nextActivityDate).toLocaleDateString("pt-BR")}</span>
           </div>
         )}
 
         {opportunity.phase === "visita-tecnica" && opportunity.visitSchedule && (
           <div className="flex items-center">
-            <Calendar className="h-3 w-3 text-gray-400 mr-2" />
+            <Calendar className="h-3 w-3 text-muted-foreground mr-2" />
             <span>Agendado: {new Date(opportunity.visitSchedule).toLocaleDateString("pt-BR")} às {new Date(opportunity.visitSchedule).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span>
           </div>
         )}
 
         {opportunity.phase === "visita-tecnica" && (
           <div className="flex items-center">
-            <MapPin className="h-3 w-3 text-gray-400 mr-2" />
+            <MapPin className="h-3 w-3 text-muted-foreground mr-2" />
             <span>Localização disponível</span>
           </div>
         )}
 
         {opportunity.phase === "proposta" && opportunity.budgetNumber && (
           <div className="flex items-center">
-            <FileText className="h-3 w-3 text-gray-400 mr-2" />
+            <FileText className="h-3 w-3 text-muted-foreground mr-2" />
             <span>Proposta {opportunity.budgetNumber}</span>
           </div>
         )}
 
         {opportunity.phase === "proposta" && opportunity.validityDate && (
           <div className="flex items-center">
-            <Calendar className="h-3 w-3 text-gray-400 mr-2" />
+            <Calendar className="h-3 w-3 text-muted-foreground mr-2" />
             <span>Válida até: {new Date(opportunity.validityDate).toLocaleDateString("pt-BR")}</span>
           </div>
         )}
 
         {opportunity.phase === "negociacao" && opportunity.finalValue && (
           <div className="flex items-center">
-            <DollarSign className="h-3 w-3 text-gray-400 mr-2" />
+            <DollarSign className="h-3 w-3 text-muted-foreground mr-2" />
             <span>Valor: {formatCurrency(opportunity.finalValue)}</span>
           </div>
         )}
 
         {opportunity.phase === "negociacao" && opportunity.negotiationInfo && (
           <div className="flex items-center">
-            <FileText className="h-3 w-3 text-gray-400 mr-2" />
+            <FileText className="h-3 w-3 text-muted-foreground mr-2" />
             <span>{opportunity.negotiationInfo}</span>
           </div>
         )}
 
         {(opportunity.phase === "ganho" || opportunity.phase === "perdido") && opportunity.salesperson && (
           <div className="flex items-center">
-            <User className="h-3 w-3 text-gray-400 mr-2" />
+            <User className="h-3 w-3 text-muted-foreground mr-2" />
             <span>Vendedor: {opportunity.salesperson}</span>
           </div>
         )}
 
         {opportunity.phase === "ganho" && (
           <div className="flex items-center">
-            <Calendar className="h-3 w-3 text-gray-400 mr-2" />
+            <Calendar className="h-3 w-3 text-muted-foreground mr-2" />
             <span>Fechado {formatDate(opportunity.updatedAt)}</span>
           </div>
         )}
 
         {opportunity.phase === "perdido" && opportunity.lossReason && (
           <div className="flex items-center">
-            <TriangleAlert className="h-3 w-3 text-gray-400 mr-2" />
+            <TriangleAlert className="h-3 w-3 text-muted-foreground mr-2" />
             <span>Motivo: {opportunity.lossReason}</span>
           </div>
         )}
 
         {opportunity.phase === "perdido" && (
           <div className="flex items-center">
-            <Calendar className="h-3 w-3 text-gray-400 mr-2" />
+            <Calendar className="h-3 w-3 text-muted-foreground mr-2" />
             <span>Perdido {formatDate(opportunity.updatedAt)}</span>
           </div>
         )}
       </div>
 
       <div className="mt-3">
-        <div className="flex flex-col text-xs text-gray-500">
+        <div className="flex flex-col text-xs text-muted-foreground">
           <span data-testid={`opportunity-created-${opportunity.id}`}>
             Criado {formatDate(opportunity.createdAt)}
           </span>
-          <span data-testid={`opportunity-phase-time-${opportunity.id}`} className="text-blue-600 font-medium">
+          <span data-testid={`opportunity-phase-time-${opportunity.id}`} className="text-primary font-medium">
             Nesta fase {formatDate(opportunity.phaseUpdatedAt || opportunity.updatedAt)}
           </span>
         </div>

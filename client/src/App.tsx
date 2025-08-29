@@ -10,6 +10,7 @@ import ReportsDashboard from "@/pages/reports-dashboard";
 import Login from "@/pages/login";
 import UserManagement from "@/pages/user-management";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { LogOut, Users, Home, BarChart3 } from "lucide-react";
 import { useEffect } from "react";
 
@@ -25,8 +26,8 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
       </div>
     );
   }
@@ -54,12 +55,12 @@ function NavBar() {
   ];
 
   return (
-    <nav className="bg-white shadow-sm border-b">
+    <nav className="bg-white dark:bg-gray-900 shadow-sm border-b border-gray-200 dark:border-gray-700">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           <div className="flex space-x-8">
             <div className="flex-shrink-0 flex items-center">
-              <h1 className="text-xl font-bold text-gray-900">CRM Dashboard</h1>
+              <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">CRM Dashboard</h1>
             </div>
             <div className="flex space-x-4">
               {navItems.map((item) => {
@@ -71,8 +72,8 @@ function NavBar() {
                     onClick={() => navigate(item.path)}
                     className={`inline-flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
                       isActive
-                        ? "bg-gray-100 text-gray-900"
-                        : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+                        ? "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                        : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
                     }`}
                   >
                     <Icon className="h-4 w-4 mr-2" />
@@ -82,7 +83,8 @@ function NavBar() {
               })}
             </div>
           </div>
-          <div className="flex items-center">
+          <div className="flex items-center space-x-2">
+            <ThemeToggle />
             <Button onClick={handleLogout} variant="ghost" size="sm">
               <LogOut className="h-4 w-4 mr-2" />
               Sair
@@ -100,8 +102,8 @@ function Router() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
       </div>
     );
   }
@@ -119,7 +121,7 @@ function Router() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-background text-foreground">
       {isAuthenticated && <NavBar />}
       <Switch>
         <Route path="/login" component={Login} />

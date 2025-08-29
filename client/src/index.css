@@ -108,6 +108,16 @@
   --shadow-lg: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00), 0px 4px 6px -1px hsl(202.8169 89.1213% 53.1373% / 0.00);
   --shadow-xl: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00), 0px 8px 10px -1px hsl(202.8169 89.1213% 53.1373% / 0.00);
   --shadow-2xl: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00);
+
+  /* CRM Phase Colors - Dark Mode */
+  --nova-oportunidade: hsl(52 60% 30%);
+  --prospeccao: hsl(37 70% 25%);
+  --atendimento: hsl(273 60% 35%);
+  --visita: hsl(214 70% 30%);
+  --proposta: hsl(326 60% 35%);
+  --negociacao: hsl(214 70% 30%);
+  --ganho: hsl(142 50% 25%);
+  --perdido: hsl(0 70% 25%);
 }
 
 .font-inter {
