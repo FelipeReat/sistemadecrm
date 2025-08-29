@@ -158,22 +158,7 @@ export default function OpportunityForm({ phase }: OpportunityFormProps) {
         </div>
       </div>
 
-      {/* Data da próxima atividade */}
-      <div>
-        <Label htmlFor="nextActivityDate" className="text-sm font-medium text-gray-700 flex items-center">
-          <Calendar className="h-4 w-4 mr-2" />
-          Data da próxima atividade
-        </Label>
-        <Input
-          id="nextActivityDate"
-          type="text"
-          placeholder="Selecione uma data e hora"
-          className="mt-1"
-          onChange={(e) => handleInputChange("nextActivityDate", e.target.value)}
-          data-testid="form-next-activity-date"
-          {...masks.date}
-        />
-      </div>
+      
     </div>
   );
 
