@@ -292,7 +292,7 @@ export default function OpportunityForm({ phase }: OpportunityFormProps) {
 
       {/* Registro Fotográfico de Visita */}
       <div>
-        <Label htmlFor="visitPhotos" className="text-sm font-medium text-gray-700 flex items-center">
+        <Label className="text-sm font-medium text-gray-700 flex items-center">
           <CloudUpload className="h-4 w-4 mr-2" />
           Registro Fotográfico de Visita
         </Label>

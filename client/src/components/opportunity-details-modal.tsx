@@ -490,18 +490,28 @@ export default function OpportunityDetailsModal({
                   )}
                 />
 
-                <div>
-                  <Label className="flex items-center">
-                    <Upload className="h-4 w-4 mr-2" />
-                    Fotos da visita
-                  </Label>
-                  <div className="mt-2 p-4 border-2 border-dashed border-gray-300 rounded-md text-center">
-                    <Upload className="h-8 w-8 mx-auto text-gray-400" />
-                    <p className="text-sm text-gray-600 mt-2">
-                      Clique para adicionar fotos ou arraste arquivos aqui
-                    </p>
-                  </div>
-                </div>
+                <FormField
+                  control={visitaTecnicaForm.control}
+                  name="visitPhotos"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center">
+                        <Upload className="h-4 w-4 mr-2" />
+                        Fotos da visita
+                      </FormLabel>
+                      <FormControl>
+                        <FileUpload
+                          multiple={true}
+                          accept="image/*"
+                          value={field.value || []}
+                          onFilesChange={(files) => field.onChange(files)}
+                          placeholder="Clique para adicionar fotos ou arraste arquivos aqui"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
 
               <DialogFooter className="flex justify-between">
