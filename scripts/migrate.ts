@@ -23,10 +23,18 @@ async function runMigrations() {
 
   console.log('Conectando ao banco de dados RDS...');
   
+  // Remove configurações SSL da URL e adiciona sslmode=require
+  let cleanDbUrl = dbUrl.replace(/[?&]ssl(mode)?=[^&]*/g, '');
+  cleanDbUrl += cleanDbUrl.includes('?') ? '&sslmode=require' : '?sslmode=require';
+  
   // Use postgres-js para conectar ao RDS
-  const sql = postgres(dbUrl, { 
+  const sql = postgres(cleanDbUrl, { 
     max: 1,
-    ssl: { rejectUnauthorized: false },
+    ssl: { 
+      rejectUnauthorized: false,
+      requestCert: false,
+      agent: false
+    },
     connect_timeout: 30 // 30 segundos de timeout
   });
   

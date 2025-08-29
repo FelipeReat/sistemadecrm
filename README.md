@@ -24,6 +24,16 @@ npm run dev
 
 O sistema estará disponível em: http://localhost:5501
 
+### 5. Testar conexão com produção (opcional)
+```bash
+npm run test:prod-connection
+```
+
+### 6. Executar migrações em produção
+```bash
+npm run db:migrate:prod:win
+```
+
 ## 👤 Login padrão
 - **Email:** admin@locador.com
 - **Senha:** admin123
@@ -38,8 +48,11 @@ Error: self-signed certificate in certificate chain
 
 **Soluções aplicadas:**
 1. Adicionada variável `NODE_TLS_REJECT_UNAUTHORIZED=0` no arquivo `.env`
-2. Configuração SSL no `auth.ts` ajustada para `requestCert: false`
-3. Configuração SSL no `db.ts` com `rejectUnauthorized: false`
+2. Configuração SSL nos arquivos `auth.ts`, `db.ts` e `migrate.ts` com:
+   - `sslmode=require` na URL de conexão
+   - `rejectUnauthorized: false` para aceitar certificados auto-assinados
+   - `requestCert: false` e `agent: false` para compatibilidade
+3. Testado e validado com script `test:prod-connection`
 
 ### Compatibilidade com Windows
 - Comandos `NODE_ENV` corrigidos para usar `set NODE_ENV=` (compatível com Windows)
