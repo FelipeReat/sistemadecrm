@@ -35,7 +35,7 @@ export function getSession() {
     tableName: "sessions",
     ssl: process.env.NODE_ENV === 'production' ? {
       rejectUnauthorized: false,
-      requestCert: true,
+      requestCert: false,
       agent: false
     } : false,
   });
