@@ -115,13 +115,13 @@ export default function CrmDashboard() {
   }, [opportunities, queryClient]);
 
   return (
-    <div className="bg-gray-50 min-h-screen font-inter">
+    <div className="bg-background min-h-screen font-inter">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
+      <header className="bg-card shadow-sm border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center">
-              <h1 className="text-2xl font-bold text-gray-900" data-testid="title-crm">
+              <h1 className="text-2xl font-bold text-foreground" data-testid="title-crm">
                 CRM - Funil de Vendas
               </h1>
             </div>
@@ -150,64 +150,64 @@ export default function CrmDashboard() {
       <main className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Stats Overview */}
         <div className="mb-8 grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="bg-white rounded-lg shadow-sm p-4 border">
+          <div className="bg-card rounded-lg shadow-sm p-4 border border-border">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                  <ChartLine className="h-4 w-4 text-blue-600" />
+                <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/20 rounded-full flex items-center justify-center">
+                  <ChartLine className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                 </div>
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Total de Oportunidades</p>
-                <p className="text-2xl font-bold text-gray-900" data-testid="stat-total-opportunities">
+                <p className="text-sm font-medium text-muted-foreground">Total de Oportunidades</p>
+                <p className="text-2xl font-bold text-foreground" data-testid="stat-total-opportunities">
                   {(stats as any)?.totalOpportunities || 0}
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm p-4 border">
+          <div className="bg-card rounded-lg shadow-sm p-4 border border-border">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                  <Trophy className="h-4 w-4 text-green-600" />
+                <div className="w-8 h-8 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center">
+                  <Trophy className="h-4 w-4 text-green-600 dark:text-green-400" />
                 </div>
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Oportunidades Ganhas</p>
-                <p className="text-2xl font-bold text-gray-900" data-testid="stat-won-opportunities">
+                <p className="text-sm font-medium text-muted-foreground">Oportunidades Ganhas</p>
+                <p className="text-2xl font-bold text-foreground" data-testid="stat-won-opportunities">
                   {(stats as any)?.wonOpportunities || 0}
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm p-4 border">
+          <div className="bg-card rounded-lg shadow-sm p-4 border border-border">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <div className="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center">
-                  <Clock className="h-4 w-4 text-yellow-600" />
+                <div className="w-8 h-8 bg-yellow-100 dark:bg-yellow-900/20 rounded-full flex items-center justify-center">
+                  <Clock className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
                 </div>
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Em Andamento</p>
-                <p className="text-2xl font-bold text-gray-900" data-testid="stat-active-opportunities">
+                <p className="text-sm font-medium text-muted-foreground">Em Andamento</p>
+                <p className="text-2xl font-bold text-foreground" data-testid="stat-active-opportunities">
                   {(stats as any)?.activeOpportunities || 0}
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm p-4 border">
+          <div className="bg-card rounded-lg shadow-sm p-4 border border-border">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
-                  <DollarSign className="h-4 w-4 text-gray-600" />
+                <div className="w-8 h-8 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center">
+                  <DollarSign className="h-4 w-4 text-gray-600 dark:text-gray-400" />
                 </div>
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Receita Projetada</p>
-                <p className="text-2xl font-bold text-gray-900" data-testid="stat-projected-revenue">
+                <p className="text-sm font-medium text-muted-foreground">Receita Projetada</p>
+                <p className="text-2xl font-bold text-foreground" data-testid="stat-projected-revenue">
                   {(stats as any)?.projectedRevenue || "R$ 0,00"}
                 </p>
               </div>
