@@ -53,14 +53,14 @@
   --spacing: 0.25rem;
   
   /* CRM Phase Colors */
-  --nova-oportunidade: hsl(52 100% 91%);
-  --prospeccao: hsl(37 92% 95%);
-  --atendimento: hsl(273 100% 93%);
-  --visita: hsl(214 100% 92%);
-  --proposta: hsl(326 100% 95%);
-  --negociacao: hsl(214 100% 92%);
-  --ganho: hsl(142 76% 91%);
-  --perdido: hsl(0 93% 94%);
+  --nova-oportunidade: hsl(52 80% 75%);
+  --prospeccao: hsl(37 85% 80%);
+  --atendimento: hsl(273 80% 75%);
+  --visita: hsl(214 85% 75%);
+  --proposta: hsl(326 80% 80%);
+  --negociacao: hsl(214 85% 75%);
+  --ganho: hsl(142 70% 75%);
+  --perdido: hsl(0 80% 80%);
 }
 
 .dark {
