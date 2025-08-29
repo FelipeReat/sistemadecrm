@@ -11,6 +11,8 @@ export function useReportsSync() {
     // Invalidate core data
     queryClient.invalidateQueries({ queryKey: ["/api/opportunities"] });
     queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/users/salespeople"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/users"] });
     
     // Invalidate reports data
     queryClient.invalidateQueries({ queryKey: ["/api/reports/dashboard"] });

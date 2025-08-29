@@ -46,6 +46,7 @@ export default function UserManagement() {
     onSuccess: () => {
       toast({ title: "Sucesso", description: "Usuário criado com sucesso!" });
       queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/users/salespeople"] }); // Atualiza lista de vendedores
       setIsCreateDialogOpen(false);
       resetForm();
     },
@@ -66,6 +67,7 @@ export default function UserManagement() {
     onSuccess: () => {
       toast({ title: "Sucesso", description: "Usuário atualizado com sucesso!" });
       queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/users/salespeople"] }); // Atualiza lista de vendedores
       setIsEditDialogOpen(false);
       setEditingUser(null);
       resetForm();

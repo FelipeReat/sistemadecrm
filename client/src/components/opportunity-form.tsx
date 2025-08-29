@@ -43,6 +43,9 @@ export default function OpportunityForm({ phase }: OpportunityFormProps) {
   // Fetch salespeople from users endpoint
   const { data: salespeople = [] } = useQuery({
     queryKey: ["/api/users/salespeople"],
+    staleTime: 0, // Sempre buscar dados atualizados
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
   });
 
   // Form for Prospecção phase (creation)

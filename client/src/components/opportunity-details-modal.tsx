@@ -97,7 +97,9 @@ export default function OpportunityDetailsModal({
   // Query para buscar usuários que podem ser vendedores
   const { data: salespeople, isLoading: isLoadingSalespeople } = useQuery({
     queryKey: ["/api/users/salespeople"],
-    staleTime: 1000 * 60 * 5, // 5 minutos
+    staleTime: 0, // Sempre buscar dados atualizados
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
   });
 
   const prospeccaoForm = useForm<ProspeccaoFormData>({
@@ -278,7 +280,7 @@ export default function OpportunityDetailsModal({
                           ) : salespeople && salespeople.length > 0 ? (
                             salespeople.map((user: any) => (
                               <SelectItem key={user.id} value={user.name}>
-                                {user.name} ({user.role === 'admin' ? 'Admin' : user.role === 'gerente' ? 'Gerente' : 'Usuário'})
+                                {user.name} ({user.role === 'admin' ? 'Admin' : user.role === 'gerente' ? 'Gerente' : 'Vendedor'})
                               </SelectItem>
                             ))
                           ) : (
