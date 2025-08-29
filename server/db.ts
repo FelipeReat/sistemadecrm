@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { Pool, neonConfig } from '@neondatabase/serverless';
 import { drizzle as drizzlePostgres } from 'drizzle-orm/neon-serverless';
 import { drizzle as drizzleSqlite } from 'drizzle-orm/better-sqlite3';
