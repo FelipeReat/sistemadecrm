@@ -3,6 +3,7 @@ import type { Express, RequestHandler } from "express";
 import connectPg from "connect-pg-simple";
 import { storage } from "./storage";
 import type { User } from "@shared/schema";
+import { getPgPool } from './pg-pool';
 
 declare module 'express-session' {
   interface SessionData {
@@ -14,33 +15,14 @@ declare module 'express-session' {
 export function getSession() {
   const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
   const pgStore = connectPg(session);
-  
-  // Use a URL correta do banco de dados baseada no ambiente
-  let dbUrl = process.env.NODE_ENV === 'production' 
-    ? process.env.PROD_DATABASE_URL || process.env.DATABASE_URL
-    : process.env.DATABASE_URL;
-    
-  // Configurar SSL para PostgreSQL em produção
-  if (process.env.NODE_ENV === 'production' && dbUrl) {
-    // Remove qualquer configuração SSL existente da URL
-    dbUrl = dbUrl.replace(/[?&]ssl(mode)?=[^&]*/g, '');
-    // Adiciona sslmode=require para forçar SSL mas aceitar certificados auto-assinados
-    dbUrl += dbUrl.includes('?') ? '&sslmode=require' : '?sslmode=require';
-  }
-    
+
   const sessionStore = new pgStore({
-    conString: dbUrl,
+    pool: getPgPool(),
     createTableIfMissing: true,
     ttl: sessionTtl,
     tableName: "sessions",
-    // Configurações SSL para aceitar certificados auto-assinados
-    ssl: process.env.NODE_ENV === 'production' ? {
-      rejectUnauthorized: false,
-      requestCert: false,
-      agent: false
-    } : false,
   });
-  
+
   return session({
     secret: process.env.SESSION_SECRET || 'fallback-secret-for-dev',
     store: sessionStore,
