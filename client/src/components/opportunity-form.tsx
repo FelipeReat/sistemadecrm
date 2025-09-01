@@ -151,8 +151,8 @@ export default function OpportunityForm({ phase }: OpportunityFormProps) {
           <Calendar className="h-4 w-4 mr-2" />
           Atividades
         </Label>
-        <div className="mt-2 p-3 bg-blue-50 rounded-md">
-          <p className="text-sm text-blue-700">
+        <div className="mt-2 p-3 bg-green-50 rounded-md">
+          <p className="text-sm text-green-700">
             📝 Lembre-se de logar suas atividades no menu de Atividades ou na forma de comentário!
           </p>
         </div>
