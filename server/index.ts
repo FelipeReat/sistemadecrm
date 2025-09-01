@@ -56,9 +56,17 @@ app.use((req, res, next) => {
   // importantly only setup vite in development and after
   // setting up all the other routes so the catch-all route
   // doesn't interfere with the other routes
-  if (app.get("env") === "development") {
+  console.log('NODE_ENV:', process.env.NODE_ENV);
+  // Force development mode since we're running the dev script
+  // The Windows 'set' command doesn't work properly on Linux
+  const isProduction = false;
+  console.log('Forcing development mode, isProduction:', isProduction);
+  
+  if (!isProduction) {
+    log('Setting up Vite development server');
     await setupVite(app, server);
   } else {
+    log('Setting up static file serving for production');
     serveStatic(app);
   }
 
@@ -71,7 +79,6 @@ app.use((req, res, next) => {
   // Use different host binding for development vs production
   // Development (Replit): needs 0.0.0.0 to be accessible
   // Production (Windows): use localhost to avoid Windows socket issues
-  const isProduction = process.env.NODE_ENV === 'production';
   const host = isProduction ? 'localhost' : '0.0.0.0';
   
   server.listen({
