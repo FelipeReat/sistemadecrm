@@ -5,11 +5,11 @@ import Database from 'better-sqlite3';
 import postgres from 'postgres';
 import * as schema from "@shared/schema";
 
-const isProduction = process.env.NODE_ENV === 'production';
+const isDatabaseProduction = process.env.NODE_ENV === 'production';
 
 // Create database connection based on environment
 function createDatabase() {
-  if (isProduction) {
+  if (isDatabaseProduction) {
     // Production: PostgreSQL (RDS)
     const productionDbUrl = process.env.PROD_DATABASE_URL || process.env.DATABASE_URL;
     if (!productionDbUrl) {
