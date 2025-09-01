@@ -58,7 +58,7 @@ export default function Login() {
           {/* Títulos */}
           <div className="text-center space-y-2">
             <CardTitle className="text-xl font-bold text-foreground">
-              Sistema CRM
+              Sistema LOCADOR
             </CardTitle>
             <CardDescription className="text-sm text-muted-foreground">
               Módulo de gestão de oportunidades
