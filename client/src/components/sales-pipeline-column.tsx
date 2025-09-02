@@ -5,6 +5,95 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { Opportunity } from "@shared/schema";
 
+// Função para validar se uma oportunidade pode ser movida
+const canMoveOpportunity = (opportunity: Opportunity, targetPhase: string): { canMove: boolean; message?: string } => {
+  const currentPhase = opportunity.phase;
+  
+  // Definir a sequência correta das fases
+  const phaseSequence = [
+    'prospeccao',
+    'em-atendimento', 
+    'visita-tecnica',
+    'proposta',
+    'negociacao',
+    'ganho'
+  ];
+  
+  // Perdido pode ser acessado de qualquer fase
+  if (targetPhase === 'perdido') {
+    return { canMove: true };
+  }
+  
+  const currentIndex = phaseSequence.indexOf(currentPhase);
+  const targetIndex = phaseSequence.indexOf(targetPhase);
+  
+  // Não pode mover para trás (exceto para perdido)
+  if (targetIndex < currentIndex) {
+    return { 
+      canMove: false, 
+      message: "Não é possível retroceder fases. Apenas é possível avançar sequencialmente." 
+    };
+  }
+  
+  // Só pode avançar uma fase por vez
+  if (targetIndex > currentIndex + 1) {
+    return { 
+      canMove: false, 
+      message: "Você deve avançar uma fase por vez. Complete a fase atual antes de prosseguir." 
+    };
+  }
+  
+  // Validar se os campos obrigatórios da fase atual estão preenchidos
+  const isCurrentPhaseComplete = validatePhaseCompletion(opportunity);
+  if (!isCurrentPhaseComplete.isComplete) {
+    return {
+      canMove: false,
+      message: `Complete os campos obrigatórios da fase atual: ${isCurrentPhaseComplete.missingFields?.join(', ')}`
+    };
+  }
+  
+  return { canMove: true };
+};
+
+// Função para validar se uma fase está completa
+const validatePhaseCompletion = (opportunity: Opportunity): { isComplete: boolean; missingFields?: string[] } => {
+  const missingFields: string[] = [];
+  
+  switch (opportunity.phase) {
+    case 'prospeccao':
+      if (!opportunity.opportunityNumber) missingFields.push('Número da oportunidade');
+      if (!opportunity.salesperson) missingFields.push('Vendedor');
+      if (!opportunity.businessTemperature) missingFields.push('Temperatura do negócio');
+      break;
+      
+    case 'em-atendimento':
+      if (!opportunity.salesperson) missingFields.push('Vendedor');
+      if (!opportunity.businessTemperature) missingFields.push('Temperatura do negócio');
+      break;
+      
+    case 'visita-tecnica':
+      if (!opportunity.visitSchedule) missingFields.push('Data de agendamento da visita');
+      if (!opportunity.visitDate) missingFields.push('Data de realização da visita');
+      break;
+      
+    case 'proposta':
+      if (!opportunity.budgetNumber) missingFields.push('Número da proposta');
+      if (!opportunity.budget) missingFields.push('Valor da proposta');
+      if (!opportunity.validityDate) missingFields.push('Data de validade');
+      break;
+      
+    case 'negociacao':
+      if (!opportunity.finalValue) missingFields.push('Valor final');
+      if (!opportunity.negotiationInfo) missingFields.push('Informações da negociação');
+      break;
+  }
+  
+  return {
+    isComplete: missingFields.length === 0,
+    missingFields: missingFields.length > 0 ? missingFields : undefined
+  };
+};
+
 interface PhaseConfig {
   key: string;
   title: string;
@@ -54,9 +143,45 @@ export default function SalesPipelineColumn({ phase, opportunities, isLoading, o
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
-    const opportunityId = e.dataTransfer.getData("text/plain");
-    if (opportunityId) {
-      moveOpportunityMutation.mutate({ opportunityId, newPhase: phase.key });
+    const opportunityData = e.dataTransfer.getData("text/plain");
+    
+    if (opportunityData) {
+      try {
+        const { opportunityId, opportunity } = JSON.parse(opportunityData);
+        
+        // Validar se a oportunidade pode ser movida
+        const validation = canMoveOpportunity(opportunity, phase.key);
+        
+        if (!validation.canMove) {
+          toast({
+            title: "Movimento não permitido",
+            description: validation.message,
+            variant: "destructive",
+          });
+          return;
+        }
+        
+        moveOpportunityMutation.mutate({ opportunityId, newPhase: phase.key });
+      } catch (error) {
+        // Fallback para formato antigo (apenas ID)
+        const opportunityId = opportunityData;
+        const opportunity = opportunities.find(opp => opp.id === opportunityId);
+        
+        if (opportunity) {
+          const validation = canMoveOpportunity(opportunity, phase.key);
+          
+          if (!validation.canMove) {
+            toast({
+              title: "Movimento não permitido",
+              description: validation.message,
+              variant: "destructive",
+            });
+            return;
+          }
+        }
+        
+        moveOpportunityMutation.mutate({ opportunityId, newPhase: phase.key });
+      }
     }
   };
 

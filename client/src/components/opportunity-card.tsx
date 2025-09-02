@@ -1,9 +1,53 @@
-import { User, Phone, Building, Calendar, FileText, DollarSign, MapPin, TriangleAlert } from "lucide-react";
+import { User, Phone, Building, Calendar, FileText, DollarSign, MapPin, TriangleAlert, CheckCircle, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { Opportunity } from "@shared/schema";
+
+// Função para validar se uma fase está completa
+const validatePhaseCompletion = (opportunity: Opportunity): { isComplete: boolean; missingFields?: string[] } => {
+  const missingFields: string[] = [];
+  
+  switch (opportunity.phase) {
+    case 'prospeccao':
+      if (!opportunity.opportunityNumber) missingFields.push('Número da oportunidade');
+      if (!opportunity.salesperson) missingFields.push('Vendedor');
+      if (!opportunity.businessTemperature) missingFields.push('Temperatura do negócio');
+      break;
+      
+    case 'em-atendimento':
+      if (!opportunity.salesperson) missingFields.push('Vendedor');
+      if (!opportunity.businessTemperature) missingFields.push('Temperatura do negócio');
+      break;
+      
+    case 'visita-tecnica':
+      if (!opportunity.visitSchedule) missingFields.push('Data de agendamento da visita');
+      if (!opportunity.visitDate) missingFields.push('Data de realização da visita');
+      break;
+      
+    case 'proposta':
+      if (!opportunity.budgetNumber) missingFields.push('Número da proposta');
+      if (!opportunity.budget) missingFields.push('Valor da proposta');
+      if (!opportunity.validityDate) missingFields.push('Data de validade');
+      break;
+      
+    case 'negociacao':
+      if (!opportunity.finalValue) missingFields.push('Valor final');
+      if (!opportunity.negotiationInfo) missingFields.push('Informações da negociação');
+      break;
+      
+    case 'ganho':
+    case 'perdido':
+      // Fases finais sempre consideradas completas
+      break;
+  }
+  
+  return {
+    isComplete: missingFields.length === 0,
+    missingFields: missingFields.length > 0 ? missingFields : undefined
+  };
+};
 
 interface OpportunityCardProps {
   opportunity: Opportunity;
@@ -11,8 +55,15 @@ interface OpportunityCardProps {
 }
 
 export default function OpportunityCard({ opportunity, onViewDetails }: OpportunityCardProps) {
+  const phaseValidation = validatePhaseCompletion(opportunity);
+  
   const handleDragStart = (e: React.DragEvent) => {
-    e.dataTransfer.setData("text/plain", opportunity.id);
+    // Passar tanto o ID quanto o objeto completo da oportunidade para validação
+    const dragData = {
+      opportunityId: opportunity.id,
+      opportunity: opportunity
+    };
+    e.dataTransfer.setData("text/plain", JSON.stringify(dragData));
   };
 
   const formatCurrency = (value: string | number) => {
@@ -60,9 +111,21 @@ export default function OpportunityCard({ opportunity, onViewDetails }: Opportun
       data-testid={`opportunity-card-${opportunity.id}`}
     >
       <div className="flex justify-between items-start mb-2">
-        <h4 className="font-bold text-card-foreground" data-testid={`opportunity-contact-title-${opportunity.id}`}>
-          {opportunity.contact}
-        </h4>
+        <div className="flex items-center space-x-2 flex-1">
+          <h4 className="font-bold text-card-foreground" data-testid={`opportunity-contact-title-${opportunity.id}`}>
+            {opportunity.contact}
+          </h4>
+          {/* Indicador de status da fase */}
+          {!['ganho', 'perdido'].includes(opportunity.phase) && (
+            <div className="flex items-center" title={phaseValidation.isComplete ? 'Fase completa' : `Campos faltando: ${phaseValidation.missingFields?.join(', ')}`}>
+              {phaseValidation.isComplete ? (
+                <CheckCircle className="h-4 w-4 text-green-500" />
+              ) : (
+                <AlertCircle className="h-4 w-4 text-orange-500" />
+              )}
+            </div>
+          )}
+        </div>
         <div className="flex items-center space-x-2">
           {getStatusBadge()}
           <Button 
@@ -187,6 +250,28 @@ export default function OpportunityCard({ opportunity, onViewDetails }: Opportun
           <span data-testid={`opportunity-phase-time-${opportunity.id}`} className="text-primary font-medium">
             Nesta fase {formatDate(opportunity.phaseUpdatedAt || opportunity.updatedAt)}
           </span>
+          
+          {/* Indicador de campos faltando */}
+          {!phaseValidation.isComplete && !['ganho', 'perdido'].includes(opportunity.phase) && (
+            <div className="mt-2 p-2 bg-orange-50 border border-orange-200 rounded text-orange-700">
+              <div className="flex items-center space-x-1">
+                <AlertCircle className="h-3 w-3" />
+                <span className="font-medium">Campos pendentes:</span>
+              </div>
+              <div className="text-xs mt-1">
+                {phaseValidation.missingFields?.join(', ')}
+              </div>
+            </div>
+          )}
+          
+          {phaseValidation.isComplete && !['ganho', 'perdido'].includes(opportunity.phase) && (
+            <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded text-green-700">
+              <div className="flex items-center space-x-1">
+                <CheckCircle className="h-3 w-3" />
+                <span className="text-xs font-medium">Fase completa - Pronto para avançar</span>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
