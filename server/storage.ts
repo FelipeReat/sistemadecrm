@@ -102,9 +102,11 @@ export class MemStorage implements IStorage {
       invoiceNumber: insertOpportunity.invoiceNumber || null,
       lossReason: insertOpportunity.lossReason || null,
       phase: insertOpportunity.phase || 'prospeccao',
+      createdBy: insertOpportunity.createdBy,
       id,
       createdAt: now,
-      updatedAt: now
+      updatedAt: now,
+      phaseUpdatedAt: now
     };
     this.opportunities.set(id, opportunity);
     return opportunity;

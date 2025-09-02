@@ -584,7 +584,7 @@ function SDROpportunitiesTable() {
             {getPhaseDisplayName(opportunity.phase)}
           </td>
           <td className="border border-border px-4 py-2">
-            {opportunity.salesperson || 'Não atribuído'}
+            {opportunity.createdBy || 'Não atribuído'}
           </td>
           <td className="border border-border px-4 py-2">
             {opportunity.createdAt ? formatDate(opportunity.createdAt) : '-'}

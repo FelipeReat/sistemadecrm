@@ -182,7 +182,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/opportunities", isAuthenticated, async (req, res) => {
     try {
       const validatedData = insertOpportunitySchema.parse(req.body);
-      const opportunity = await storage.createOpportunity(validatedData);
+      // Adiciona automaticamente quem criou a oportunidade
+      const opportunityData = {
+        ...validatedData,
+        createdBy: req.session.user!.name
+      };
+      const opportunity = await storage.createOpportunity(opportunityData);
       res.status(201).json(opportunity);
     } catch (error: any) {
       if (error.name === "ZodError") {

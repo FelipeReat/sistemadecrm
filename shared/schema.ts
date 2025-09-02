@@ -48,6 +48,9 @@ export const opportunities = pgTable("opportunities", {
   // Controle de fase
   phase: text("phase").notNull().default("prospeccao"),
 
+  // Auditoria
+  createdBy: text("created_by").notNull(),
+
   // Timestamps
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
   updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
@@ -69,6 +72,7 @@ export const insertOpportunitySchema = createInsertSchema(opportunities, {
   visitSchedule: z.string().optional(),
   validityDate: z.string().optional(),
   phaseUpdatedAt: z.string().optional(),
+  createdBy: z.string().optional(), // Será preenchido automaticamente no backend
   documents: z.array(z.object({
     id: z.string(),
     name: z.string(),
