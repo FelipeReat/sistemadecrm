@@ -4,11 +4,45 @@ export const masks = {
   cnpj: "99.999.999/9999-99",
   phone: "(99) 99999-9999",
   cep: "99999-999",
-  date: (value: string) => {
-    const cleaned = value.replace(/\D/g, '');
-    if (cleaned.length <= 2) return cleaned;
-    if (cleaned.length <= 4) return `${cleaned.slice(0, 2)}/${cleaned.slice(2)}`;
-    return `${cleaned.slice(0, 2)}/${cleaned.slice(2, 4)}/${cleaned.slice(4, 8)}`;
+  date: {
+    onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+      const value = e.target.value;
+      const cleaned = value.replace(/\D/g, '');
+      let formatted = '';
+      
+      if (cleaned.length <= 2) {
+        formatted = cleaned;
+      } else if (cleaned.length <= 4) {
+        formatted = `${cleaned.slice(0, 2)}/${cleaned.slice(2)}`;
+      } else {
+        formatted = `${cleaned.slice(0, 2)}/${cleaned.slice(2, 4)}/${cleaned.slice(4, 8)}`;
+      }
+      
+      e.target.value = formatted;
+    },
+    placeholder: "dd/mm/aaaa"
+  },
+  datetime: {
+    onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+      const value = e.target.value;
+      const cleaned = value.replace(/\D/g, '');
+      let formatted = '';
+      
+      if (cleaned.length <= 2) {
+        formatted = cleaned;
+      } else if (cleaned.length <= 4) {
+        formatted = `${cleaned.slice(0, 2)}/${cleaned.slice(2)}`;
+      } else if (cleaned.length <= 8) {
+        formatted = `${cleaned.slice(0, 2)}/${cleaned.slice(2, 4)}/${cleaned.slice(4, 8)}`;
+      } else if (cleaned.length <= 10) {
+        formatted = `${cleaned.slice(0, 2)}/${cleaned.slice(2, 4)}/${cleaned.slice(4, 8)} ${cleaned.slice(8, 10)}`;
+      } else {
+        formatted = `${cleaned.slice(0, 2)}/${cleaned.slice(2, 4)}/${cleaned.slice(4, 8)} ${cleaned.slice(8, 10)}:${cleaned.slice(10, 12)}`;
+      }
+      
+      e.target.value = formatted;
+    },
+    placeholder: "dd/mm/aaaa hh:mm"
   },
   currency: (value: string) => {
     const numericValue = value.replace(/\D/g, '');

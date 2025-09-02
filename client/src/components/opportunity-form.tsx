@@ -253,9 +253,12 @@ export default function OpportunityForm({ phase }: OpportunityFormProps) {
           id="visitSchedule"
           type="text"
           className="mt-1"
-          onChange={(e) => handleInputChange("visitSchedule", e.target.value)}
+          placeholder={masks.datetime.placeholder}
+          onChange={(e) => {
+            masks.datetime.onChange(e);
+            handleInputChange("visitSchedule", e.target.value);
+          }}
           data-testid="form-visit-schedule"
-          {...masks.datetime}
         />
       </div>
 
@@ -269,9 +272,12 @@ export default function OpportunityForm({ phase }: OpportunityFormProps) {
           id="visitRealization"
           type="text"
           className="mt-1"
-          onChange={(e) => handleInputChange("visitRealization", e.target.value)}
+          placeholder={masks.datetime.placeholder}
+          onChange={(e) => {
+            masks.datetime.onChange(e);
+            handleInputChange("visitRealization", e.target.value);
+          }}
           data-testid="form-visit-realization"
-          {...masks.datetime}
         />
       </div>
 
@@ -345,11 +351,13 @@ export default function OpportunityForm({ phase }: OpportunityFormProps) {
         <Input
           id="validityDate"
           type="text"
-          placeholder="Selecione uma data"
           className="mt-1"
-          onChange={(e) => handleInputChange("validityDate", e.target.value)}
+          placeholder={masks.date.placeholder}
+          onChange={(e) => {
+            masks.date.onChange(e);
+            handleInputChange("validityDate", e.target.value);
+          }}
           data-testid="form-validity-date"
-          {...masks.date}
         />
       </div>
 
@@ -526,11 +534,13 @@ export default function OpportunityForm({ phase }: OpportunityFormProps) {
         <Input
           id="closingDate"
           type="text"
-          placeholder="Selecione uma data"
           className="mt-1"
-          onChange={(e) => handleInputChange("closingDate", e.target.value)}
+          placeholder={masks.date.placeholder}
+          onChange={(e) => {
+            masks.date.onChange(e);
+            handleInputChange("closingDate", e.target.value);
+          }}
           data-testid="form-closing-date"
-          {...masks.date}
         />
       </div>
     </div>

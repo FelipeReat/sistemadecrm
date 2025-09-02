@@ -25,7 +25,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Button } from "@/components/ui/button";
-import { Calendar, User, FileText, X, MapPin, Upload, DollarSign, Handshake } from "lucide-react";
+import { Calendar, FileText, Handshake, MapPin, DollarSign, Upload, User, X } from "lucide-react";
 import { FileUpload } from "@/components/ui/file-upload";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -42,15 +42,13 @@ interface OpportunityDetailsModalProps {
 // Schema para o formulário de prospecção
 const prospeccaoSchema = z.object({
   opportunityNumber: z.string().optional(),
-  salesperson: z.string().min(1, "Vendedor responsável é obrigatório"),
-  requiresVisit: z.boolean(),
-  nextActivityDate: z.string().optional(),
+  salesperson: z.string().optional(),
+  requiresVisit: z.boolean().default(false),
 });
 
 // Schema para o formulário de em atendimento
 const emAtendimentoSchema = z.object({
-  statement: z.string().min(1, "Declaração é obrigatória"),
-  nextActivityDate: z.string().optional(),
+  statement: z.string().optional(),
 });
 
 // Schema para o formulário de visita técnica
@@ -109,7 +107,6 @@ export default function OpportunityDetailsModal({
       opportunityNumber: opportunity?.opportunityNumber || "",
       salesperson: opportunity?.salesperson || "",
       requiresVisit: opportunity?.requiresVisit || false,
-      nextActivityDate: opportunity?.nextActivityDate || "",
     },
   });
 
@@ -117,7 +114,6 @@ export default function OpportunityDetailsModal({
     resolver: zodResolver(emAtendimentoSchema),
     defaultValues: {
       statement: opportunity?.statement || "",
-      nextActivityDate: opportunity?.nextActivityDate || "",
     },
   });
 
@@ -320,28 +316,6 @@ export default function OpportunityDetailsModal({
                     </FormItem>
                   )}
                 />
-
-                <FormField
-                  control={prospeccaoForm.control}
-                  name="nextActivityDate"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="flex items-center">
-                        <Calendar className="h-4 w-4 mr-2" />
-                        Data da próxima atividade
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          type="datetime-local"
-                          placeholder="Selecione uma data e hora"
-                          {...field}
-                          onChange={(e) => field.onChange(masks.date(e.target.value))}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
               </div>
 
               <DialogFooter className="flex justify-between">
@@ -388,28 +362,6 @@ export default function OpportunityDetailsModal({
                           placeholder="Descreva as necessidades do cliente, informações importantes..." 
                           className="min-h-[100px]"
                           {...field} 
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={emAtendimentoForm.control}
-                  name="nextActivityDate"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="flex items-center">
-                        <Calendar className="h-4 w-4 mr-2" />
-                        Data da próxima atividade
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          type="datetime-local"
-                          placeholder="Selecione uma data e hora"
-                          {...field}
-                          onChange={(e) => field.onChange(masks.date(e.target.value))}
                         />
                       </FormControl>
                       <FormMessage />

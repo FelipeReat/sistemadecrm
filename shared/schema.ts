@@ -23,7 +23,6 @@ export const opportunities = pgTable("opportunities", {
   salesperson: text("salesperson"),
   requiresVisit: boolean("requires_visit").default(false),
   statement: text("statement"),
-  nextActivityDate: timestamp("next_activity_date"),
 
   // Fase 4: Visita Técnica
   visitSchedule: timestamp("visit_schedule"),
@@ -68,7 +67,6 @@ export const automations = pgTable("automations", {
 export const insertOpportunitySchema = createInsertSchema(opportunities, {
   budget: z.coerce.number().optional(),
   finalValue: z.coerce.number().optional(),
-  nextActivityDate: z.string().optional(),
   visitSchedule: z.string().optional(),
   validityDate: z.string().optional(),
   phaseUpdatedAt: z.string().optional(),
