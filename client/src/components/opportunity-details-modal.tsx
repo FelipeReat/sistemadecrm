@@ -411,9 +411,14 @@ export default function OpportunityDetailsModal({
                       </FormLabel>
                       <FormControl>
                         <Input
-                          type="datetime-local"
+                          type="text"
+                          placeholder={masks.datetime.placeholder}
+                          mask={masks.datetime.mask}
                           {...field}
-                          onChange={(e) => field.onChange(masks.date(e.target.value))}
+                          onChange={(e) => {
+                            masks.datetime.onChange(e);
+                            field.onChange(e.target.value);
+                          }}
                         />
                       </FormControl>
                       <FormMessage />
@@ -432,9 +437,14 @@ export default function OpportunityDetailsModal({
                       </FormLabel>
                       <FormControl>
                         <Input
-                          type="datetime-local"
+                          type="text"
+                          placeholder={masks.datetime.placeholder}
+                          mask={masks.datetime.mask}
                           {...field}
-                          onChange={(e) => field.onChange(masks.date(e.target.value))}
+                          onChange={(e) => {
+                            masks.datetime.onChange(e);
+                            field.onChange(e.target.value);
+                          }}
                         />
                       </FormControl>
                       <FormMessage />
@@ -524,7 +534,14 @@ export default function OpportunityDetailsModal({
                           * Valor do orçamento
                         </FormLabel>
                         <FormControl>
-                          <Input placeholder="R$ 50.000,00" {...field} onChange={(e) => field.onChange(masks.currency(e.target.value))} />
+                          <Input 
+                            placeholder={masks.currency.placeholder} 
+                            {...field} 
+                            onChange={(e) => {
+                              masks.currency.onChange(e);
+                              field.onChange(e.target.value);
+                            }} 
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -557,7 +574,16 @@ export default function OpportunityDetailsModal({
                           * Data de validade
                         </FormLabel>
                         <FormControl>
-                          <Input type="date" {...field} onChange={(e) => field.onChange(masks.date(e.target.value))} />
+                          <Input 
+                            type="text" 
+                            placeholder={masks.date.placeholder}
+                            mask={masks.date.mask}
+                            {...field} 
+                            onChange={(e) => {
+                              masks.date.onChange(e);
+                              field.onChange(e.target.value);
+                            }} 
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -647,7 +673,14 @@ export default function OpportunityDetailsModal({
                         * Valor final negociado
                       </FormLabel>
                       <FormControl>
-                        <Input placeholder="R$ 45.000,00" {...field} onChange={(e) => field.onChange(masks.currency(e.target.value))} />
+                        <Input 
+                          placeholder={masks.currency.placeholder} 
+                          {...field} 
+                          onChange={(e) => {
+                            masks.currency.onChange(e);
+                            field.onChange(e.target.value);
+                          }} 
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

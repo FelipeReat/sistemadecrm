@@ -254,6 +254,7 @@ export default function OpportunityForm({ phase }: OpportunityFormProps) {
           type="text"
           className="mt-1"
           placeholder={masks.datetime.placeholder}
+          mask={masks.datetime.mask}
           onChange={(e) => {
             masks.datetime.onChange(e);
             handleInputChange("visitSchedule", e.target.value);
@@ -273,6 +274,7 @@ export default function OpportunityForm({ phase }: OpportunityFormProps) {
           type="text"
           className="mt-1"
           placeholder={masks.datetime.placeholder}
+          mask={masks.datetime.mask}
           onChange={(e) => {
             masks.datetime.onChange(e);
             handleInputChange("visitRealization", e.target.value);
@@ -353,6 +355,7 @@ export default function OpportunityForm({ phase }: OpportunityFormProps) {
           type="text"
           className="mt-1"
           placeholder={masks.date.placeholder}
+          mask={masks.date.mask}
           onChange={(e) => {
             masks.date.onChange(e);
             handleInputChange("validityDate", e.target.value);
@@ -385,11 +388,13 @@ export default function OpportunityForm({ phase }: OpportunityFormProps) {
         <Input
           id="budget"
           type="text"
-          placeholder="R$ 0,00"
+          placeholder={masks.currency.placeholder}
           className="mt-1"
-          onChange={(e) => handleInputChange("budget", e.target.value)}
+          onChange={(e) => {
+            masks.currency.onChange(e);
+            handleInputChange("budget", e.target.value);
+          }}
           data-testid="form-budget"
-          {...masks.currency}
         />
         <FileUpload
           multiple={false}
@@ -454,11 +459,13 @@ export default function OpportunityForm({ phase }: OpportunityFormProps) {
         <Input
           id="finalValue"
           type="text"
-          placeholder="0,00"
+          placeholder={masks.currency.placeholder}
           className="mt-1"
-          onChange={(e) => handleInputChange("finalValue", e.target.value)}
+          onChange={(e) => {
+            masks.currency.onChange(e);
+            handleInputChange("finalValue", e.target.value);
+          }}
           data-testid="form-final-value"
-          {...masks.currency}
         />
       </div>
 
@@ -536,6 +543,7 @@ export default function OpportunityForm({ phase }: OpportunityFormProps) {
           type="text"
           className="mt-1"
           placeholder={masks.date.placeholder}
+          mask={masks.date.mask}
           onChange={(e) => {
             masks.date.onChange(e);
             handleInputChange("closingDate", e.target.value);
