@@ -407,16 +407,16 @@ export default function OpportunityDetailsModal({
                     <FormItem>
                       <FormLabel className="flex items-center">
                         <Calendar className="h-4 w-4 mr-2" />
-                        * Data e hora da visita
+                        * Data da visita
                       </FormLabel>
                       <FormControl>
                         <Input
                           type="text"
-                          placeholder={masks.datetime.placeholder}
-                          mask={masks.datetime.mask}
+                          placeholder={masks.date.placeholder}
+                          mask={masks.date.mask}
                           {...field}
                           onChange={(e) => {
-                            masks.datetime.onChange(e);
+                            masks.date.onChange(e);
                             field.onChange(e.target.value);
                           }}
                         />
@@ -438,11 +438,11 @@ export default function OpportunityDetailsModal({
                       <FormControl>
                         <Input
                           type="text"
-                          placeholder={masks.datetime.placeholder}
-                          mask={masks.datetime.mask}
+                          placeholder={masks.date.placeholder}
+                          mask={masks.date.mask}
                           {...field}
                           onChange={(e) => {
-                            masks.datetime.onChange(e);
+                            masks.date.onChange(e);
                             field.onChange(e.target.value);
                           }}
                         />

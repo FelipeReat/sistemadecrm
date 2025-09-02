@@ -253,30 +253,30 @@ export default function OpportunityForm({ phase }: OpportunityFormProps) {
           id="visitSchedule"
           type="text"
           className="mt-1"
-          placeholder={masks.datetime.placeholder}
-          mask={masks.datetime.mask}
+          placeholder={masks.date.placeholder}
+          mask={masks.date.mask}
           onChange={(e) => {
-            masks.datetime.onChange(e);
+            masks.date.onChange(e);
             handleInputChange("visitSchedule", e.target.value);
           }}
           data-testid="form-visit-schedule"
         />
       </div>
 
-      {/* Data e Hora de Realização da Visita */}
+      {/* Data de Realização da Visita */}
       <div>
         <Label htmlFor="visitRealization" className="text-sm font-medium text-gray-700 flex items-center">
           <Calendar className="h-4 w-4 mr-2" />
-          Data e Hora de Realização da Visita
+          Data de Realização da Visita
         </Label>
         <Input
           id="visitRealization"
           type="text"
           className="mt-1"
-          placeholder={masks.datetime.placeholder}
-          mask={masks.datetime.mask}
+          placeholder={masks.date.placeholder}
+          mask={masks.date.mask}
           onChange={(e) => {
-            masks.datetime.onChange(e);
+            masks.date.onChange(e);
             handleInputChange("visitRealization", e.target.value);
           }}
           data-testid="form-visit-realization"
