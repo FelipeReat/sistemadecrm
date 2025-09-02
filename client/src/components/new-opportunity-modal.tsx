@@ -139,6 +139,9 @@ export default function NewOpportunityModal({ open, onOpenChange }: NewOpportuni
       <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto" data-testid="new-opportunity-modal">
         <DialogHeader>
           <DialogTitle>Nova Oportunidade</DialogTitle>
+          <DialogDescription>
+            Cadastre uma nova oportunidade no sistema
+          </DialogDescription>
         </DialogHeader>
 
         <Form {...form}>

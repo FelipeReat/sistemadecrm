@@ -171,7 +171,7 @@ export default function SettingsModal({ open, onOpenChange }: SettingsModalProps
             Configurações do Sistema
           </DialogTitle>
           <DialogDescription>
-            Gerencie suas preferências e configurações do CRM
+            Gerencie suas preferências e configurações do sistema
           </DialogDescription>
         </DialogHeader>
 
