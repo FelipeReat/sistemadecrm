@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -500,21 +500,7 @@ export default function ReportsDashboard() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="overflow-x-auto">
-                  <table className="w-full border-collapse border border-border">
-                    <thead>
-                      <tr className="bg-muted">
-                        <th className="border border-border px-4 py-2 text-left font-medium">Título</th>
-                        <th className="border border-border px-4 py-2 text-left font-medium">Fase atual</th>
-                        <th className="border border-border px-4 py-2 text-left font-medium">Criador</th>
-                        <th className="border border-border px-4 py-2 text-left font-medium">Criado em</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <SDROpportunitiesTable />
-                    </tbody>
-                  </table>
-                </div>
+                <SDROpportunitiesTableWithFilter />
               </CardContent>
             </Card>
           </TabsContent>
@@ -529,10 +515,39 @@ export default function ReportsDashboard() {
   );
 }
 
-function SDROpportunitiesTable() {
+function SDROpportunitiesTableWithFilter() {
   const { data: opportunities } = useQuery<any[]>({
     queryKey: ["/api/opportunities"],
   });
+
+  const [creatorFilter, setCreatorFilter] = useState<string>("");
+  const [filteredOpportunities, setFilteredOpportunities] = useState<any[]>([]);
+
+  // Atualizar oportunidades filtradas quando dados ou filtro mudarem
+  useEffect(() => {
+    if (!opportunities) {
+      setFilteredOpportunities([]);
+      return;
+    }
+
+    let filtered = [...opportunities];
+
+    if (creatorFilter) {
+      filtered = filtered.filter(opp => 
+        (opp.createdBy || 'Não atribuído').toLowerCase().includes(creatorFilter.toLowerCase())
+      );
+    }
+
+    setFilteredOpportunities(filtered);
+  }, [opportunities, creatorFilter]);
+
+  // Obter lista única de criadores para o filtro
+  const uniqueCreators = useMemo(() => {
+    if (!opportunities) return [];
+    
+    const creators = opportunities.map(opp => opp.createdBy || 'Não atribuído');
+    return [...new Set(creators)].sort();
+  }, [opportunities]);
 
   const getPhaseDisplayName = (phase: string) => {
     const phaseNames: Record<string, string> = {
@@ -563,34 +578,93 @@ function SDROpportunitiesTable() {
     return months[parseInt(month)];
   };
 
-  if (!opportunities || opportunities.length === 0) {
-    return (
-      <tr>
-        <td colSpan={4} className="border border-border px-4 py-8 text-center text-muted-foreground">
-          Nenhuma oportunidade encontrada
-        </td>
-      </tr>
-    );
-  }
-
   return (
-    <>
-      {opportunities.map((opportunity: any) => (
-        <tr key={opportunity.id} className="hover:bg-muted/50">
-          <td className="border border-border px-4 py-2">
-            {opportunity.company || opportunity.contact}
-          </td>
-          <td className="border border-border px-4 py-2">
-            {getPhaseDisplayName(opportunity.phase)}
-          </td>
-          <td className="border border-border px-4 py-2">
-            {opportunity.createdBy || 'Não atribuído'}
-          </td>
-          <td className="border border-border px-4 py-2">
-            {opportunity.createdAt ? formatDate(opportunity.createdAt) : '-'}
-          </td>
-        </tr>
-      ))}
-    </>
+    <div className="space-y-4">
+      {/* Filtros */}
+      <div className="flex flex-col sm:flex-row gap-4 p-4 bg-muted/50 rounded-lg">
+        <div className="flex items-center space-x-2">
+          <Filter className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm font-medium">Filtros:</span>
+        </div>
+        
+        <div className="flex flex-col sm:flex-row gap-2">
+          <div className="flex flex-col space-y-1">
+            <label htmlFor="creator-filter" className="text-xs font-medium text-muted-foreground">
+              Criador
+            </label>
+            <select
+              id="creator-filter"
+              value={creatorFilter}
+              onChange={(e) => setCreatorFilter(e.target.value)}
+              className="px-3 py-1 text-sm border border-border rounded-md bg-background"
+            >
+              <option value="">Todos os criadores</option>
+              {uniqueCreators.map((creator) => (
+                <option key={creator} value={creator}>
+                  {creator}
+                </option>
+              ))}
+            </select>
+          </div>
+          
+          {creatorFilter && (
+            <div className="flex items-end">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCreatorFilter("")}
+                className="text-xs"
+              >
+                Limpar filtros
+              </Button>
+            </div>
+          )}
+        </div>
+        
+        <div className="flex items-center text-xs text-muted-foreground ml-auto">
+          {filteredOpportunities.length} de {opportunities?.length || 0} oportunidades
+        </div>
+      </div>
+
+      {/* Tabela */}
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse border border-border">
+          <thead>
+            <tr className="bg-muted">
+              <th className="border border-border px-4 py-2 text-left font-medium">Título</th>
+              <th className="border border-border px-4 py-2 text-left font-medium">Fase atual</th>
+              <th className="border border-border px-4 py-2 text-left font-medium">Criador</th>
+              <th className="border border-border px-4 py-2 text-left font-medium">Criado em</th>
+            </tr>
+          </thead>
+          <tbody>
+            {!filteredOpportunities || filteredOpportunities.length === 0 ? (
+              <tr>
+                <td colSpan={4} className="border border-border px-4 py-8 text-center text-muted-foreground">
+                  {creatorFilter ? 'Nenhuma oportunidade encontrada com os filtros aplicados' : 'Nenhuma oportunidade encontrada'}
+                </td>
+              </tr>
+            ) : (
+              filteredOpportunities.map((opportunity: any) => (
+                <tr key={opportunity.id} className="hover:bg-muted/50">
+                  <td className="border border-border px-4 py-2">
+                    {opportunity.company || opportunity.contact}
+                  </td>
+                  <td className="border border-border px-4 py-2">
+                    {getPhaseDisplayName(opportunity.phase)}
+                  </td>
+                  <td className="border border-border px-4 py-2">
+                    {opportunity.createdBy || 'Não atribuído'}
+                  </td>
+                  <td className="border border-border px-4 py-2">
+                    {opportunity.createdAt ? formatDate(opportunity.createdAt) : '-'}
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
   );
 }
