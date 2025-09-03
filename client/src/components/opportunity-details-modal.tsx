@@ -546,7 +546,7 @@ export default function OpportunityDetailsModal({
                       <FormItem>
                         <FormLabel>Desconto (%)</FormLabel>
                         <FormControl>
-                          <Input placeholder="10" {...field} onChange={(e) => field.onChange(masks.percent(e.target.value))} />
+                          <Input placeholder="10" {...field} onChange={(e) => { masks.percent.onChange(e); field.onChange(e.target.value); }} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
