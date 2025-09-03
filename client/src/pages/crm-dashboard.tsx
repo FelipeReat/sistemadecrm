@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Settings, ChartLine, Trophy, Clock, DollarSign, Plus } from "lucide-react";
 import SalesPipelineColumn from "@/components/sales-pipeline-column";
 import NewOpportunityModal from "@/components/new-opportunity-modal";
+import NewProposalOpportunityModal from "@/components/new-proposal-opportunity-modal";
+import OpportunityDetailsModal from "@/components/opportunity-details-modal";
 import SettingsModal from "@/components/settings-modal";
 import { PHASES } from "@shared/schema";
 import type { Opportunity } from "@shared/schema";
@@ -15,6 +17,7 @@ export default function CrmDashboard() {
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [selectedOpportunity, setSelectedOpportunity] = useState<Opportunity | null>(null);
+  const [isNewProposalOpportunityModalOpen, setIsNewProposalOpportunityModalOpen] = useState(false);
 
   // Fetch all opportunities
   const { data: opportunities = [], isLoading: isLoadingOpportunities } = useQuery<Opportunity[]>({
@@ -99,6 +102,12 @@ export default function CrmDashboard() {
     setIsDetailsModalOpen(true);
   };
 
+  const handleCreateOpportunityInPhase = (phase: string) => {
+    if (phase === 'proposta') {
+      setIsNewProposalOpportunityModalOpen(true);
+    }
+  };
+
   // Invalidate reports when opportunities change to keep them in sync
   useEffect(() => {
     if (opportunities?.length >= 0) {
@@ -127,8 +136,8 @@ export default function CrmDashboard() {
                 <Plus className="mr-2 h-4 w-4" />
                 Nova Oportunidade
               </Button>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={() => setIsSettingsModalOpen(true)}
                 data-testid="button-settings"
               >
@@ -219,6 +228,7 @@ export default function CrmDashboard() {
                 opportunities={opportunitiesByPhase[phase.key] || []}
                 isLoading={isLoadingOpportunities}
                 onViewDetails={handleViewDetails}
+                onCreateOpportunity={() => handleCreateOpportunityInPhase(phase.key)}
               />
             ))}
           </div>
@@ -228,6 +238,11 @@ export default function CrmDashboard() {
       <NewOpportunityModal
         open={isNewOpportunityModalOpen}
         onOpenChange={setIsNewOpportunityModalOpen}
+      />
+
+      <NewProposalOpportunityModal
+        open={isNewProposalOpportunityModalOpen}
+        onOpenChange={setIsNewProposalOpportunityModalOpen}
       />
 
       <OpportunityDetailsModal

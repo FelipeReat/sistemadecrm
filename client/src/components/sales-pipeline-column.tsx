@@ -124,9 +124,10 @@ interface SalesPipelineColumnProps {
   opportunities: Opportunity[];
   isLoading: boolean;
   onViewDetails?: (opportunity: Opportunity) => void;
+  onCreateOpportunityInPhase?: (phase: string) => void;
 }
 
-export default function SalesPipelineColumn({ phase, opportunities, isLoading, onViewDetails }: SalesPipelineColumnProps) {
+export default function SalesPipelineColumn({ phase, opportunities, isLoading, onViewDetails, onCreateOpportunityInPhase }: SalesPipelineColumnProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -228,9 +229,20 @@ export default function SalesPipelineColumn({ phase, opportunities, isLoading, o
               {renderIcon()}
               <h3 className="text-lg font-semibold text-white dark:text-white">{phase.title}</h3>
             </div>
-            <Badge className={phase.badgeColor} data-testid={`count-${phase.key}`}>
-              {opportunities.length}
-            </Badge>
+            <div className="flex items-center space-x-2">
+              <Badge className={phase.badgeColor} data-testid={`count-${phase.key}`}>
+                {opportunities.length}
+              </Badge>
+              {phase.key === 'proposta' && (
+                <button
+                  onClick={() => onCreateOpportunityInPhase?.(phase.key)}
+                  className="w-6 h-6 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-full flex items-center justify-center text-white transition-all duration-200"
+                  title="Criar nova oportunidade na fase de proposta"
+                >
+                  <span className="text-sm font-bold">+</span>
+                </button>
+              )}
+            </div>
           </div>
           {phase.description && (
             <p className="text-sm text-white dark:text-white mt-1 opacity-90">{phase.description}</p>
