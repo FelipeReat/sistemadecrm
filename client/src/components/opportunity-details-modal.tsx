@@ -160,10 +160,13 @@ export default function OpportunityDetailsModal({
       });
       onOpenChange(false);
     },
-    onError: () => {
+    onError: (error: any) => {
+      console.error("Mutation error:", error);
+      const errorMessage = error?.response?.data?.message || error?.message || "Erro ao atualizar oportunidade.";
+      console.error("Detailed error message:", errorMessage);
       toast({
         title: "Erro",
-        description: "Erro ao atualizar oportunidade.",
+        description: errorMessage,
         variant: "destructive",
       });
     },
@@ -239,6 +242,8 @@ export default function OpportunityDetailsModal({
         }
       }
 
+      console.log("Data being sent to API:", cleanedData);
+
       // Apenas atualiza os dados da oportunidade
       await updateOpportunityMutation.mutateAsync({ ...cleanedData, id: opportunity.id });
 
@@ -246,6 +251,7 @@ export default function OpportunityDetailsModal({
       onOpenChange(false);
     } catch (error) {
       console.error("Erro ao salvar:", error);
+      console.error("Error details:", error?.response?.data || error?.message || error);
     } finally {
       setIsSubmitting(false);
     }
