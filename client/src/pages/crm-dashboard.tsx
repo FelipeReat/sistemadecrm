@@ -41,7 +41,7 @@ export default function CrmDashboard() {
       title: "Prospecção",
       icon: "search",
       bgColor: "bg-prospeccao",
-      borderColor: "border-orange-200",
+      borderColor: "border-white",
       badgeColor: "bg-orange-100 text-orange-800",
     },
     {
