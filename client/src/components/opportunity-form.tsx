@@ -96,7 +96,7 @@ export default function OpportunityForm({ phase }: OpportunityFormProps) {
       <div>
         <Label htmlFor="opportunityNumber" className="text-sm font-medium text-gray-700 flex items-center">
           <FileText className="h-4 w-4 mr-2" />
-          Número da oportunidade
+          Número do orçamento
         </Label>
         <Input
           id="opportunityNumber"

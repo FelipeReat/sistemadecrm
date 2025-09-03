@@ -50,6 +50,10 @@ const formSchema = insertOpportunitySchema.pick({
   needCategory: true,
   clientNeeds: true,
 }).extend({
+  contact: z.string().min(1, "Nome do contato é obrigatório"),
+  phone: z.string().min(1, "Telefone é obrigatório"),
+  needCategory: z.string().min(1, "Categoria de necessidade é obrigatória"),
+  clientNeeds: z.string().min(1, "Necessidades do cliente são obrigatórias"),
   cpf: z.string().nullable().optional(),
   cnpj: z.string().nullable().optional(),
   hasRegistration: z.boolean().nullable().optional(),
@@ -301,6 +305,33 @@ export default function NewOpportunityModal({ open, onOpenChange }: NewOpportuni
 
             <FormField
               control={form.control}
+              name="needCategory"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>
+                    <i className="fas fa-tags mr-1"></i>Categoria de necessidade *
+                  </FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger data-testid="select-need-category">
+                        <SelectValue placeholder="Selecione a categoria" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {NEED_CATEGORIES.map((category) => (
+                        <SelectItem key={category} value={category}>
+                          {category}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
               name="businessTemperature"
               render={({ field }) => (
                 <FormItem className="space-y-3">
@@ -334,33 +365,6 @@ export default function NewOpportunityModal({ open, onOpenChange }: NewOpportuni
 
             <FormField
               control={form.control}
-              name="needCategory"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>
-                    <i className="fas fa-tags mr-1"></i>Categoria de necessidade *
-                  </FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger data-testid="select-need-category">
-                        <SelectValue placeholder="Selecione a categoria" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {NEED_CATEGORIES.map((category) => (
-                        <SelectItem key={category} value={category}>
-                          {category}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
               name="clientNeeds"
               render={({ field }) => (
                 <FormItem>
@@ -384,22 +388,11 @@ export default function NewOpportunityModal({ open, onOpenChange }: NewOpportuni
               <Label className="text-sm font-medium">
                 <i className="fas fa-file-upload mr-1"></i>Documentos
               </Label>
-              <FormField
-                control={form.control}
-                name="documents"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormControl>
-                      <FileUpload
-                        onFilesChange={field.onChange}
-                        multiple
-                        accept="image/*,.pdf,.doc,.docx"
-                        data-testid="input-documents"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+              <FileUpload
+                onFilesChange={() => {}}
+                multiple
+                accept="image/*,.pdf,.doc,.docx"
+                data-testid="input-documents"
               />
             </div>
 

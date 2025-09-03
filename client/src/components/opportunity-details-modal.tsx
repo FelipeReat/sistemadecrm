@@ -206,22 +206,34 @@ export default function OpportunityDetailsModal({
 
     setIsSubmitting(true);
 
-    // Primeiro atualiza os dados da oportunidade
-    await updateOpportunityMutation.mutateAsync({ ...data, id: opportunity.id });
+    try {
+      // Primeiro atualiza os dados da oportunidade
+      await updateOpportunityMutation.mutateAsync({ ...data, id: opportunity.id });
 
-    // Perguntar se quer mover para próxima fase
-    const nextPhase = getNextPhase(opportunity.phase);
-    if (nextPhase) {
-      const moveToNext = window.confirm(
-        `Dados salvos com sucesso! Deseja mover esta oportunidade para a próxima fase?`
-      );
+      // Perguntar se quer mover para próxima fase
+      const nextPhase = getNextPhase(opportunity.phase);
+      if (nextPhase) {
+        const moveToNext = window.confirm(
+          `Dados salvos com sucesso! Deseja mover esta oportunidade para a próxima fase?`
+        );
 
-      if (moveToNext) {
-        await moveToNextPhaseMutation.mutateAsync({ 
-          opportunityId: opportunity.id, 
-          newPhase: nextPhase 
-        });
+        if (moveToNext) {
+          await moveToNextPhaseMutation.mutateAsync({ 
+            opportunityId: opportunity.id, 
+            newPhase: nextPhase 
+          });
+        } else {
+          // Se não quiser mover, apenas fecha o modal
+          onOpenChange(false);
+        }
+      } else {
+        // Se não tem próxima fase, apenas fecha o modal
+        onOpenChange(false);
       }
+    } catch (error) {
+      console.error("Erro ao salvar:", error);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -246,7 +258,7 @@ export default function OpportunityDetailsModal({
                     <FormItem>
                       <FormLabel className="flex items-center">
                         <FileText className="h-4 w-4 mr-2" />
-                        Número da oportunidade
+                        Número do orçamento
                       </FormLabel>
                       <FormControl>
                         <Input placeholder="#9999" {...field} />
