@@ -18,6 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { useTheme } from "@/hooks/useTheme";
 import { apiRequest } from "@/lib/queryClient";
 import { 
   User, 
@@ -40,6 +41,7 @@ interface SettingsModalProps {
 export default function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { theme, setTheme } = useTheme();
   
   // Get current user data
   const { data: currentUser } = useQuery({
@@ -76,6 +78,30 @@ export default function SettingsModal({ open, onOpenChange }: SettingsModalProps
     autoSave: true,
     language: "pt-BR"
   });
+
+  // Load system settings from localStorage on mount
+  useEffect(() => {
+    const savedLanguage = localStorage.getItem("language") || "pt-BR";
+    const savedEmailNotifications = localStorage.getItem("emailNotifications") !== "false";
+    const savedPushNotifications = localStorage.getItem("pushNotifications") === "true";
+    const savedAutoSave = localStorage.getItem("autoSave") !== "false";
+    
+    setSystemSettings({
+      emailNotifications: savedEmailNotifications,
+      pushNotifications: savedPushNotifications,
+      darkMode: theme === "dark",
+      autoSave: savedAutoSave,
+      language: savedLanguage
+    });
+  }, [theme]);
+
+  // Update darkMode state when theme changes
+  useEffect(() => {
+    setSystemSettings(prev => ({
+      ...prev,
+      darkMode: theme === "dark"
+    }));
+  }, [theme]);
 
   // Update profile mutation
   const updateProfileMutation = useMutation({
@@ -144,7 +170,32 @@ export default function SettingsModal({ open, onOpenChange }: SettingsModalProps
   };
 
   const handleSaveSystemSettings = () => {
-    updateSystemSettingsMutation.mutate(systemSettings);
+    // Save settings to localStorage
+    localStorage.setItem("language", systemSettings.language);
+    localStorage.setItem("emailNotifications", systemSettings.emailNotifications.toString());
+    localStorage.setItem("pushNotifications", systemSettings.pushNotifications.toString());
+    localStorage.setItem("autoSave", systemSettings.autoSave.toString());
+    
+    toast({
+      title: "Configurações atualizadas",
+      description: "Suas preferências foram salvas com sucesso."
+    });
+  };
+
+  // Handle dark mode toggle
+  const handleDarkModeToggle = (checked: boolean) => {
+    setTheme(checked ? "dark" : "light");
+    setSystemSettings(prev => ({ ...prev, darkMode: checked }));
+  };
+
+  // Handle language change
+  const handleLanguageChange = (value: string) => {
+    setSystemSettings(prev => ({ ...prev, language: value }));
+    localStorage.setItem("language", value);
+    toast({
+      title: "Idioma alterado",
+      description: `Idioma alterado para ${value === "pt-BR" ? "Português (Brasil)" : value === "en-US" ? "English (US)" : "Español"}`
+    });
   };
 
   const handleLogout = () => {
@@ -299,9 +350,10 @@ export default function SettingsModal({ open, onOpenChange }: SettingsModalProps
                   <Switch
                     id="email-notifications"
                     checked={systemSettings.emailNotifications}
-                    onCheckedChange={(checked) => 
-                      setSystemSettings(prev => ({ ...prev, emailNotifications: checked }))
-                    }
+                    onCheckedChange={(checked) => {
+                      setSystemSettings(prev => ({ ...prev, emailNotifications: checked }));
+                      localStorage.setItem("emailNotifications", checked.toString());
+                    }}
                     data-testid="switch-email-notifications"
                   />
                 </div>
@@ -318,9 +370,10 @@ export default function SettingsModal({ open, onOpenChange }: SettingsModalProps
                   <Switch
                     id="push-notifications"
                     checked={systemSettings.pushNotifications}
-                    onCheckedChange={(checked) => 
-                      setSystemSettings(prev => ({ ...prev, pushNotifications: checked }))
-                    }
+                    onCheckedChange={(checked) => {
+                      setSystemSettings(prev => ({ ...prev, pushNotifications: checked }));
+                      localStorage.setItem("pushNotifications", checked.toString());
+                    }}
                     data-testid="switch-push-notifications"
                   />
                 </div>
@@ -337,9 +390,10 @@ export default function SettingsModal({ open, onOpenChange }: SettingsModalProps
                   <Switch
                     id="auto-save"
                     checked={systemSettings.autoSave}
-                    onCheckedChange={(checked) => 
-                      setSystemSettings(prev => ({ ...prev, autoSave: checked }))
-                    }
+                    onCheckedChange={(checked) => {
+                      setSystemSettings(prev => ({ ...prev, autoSave: checked }));
+                      localStorage.setItem("autoSave", checked.toString());
+                    }}
                     data-testid="switch-auto-save"
                   />
                 </div>
@@ -444,7 +498,7 @@ export default function SettingsModal({ open, onOpenChange }: SettingsModalProps
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="language">Idioma</Label>
-                    <Select value={systemSettings.language} onValueChange={(value) => setSystemSettings(prev => ({ ...prev, language: value }))}>
+                    <Select value={systemSettings.language} onValueChange={handleLanguageChange}>
                       <SelectTrigger data-testid="select-language">
                         <SelectValue />
                       </SelectTrigger>
@@ -466,9 +520,7 @@ export default function SettingsModal({ open, onOpenChange }: SettingsModalProps
                     <Switch
                       id="dark-mode"
                       checked={systemSettings.darkMode}
-                      onCheckedChange={(checked) => 
-                        setSystemSettings(prev => ({ ...prev, darkMode: checked }))
-                      }
+                      onCheckedChange={handleDarkModeToggle}
                       data-testid="switch-dark-mode"
                     />
                   </div>
