@@ -25,8 +25,8 @@ export const opportunities = pgTable("opportunities", {
   statement: text("statement"),
 
   // Fase 4: Visita Técnica
-  visitSchedule: timestamp("visit_schedule"),
-  visitRealization: timestamp("visit_realization"),
+  visitSchedule: text("visit_schedule"),
+  visitDate: text("visit_date"),
   visitPhotos: text("visit_photos").array(),
 
   // Fase 5: Proposta

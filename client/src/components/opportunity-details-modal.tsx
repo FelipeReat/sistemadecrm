@@ -54,7 +54,7 @@ const emAtendimentoSchema = z.object({
 // Schema para o formulário de visita técnica
 const visitaTecnicaSchema = z.object({
   visitSchedule: z.string().min(1, "Data da visita é obrigatória"),
-  visitRealization: z.string().optional(),
+  visitDate: z.string().optional(),
   visitPhotos: z.array(z.string()).optional(),
 });
 
@@ -121,7 +121,7 @@ export default function OpportunityDetailsModal({
     resolver: zodResolver(visitaTecnicaSchema),
     defaultValues: {
       visitSchedule: opportunity?.visitSchedule || "",
-      visitRealization: opportunity?.visitRealization || "",
+      visitDate: opportunity?.visitRealization || "",
       visitPhotos: opportunity?.visitPhotos || [],
     },
   });
@@ -150,7 +150,7 @@ export default function OpportunityDetailsModal({
   });
 
   const updateOpportunityMutation = useMutation({
-    mutationFn: (data: any & { id: string }) => 
+    mutationFn: (data: any & { id: string }) =>
       apiRequest("PATCH", `/api/opportunities/${data.id}`, data),
     onSuccess: () => {
       invalidateAllData(); // Sincroniza dashboard e relatórios
@@ -209,7 +209,7 @@ export default function OpportunityDetailsModal({
     try {
       // Apenas atualiza os dados da oportunidade
       await updateOpportunityMutation.mutateAsync({ ...data, id: opportunity.id });
-      
+
       // Fecha o modal após salvar (sem perguntar sobre mover para próxima fase)
       onOpenChange(false);
     } catch (error) {
@@ -352,10 +352,10 @@ export default function OpportunityDetailsModal({
                         * Declaração/Observações
                       </FormLabel>
                       <FormControl>
-                        <Textarea 
-                          placeholder="Descreva as necessidades do cliente, informações importantes..." 
+                        <Textarea
+                          placeholder="Descreva as necessidades do cliente, informações importantes..."
                           className="min-h-[100px]"
-                          {...field} 
+                          {...field}
                         />
                       </FormControl>
                       <FormMessage />
@@ -420,31 +420,26 @@ export default function OpportunityDetailsModal({
                   )}
                 />
 
+                {/* Data de realização */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Data de realização da visita</Label>
                 <FormField
                   control={visitaTecnicaForm.control}
-                  name="visitRealization"
+                  name="visitDate"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="flex items-center">
-                        <Calendar className="h-4 w-4 mr-2" />
-                        Data de realização da visita
-                      </FormLabel>
                       <FormControl>
                         <Input
-                          type="text"
-                          placeholder={masks.date.placeholder}
-                          mask={masks.date.mask}
+                          type="date"
                           {...field}
-                          onChange={(e) => {
-                            masks.date.onChange(e);
-                            field.onChange(e.target.value);
-                          }}
+                          placeholder="Data de realização"
                         />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
+              </div>
 
                 <FormField
                   control={visitaTecnicaForm.control}
@@ -528,13 +523,13 @@ export default function OpportunityDetailsModal({
                           * Valor do orçamento
                         </FormLabel>
                         <FormControl>
-                          <Input 
-                            placeholder={masks.currency.placeholder} 
-                            {...field} 
+                          <Input
+                            placeholder={masks.currency.placeholder}
+                            {...field}
                             onChange={(e) => {
                               masks.currency.onChange(e);
                               field.onChange(e.target.value);
-                            }} 
+                            }}
                           />
                         </FormControl>
                         <FormMessage />
@@ -568,15 +563,15 @@ export default function OpportunityDetailsModal({
                           * Data de validade
                         </FormLabel>
                         <FormControl>
-                          <Input 
-                            type="text" 
+                          <Input
+                            type="text"
                             placeholder={masks.date.placeholder}
                             mask={masks.date.mask}
-                            {...field} 
+                            {...field}
                             onChange={(e) => {
                               masks.date.onChange(e);
                               field.onChange(e.target.value);
-                            }} 
+                            }}
                           />
                         </FormControl>
                         <FormMessage />
@@ -592,9 +587,9 @@ export default function OpportunityDetailsModal({
                     <FormItem>
                       <FormLabel>Descrição do desconto</FormLabel>
                       <FormControl>
-                        <Textarea 
-                          placeholder="Justificativa do desconto aplicado..." 
-                          {...field} 
+                        <Textarea
+                          placeholder="Justificativa do desconto aplicado..."
+                          {...field}
                         />
                       </FormControl>
                       <FormMessage />
@@ -667,13 +662,13 @@ export default function OpportunityDetailsModal({
                         * Valor final negociado
                       </FormLabel>
                       <FormControl>
-                        <Input 
-                          placeholder={masks.currency.placeholder} 
-                          {...field} 
+                        <Input
+                          placeholder={masks.currency.placeholder}
+                          {...field}
                           onChange={(e) => {
                             masks.currency.onChange(e);
                             field.onChange(e.target.value);
-                          }} 
+                          }}
                         />
                       </FormControl>
                       <FormMessage />
@@ -688,10 +683,10 @@ export default function OpportunityDetailsModal({
                     <FormItem>
                       <FormLabel>Informações da negociação</FormLabel>
                       <FormControl>
-                        <Textarea 
-                          placeholder="Detalhes da negociação, condições especiais..." 
+                        <Textarea
+                          placeholder="Detalhes da negociação, condições especiais..."
                           className="min-h-[100px]"
-                          {...field} 
+                          {...field}
                         />
                       </FormControl>
                       <FormMessage />
@@ -706,8 +701,8 @@ export default function OpportunityDetailsModal({
                     <FormItem>
                       <FormLabel>Número do contrato</FormLabel>
                       <FormControl>
-                        <Input 
-                          placeholder="CONT-001" 
+                        <Input
+                          placeholder="CONT-001"
                           {...field}
                           onChange={(e) => field.onChange(masks.uppercase(e.target.value))}
                         />
@@ -724,8 +719,8 @@ export default function OpportunityDetailsModal({
                     <FormItem>
                       <FormLabel>Número da nota fiscal</FormLabel>
                       <FormControl>
-                        <Input 
-                          placeholder="NF-001" 
+                        <Input
+                          placeholder="NF-001"
                           {...field}
                           onChange={(e) => field.onChange(masks.uppercase(e.target.value))}
                         />
@@ -742,9 +737,9 @@ export default function OpportunityDetailsModal({
                     <FormItem>
                       <FormLabel>Motivo da perda (se aplicável)</FormLabel>
                       <FormControl>
-                        <Textarea 
-                          placeholder="Descreva o motivo caso a negociação seja perdida..." 
-                          {...field} 
+                        <Textarea
+                          placeholder="Descreva o motivo caso a negociação seja perdida..."
+                          {...field}
                         />
                       </FormControl>
                       <FormMessage />

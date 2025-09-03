@@ -247,39 +247,29 @@ export default function OpportunityForm({ phase }: OpportunityFormProps) {
       <div>
         <Label htmlFor="visitSchedule" className="text-sm font-medium text-gray-700 flex items-center">
           <Calendar className="h-4 w-4 mr-2" />
-          Agendamento de Visita
+          * Data da visita
         </Label>
         <Input
           id="visitSchedule"
-          type="text"
+          type="date"
           className="mt-1"
-          placeholder={masks.date.placeholder}
-          mask={masks.date.mask}
-          onChange={(e) => {
-            masks.date.onChange(e);
-            handleInputChange("visitSchedule", e.target.value);
-          }}
+          onChange={(e) => handleInputChange("visitSchedule", e.target.value)}
           data-testid="form-visit-schedule"
         />
       </div>
 
       {/* Data de Realização da Visita */}
       <div>
-        <Label htmlFor="visitRealization" className="text-sm font-medium text-gray-700 flex items-center">
+        <Label htmlFor="visitDate" className="text-sm font-medium text-gray-700 flex items-center">
           <Calendar className="h-4 w-4 mr-2" />
-          Data de Realização da Visita
+          Data de realização da visita
         </Label>
         <Input
-          id="visitRealization"
-          type="text"
+          id="visitDate"
+          type="date"
           className="mt-1"
-          placeholder={masks.date.placeholder}
-          mask={masks.date.mask}
-          onChange={(e) => {
-            masks.date.onChange(e);
-            handleInputChange("visitRealization", e.target.value);
-          }}
-          data-testid="form-visit-realization"
+          onChange={(e) => handleInputChange("visitDate", e.target.value)}
+          data-testid="form-visit-date"
         />
       </div>
 
@@ -287,7 +277,7 @@ export default function OpportunityForm({ phase }: OpportunityFormProps) {
       <div>
         <Label className="text-sm font-medium text-gray-700 flex items-center">
           <CloudUpload className="h-4 w-4 mr-2" />
-          Registro Fotográfico de Visita
+          Fotos da visita
         </Label>
         <FileUpload
           multiple={true}
