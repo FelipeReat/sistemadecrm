@@ -207,29 +207,11 @@ export default function OpportunityDetailsModal({
     setIsSubmitting(true);
 
     try {
-      // Primeiro atualiza os dados da oportunidade
+      // Apenas atualiza os dados da oportunidade
       await updateOpportunityMutation.mutateAsync({ ...data, id: opportunity.id });
-
-      // Perguntar se quer mover para próxima fase
-      const nextPhase = getNextPhase(opportunity.phase);
-      if (nextPhase) {
-        const moveToNext = window.confirm(
-          `Dados salvos com sucesso! Deseja mover esta oportunidade para a próxima fase?`
-        );
-
-        if (moveToNext) {
-          await moveToNextPhaseMutation.mutateAsync({ 
-            opportunityId: opportunity.id, 
-            newPhase: nextPhase 
-          });
-        } else {
-          // Se não quiser mover, apenas fecha o modal
-          onOpenChange(false);
-        }
-      } else {
-        // Se não tem próxima fase, apenas fecha o modal
-        onOpenChange(false);
-      }
+      
+      // Fecha o modal após salvar (sem perguntar sobre mover para próxima fase)
+      onOpenChange(false);
     } catch (error) {
       console.error("Erro ao salvar:", error);
     } finally {
@@ -343,7 +325,7 @@ export default function OpportunityDetailsModal({
                   disabled={isSubmitting}
                   className="bg-blue-600 hover:bg-blue-700"
                 >
-                  {isSubmitting ? "Salvando..." : "Salvar e Continuar"}
+                  {isSubmitting ? "Salvando..." : "Salvar"}
                 </Button>
               </DialogFooter>
             </form>
@@ -395,7 +377,7 @@ export default function OpportunityDetailsModal({
                   disabled={isSubmitting}
                   className="bg-blue-600 hover:bg-blue-700"
                 >
-                  {isSubmitting ? "Salvando..." : "Salvar e Continuar"}
+                  {isSubmitting ? "Salvando..." : "Salvar"}
                 </Button>
               </DialogFooter>
             </form>
@@ -501,7 +483,7 @@ export default function OpportunityDetailsModal({
                   disabled={isSubmitting}
                   className="bg-blue-600 hover:bg-blue-700"
                 >
-                  {isSubmitting ? "Salvando..." : "Salvar e Continuar"}
+                  {isSubmitting ? "Salvando..." : "Salvar"}
                 </Button>
               </DialogFooter>
             </form>
@@ -634,7 +616,7 @@ export default function OpportunityDetailsModal({
                   disabled={isSubmitting}
                   className="bg-blue-600 hover:bg-blue-700"
                 >
-                  {isSubmitting ? "Salvando..." : "Salvar e Continuar"}
+                  {isSubmitting ? "Salvando..." : "Salvar"}
                 </Button>
               </DialogFooter>
             </form>
@@ -784,7 +766,7 @@ export default function OpportunityDetailsModal({
                   disabled={isSubmitting}
                   className="bg-blue-600 hover:bg-blue-700"
                 >
-                  {isSubmitting ? "Salvando..." : "Salvar e Continuar"}
+                  {isSubmitting ? "Salvando..." : "Salvar"}
                 </Button>
               </DialogFooter>
             </form>
