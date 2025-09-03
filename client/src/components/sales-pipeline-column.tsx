@@ -35,7 +35,20 @@ const canMoveOpportunity = (opportunity: Opportunity, targetPhase: string): { ca
     };
   }
   
-  // Só pode avançar uma fase por vez
+  // Permitir pular a fase "visita-tecnica" quando estiver em "em-atendimento"
+  if (currentPhase === 'em-atendimento' && targetPhase === 'proposta') {
+    // Validar se os campos obrigatórios da fase atual estão preenchidos
+    const isCurrentPhaseComplete = validatePhaseCompletion(opportunity);
+    if (!isCurrentPhaseComplete.isComplete) {
+      return {
+        canMove: false,
+        message: `Complete os campos obrigatórios da fase atual: ${isCurrentPhaseComplete.missingFields?.join(', ')}`
+      };
+    }
+    return { canMove: true };
+  }
+  
+  // Só pode avançar uma fase por vez (exceto para o caso especial acima)
   if (targetIndex > currentIndex + 1) {
     return { 
       canMove: false, 
