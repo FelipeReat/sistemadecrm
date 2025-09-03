@@ -227,7 +227,7 @@ export default function CrmDashboard() {
                 opportunities={opportunitiesByPhase[phase.key] || []}
                 isLoading={isLoadingOpportunities}
                 onViewDetails={handleViewDetails}
-                onCreateOpportunity={() => handleCreateOpportunityInPhase(phase.key)}
+                onCreateOpportunityInPhase={() => handleCreateOpportunityInPhase(phase.key)}
               />
             ))}
           </div>
