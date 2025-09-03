@@ -19,6 +19,10 @@ externalPort = 80
 localPort = 5501
 externalPort = 3000
 
+[[ports]]
+localPort = 8080
+externalPort = 8080
+
 [env]
 PORT = "5501"
 
@@ -40,8 +44,8 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "npm run dev"
-waitForPort = 5501
+args = "PORT=8080 npm run dev"
+waitForPort = 8080
 
 [agent]
 expertMode = true
