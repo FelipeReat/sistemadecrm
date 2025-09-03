@@ -6,11 +6,10 @@ export function useTheme() {
   const [theme, setTheme] = useState<Theme>("light");
 
   useEffect(() => {
-    // Check localStorage for saved theme
+    // Check localStorage for saved theme - default to light mode for new users
     const savedTheme = localStorage.getItem("theme") as Theme | null;
-    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
     
-    const initialTheme = savedTheme || (prefersDark ? "dark" : "light");
+    const initialTheme = savedTheme || "light";
     setTheme(initialTheme);
     updateDOM(initialTheme);
   }, []);
