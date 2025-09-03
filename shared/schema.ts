@@ -179,3 +179,49 @@ export const USER_ROLES = {
 } as const;
 
 export type UserRole = typeof USER_ROLES[keyof typeof USER_ROLES];
+
+// Saved Reports table
+export const savedReports = pgTable("saved_reports", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  description: text("description"),
+  category: text("category").notNull().default("custom"), // custom, performance, pipeline, analysis
+  filters: jsonb("filters").notNull(), // Stores filter configuration
+  charts: jsonb("charts").notNull(), // Stores chart configuration
+  layout: jsonb("layout").notNull(), // Stores layout configuration
+  isPublic: boolean("is_public").default(false), // If report is shared with all users
+  createdBy: text("created_by").notNull(),
+  lastGenerated: timestamp("last_generated"),
+  autoRefresh: boolean("auto_refresh").default(true),
+  refreshInterval: integer("refresh_interval").default(30), // minutes
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+  updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+export const insertSavedReportSchema = createInsertSchema(savedReports).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  lastGenerated: true,
+});
+
+export const updateSavedReportSchema = createInsertSchema(savedReports).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  createdBy: true,
+}).partial();
+
+export type InsertSavedReport = z.infer<typeof insertSavedReportSchema>;
+export type UpdateSavedReport = z.infer<typeof updateSavedReportSchema>;
+export type SavedReport = typeof savedReports.$inferSelect;
+
+// Report categories
+export const REPORT_CATEGORIES = {
+  CUSTOM: 'custom',
+  PERFORMANCE: 'performance', 
+  PIPELINE: 'pipeline',
+  ANALYSIS: 'analysis'
+} as const;
+
+export type ReportCategory = typeof REPORT_CATEGORIES[keyof typeof REPORT_CATEGORIES];

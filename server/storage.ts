@@ -1,4 +1,4 @@
-import { type Opportunity, type InsertOpportunity, type Automation, type InsertAutomation, type User, type InsertUser, type UpdateUser } from "@shared/schema";
+import { type Opportunity, type InsertOpportunity, type Automation, type InsertAutomation, type User, type InsertUser, type UpdateUser, type SavedReport, type InsertSavedReport, type UpdateSavedReport } from "@shared/schema";
 import { randomUUID } from "crypto";
 import bcrypt from "bcryptjs";
 
@@ -26,17 +26,29 @@ export interface IStorage {
   updateUser(id: string, updates: UpdateUser): Promise<User | undefined>;
   deleteUser(id: string): Promise<boolean>;
   validateUserPassword(email: string, password: string): Promise<User | null>;
+  
+  // Saved Reports CRUD
+  getSavedReports(): Promise<SavedReport[]>;
+  getSavedReport(id: string): Promise<SavedReport | undefined>;
+  getSavedReportsByUser(userId: string): Promise<SavedReport[]>;
+  getSavedReportsByCategory(category: string): Promise<SavedReport[]>;
+  createSavedReport(report: InsertSavedReport): Promise<SavedReport>;
+  updateSavedReport(id: string, updates: UpdateSavedReport): Promise<SavedReport | undefined>;
+  deleteSavedReport(id: string): Promise<boolean>;
+  updateReportLastGenerated(id: string): Promise<SavedReport | undefined>;
 }
 
 export class MemStorage implements IStorage {
   private opportunities: Map<string, Opportunity>;
   private automations: Map<string, Automation>;
   private users: Map<string, User>;
+  private savedReports: Map<string, SavedReport>;
 
   constructor() {
     this.opportunities = new Map();
     this.automations = new Map();
     this.users = new Map();
+    this.savedReports = new Map();
     
     // Criar usuário admin padrão
     this.initializeDefaultAdmin();
@@ -226,6 +238,86 @@ export class MemStorage implements IStorage {
     
     const isPasswordValid = await bcrypt.compare(password, user.password);
     return isPasswordValid ? user : null;
+  }
+
+  // Saved Reports CRUD methods
+  async getSavedReports(): Promise<SavedReport[]> {
+    return Array.from(this.savedReports.values()).sort((a, b) => 
+      new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+    );
+  }
+
+  async getSavedReport(id: string): Promise<SavedReport | undefined> {
+    return this.savedReports.get(id);
+  }
+
+  async getSavedReportsByUser(userId: string): Promise<SavedReport[]> {
+    return Array.from(this.savedReports.values())
+      .filter(report => report.createdBy === userId || report.isPublic)
+      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+  }
+
+  async getSavedReportsByCategory(category: string): Promise<SavedReport[]> {
+    return Array.from(this.savedReports.values())
+      .filter(report => report.category === category)
+      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+  }
+
+  async createSavedReport(insertReport: InsertSavedReport): Promise<SavedReport> {
+    const id = randomUUID();
+    const now = new Date();
+    
+    const report: SavedReport = {
+      id,
+      name: insertReport.name,
+      description: insertReport.description || null,
+      category: insertReport.category || 'custom',
+      filters: insertReport.filters,
+      charts: insertReport.charts,
+      layout: insertReport.layout,
+      isPublic: insertReport.isPublic || false,
+      createdBy: insertReport.createdBy,
+      lastGenerated: null,
+      autoRefresh: insertReport.autoRefresh ?? true,
+      refreshInterval: insertReport.refreshInterval || 30,
+      createdAt: now,
+      updatedAt: now,
+    };
+    
+    this.savedReports.set(id, report);
+    return report;
+  }
+
+  async updateSavedReport(id: string, updates: UpdateSavedReport): Promise<SavedReport | undefined> {
+    const existing = this.savedReports.get(id);
+    if (!existing) return undefined;
+    
+    const updated: SavedReport = {
+      ...existing,
+      ...updates,
+      updatedAt: new Date()
+    };
+    
+    this.savedReports.set(id, updated);
+    return updated;
+  }
+
+  async deleteSavedReport(id: string): Promise<boolean> {
+    return this.savedReports.delete(id);
+  }
+
+  async updateReportLastGenerated(id: string): Promise<SavedReport | undefined> {
+    const existing = this.savedReports.get(id);
+    if (!existing) return undefined;
+    
+    const updated: SavedReport = {
+      ...existing,
+      lastGenerated: new Date(),
+      updatedAt: new Date()
+    };
+    
+    this.savedReports.set(id, updated);
+    return updated;
   }
 }
 

@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertOpportunitySchema, insertAutomationSchema, insertUserSchema, updateUserSchema, loginSchema } from "@shared/schema";
+import { insertOpportunitySchema, insertAutomationSchema, insertUserSchema, updateUserSchema, loginSchema, insertSavedReportSchema, updateSavedReportSchema } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import { getSession, isAuthenticated, isAdmin, isManagerOrAdmin, canEditAllOpportunities, canViewReports } from "./auth";
 import * as crypto from "crypto";
@@ -702,6 +702,165 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(response);
     } catch (error) {
       res.status(500).json({ message: "Erro ao gerar relatório personalizado" });
+    }
+  });
+
+  // Saved Reports routes
+  app.get("/api/reports/saved", isAuthenticated, canViewReports, async (req, res) => {
+    try {
+      const userId = req.session.user!.id;
+      const reports = await storage.getSavedReportsByUser(userId);
+      res.json(reports);
+    } catch (error) {
+      res.status(500).json({ message: "Erro ao buscar relatórios salvos" });
+    }
+  });
+
+  app.get("/api/reports/saved/:id", isAuthenticated, canViewReports, async (req, res) => {
+    try {
+      const report = await storage.getSavedReport(req.params.id);
+      if (!report) {
+        return res.status(404).json({ message: "Relatório não encontrado" });
+      }
+
+      const userId = req.session.user!.id;
+      // Check if user can access this report (owns it or it's public)
+      if (report.createdBy !== userId && !report.isPublic) {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+
+      res.json(report);
+    } catch (error) {
+      res.status(500).json({ message: "Erro ao buscar relatório" });
+    }
+  });
+
+  app.post("/api/reports/saved", isAuthenticated, canViewReports, async (req, res) => {
+    try {
+      const userId = req.session.user!.id;
+      const validatedData = insertSavedReportSchema.parse({
+        ...req.body,
+        createdBy: userId
+      });
+
+      const report = await storage.createSavedReport(validatedData);
+      res.status(201).json(report);
+    } catch (error: any) {
+      if (error.name === "ZodError") {
+        const validationError = fromZodError(error);
+        return res.status(400).json({ message: validationError.message });
+      }
+      res.status(500).json({ message: "Erro ao criar relatório" });
+    }
+  });
+
+  app.patch("/api/reports/saved/:id", isAuthenticated, canViewReports, async (req, res) => {
+    try {
+      const report = await storage.getSavedReport(req.params.id);
+      if (!report) {
+        return res.status(404).json({ message: "Relatório não encontrado" });
+      }
+
+      const userId = req.session.user!.id;
+      // Only the creator can edit the report
+      if (report.createdBy !== userId) {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+
+      const validatedData = updateSavedReportSchema.parse(req.body);
+      const updatedReport = await storage.updateSavedReport(req.params.id, validatedData);
+      
+      if (!updatedReport) {
+        return res.status(404).json({ message: "Relatório não encontrado" });
+      }
+
+      res.json(updatedReport);
+    } catch (error: any) {
+      if (error.name === "ZodError") {
+        const validationError = fromZodError(error);
+        return res.status(400).json({ message: validationError.message });
+      }
+      res.status(500).json({ message: "Erro ao atualizar relatório" });
+    }
+  });
+
+  app.delete("/api/reports/saved/:id", isAuthenticated, canViewReports, async (req, res) => {
+    try {
+      const report = await storage.getSavedReport(req.params.id);
+      if (!report) {
+        return res.status(404).json({ message: "Relatório não encontrado" });
+      }
+
+      const userId = req.session.user!.id;
+      // Only the creator can delete the report
+      if (report.createdBy !== userId) {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+
+      const deleted = await storage.deleteSavedReport(req.params.id);
+      if (!deleted) {
+        return res.status(404).json({ message: "Relatório não encontrado" });
+      }
+
+      res.json({ message: "Relatório removido com sucesso" });
+    } catch (error) {
+      res.status(500).json({ message: "Erro ao remover relatório" });
+    }
+  });
+
+  app.post("/api/reports/saved/:id/run", isAuthenticated, canViewReports, async (req, res) => {
+    try {
+      const report = await storage.getSavedReport(req.params.id);
+      if (!report) {
+        return res.status(404).json({ message: "Relatório não encontrado" });
+      }
+
+      const userId = req.session.user!.id;
+      // Check if user can access this report (owns it or it's public)
+      if (report.createdBy !== userId && !report.isPublic) {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+
+      // Update last generated timestamp
+      const updatedReport = await storage.updateReportLastGenerated(req.params.id);
+      
+      res.json({ 
+        message: "Relatório executado com sucesso",
+        lastGenerated: updatedReport?.lastGenerated
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Erro ao executar relatório" });
+    }
+  });
+
+  app.get("/api/reports/quick-stats", isAuthenticated, canViewReports, async (req, res) => {
+    try {
+      const opportunities = await storage.getOpportunities();
+      const users = await storage.getUsers();
+      const savedReports = await storage.getSavedReports();
+
+      const stats = {
+        totalOpportunities: opportunities.length,
+        activeOpportunities: opportunities.filter(o => !['ganho', 'perdido'].includes(o.phase || '')).length,
+        totalRevenue: opportunities
+          .filter(o => o.phase === 'ganho')
+          .reduce((sum, opp) => {
+            return sum + (opp.finalValue ? parseFloat(opp.finalValue.toString()) : 
+                         opp.budget ? parseFloat(opp.budget.toString()) : 0);
+          }, 0),
+        totalUsers: users.filter(u => u.isActive).length,
+        totalReports: savedReports.length,
+        reportsToday: savedReports.filter(r => {
+          if (!r.lastGenerated) return false;
+          const today = new Date().toDateString();
+          const generated = new Date(r.lastGenerated).toDateString();
+          return today === generated;
+        }).length
+      };
+
+      res.json(stats);
+    } catch (error) {
+      res.status(500).json({ message: "Erro ao buscar estatísticas rápidas" });
     }
   });
 

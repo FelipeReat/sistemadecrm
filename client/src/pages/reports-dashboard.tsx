@@ -1,123 +1,131 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
 import { 
-  BarChart, 
-  Bar, 
-  PieChart, 
-  Pie, 
-  Cell, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer,
-  Legend 
-} from "recharts";
-import { Calendar, TrendingUp, DollarSign, Clock, Users, Target, AlertTriangle, RefreshCw, Activity, Plus, Filter } from "lucide-react";
-import CustomReportsModal from "@/components/custom-reports-modal";
-
-interface ReportData {
-  // Métricas gerais
-  avgSalesCycle: number; // em dias
-  totalRevenue: number;
-  
-  // Oportunidades por etapa
-  opportunitiesByPhase: Array<{
-    phase: string;
-    count: number;
-    phaseName: string;
-  }>;
-  
-  // Temperaturas dos negócios
-  businessTemperatures: Array<{
-    temperature: string;
-    count: number;
-    percentage: number;
-  }>;
-  
-  // Motivos de perda
-  lossReasons: Array<{
-    reason: string;
-    count: number;
-  }>;
-  
-  // Oportunidades por vendedor
-  opportunitiesBySalesperson: Array<{
-    salesperson: string;
-    count: number;
-    percentage: number;
-  }>;
-  
-  // Métricas de tempo
-  monthlyStats: {
-    totalOpportunities: number;
-    wonOpportunities: number;
-    lostOpportunities: number;
-    activeOpportunities: number;
-  };
-}
+  Plus, 
+  Search, 
+  Filter, 
+  MoreVertical, 
+  Edit, 
+  Trash2, 
+  Play, 
+  Pause, 
+  RefreshCw, 
+  Clock, 
+  BarChart3, 
+  TrendingUp, 
+  Users, 
+  Target,
+  Eye,
+  Share2,
+  Download
+} from "lucide-react";
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuTrigger,
+  DropdownMenuSeparator
+} from "@/components/ui/dropdown-menu";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
+import type { SavedReport } from "@shared/schema";
 
 export default function ReportsDashboard() {
   const queryClient = useQueryClient();
-  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
-  const [autoRefresh, setAutoRefresh] = useState(true);
-  const [customReportsOpen, setCustomReportsOpen] = useState(false);
+  const { toast } = useToast();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [createReportOpen, setCreateReportOpen] = useState(false);
 
-  // Fetch report data with dependency on opportunities
-  const { data: reportData, isLoading, refetch: refetchReports } = useQuery<ReportData>({
-    queryKey: ["/api/reports/dashboard"],
-    refetchInterval: autoRefresh ? 30000 : false, // Auto-refresh every 30 seconds
-    refetchOnWindowFocus: true,
+  // Fetch saved reports
+  const { data: savedReports = [], isLoading: reportsLoading, refetch: refetchReports } = useQuery<SavedReport[]>({
+    queryKey: ["/api/reports/saved"],
+    refetchInterval: 60000,
   });
 
-  const { data: monthlyTrend, refetch: refetchTrend } = useQuery({
-    queryKey: ["/api/reports/monthly-trend"],
-    refetchInterval: autoRefresh ? 30000 : false,
+  // Fetch quick stats
+  const { data: quickStats, isLoading: statsLoading } = useQuery({
+    queryKey: ["/api/reports/quick-stats"],
+    refetchInterval: 30000,
   });
 
-  // Also fetch opportunities to stay in sync
-  const { data: opportunities } = useQuery({
-    queryKey: ["/api/opportunities"],
-  });
+  // Filter reports
+  const filteredReports = useMemo(() => {
+    let filtered = savedReports;
 
-  // Auto-refresh when opportunities change
-  useEffect(() => {
-    if (opportunities) {
-      setLastUpdated(new Date());
-      // Invalidate report queries when opportunities change
-      queryClient.invalidateQueries({ queryKey: ["/api/reports/dashboard"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/reports/monthly-trend"] });
+    if (selectedCategory !== "all") {
+      filtered = filtered.filter(report => report.category === selectedCategory);
     }
-  }, [opportunities, queryClient]);
 
-  const handleManualRefresh = () => {
-    setLastUpdated(new Date());
-    refetchReports();
-    refetchTrend();
-    queryClient.invalidateQueries({ queryKey: ["/api/opportunities"] });
-    queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
+    if (searchTerm) {
+      filtered = filtered.filter(report => 
+        report.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (report.description && report.description.toLowerCase().includes(searchTerm.toLowerCase()))
+      );
+    }
+
+    return filtered;
+  }, [savedReports, searchTerm, selectedCategory]);
+
+  // Handle actions
+  const handleRunReport = async (reportId: string) => {
+    try {
+      await apiRequest("POST", `/api/reports/saved/${reportId}/run`);
+      await refetchReports();
+      toast({
+        title: "Relatório atualizado",
+        description: "Os dados foram atualizados com sucesso."
+      });
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Não foi possível executar o relatório.",
+        variant: "destructive"
+      });
+    }
   };
 
-  if (isLoading) {
+  const handleDeleteReport = async (reportId: string) => {
+    try {
+      await apiRequest("DELETE", `/api/reports/saved/${reportId}`);
+      await refetchReports();
+      toast({
+        title: "Relatório removido",
+        description: "O relatório foi excluído com sucesso."
+      });
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Não foi possível remover o relatório.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  if (reportsLoading || statsLoading) {
     return (
       <div className="min-h-screen bg-background p-6">
         <div className="max-w-7xl mx-auto">
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-foreground">Relatórios e Análises</h1>
-            <p className="text-muted-foreground mt-2">Carregando dados...</p>
+            <h1 className="text-3xl font-bold text-foreground">Central de Relatórios</h1>
+            <p className="text-muted-foreground mt-2">Carregando seus relatórios...</p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            {[1, 2, 3, 4].map((i) => (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[1, 2, 3].map((i) => (
               <Card key={i} className="animate-pulse">
-                <CardHeader className="pb-2">
+                <CardHeader>
                   <div className="h-4 bg-muted rounded w-3/4"></div>
+                  <div className="h-3 bg-muted rounded w-1/2"></div>
                 </CardHeader>
                 <CardContent>
-                  <div className="h-8 bg-muted rounded w-1/2"></div>
+                  <div className="h-20 bg-muted rounded"></div>
                 </CardContent>
               </Card>
             ))}
@@ -127,31 +135,37 @@ export default function ReportsDashboard() {
     );
   }
 
-  const formatSalesCycle = (days: number) => {
-    const hours = Math.floor(days * 24);
-    const minutes = Math.floor((days * 24 * 60) % 60);
-    return `${hours}:${minutes.toString().padStart(2, '0')}`;
+  const getCategoryIcon = (category: string) => {
+    switch (category) {
+      case 'performance': return <TrendingUp className="h-4 w-4" />;
+      case 'pipeline': return <BarChart3 className="h-4 w-4" />;
+      case 'analysis': return <Target className="h-4 w-4" />;
+      default: return <BarChart3 className="h-4 w-4" />;
+    }
   };
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-    }).format(value);
+  const getCategoryName = (category: string) => {
+    switch (category) {
+      case 'performance': return 'Performance';
+      case 'pipeline': return 'Pipeline';
+      case 'analysis': return 'Análise';
+      case 'custom': return 'Personalizado';
+      default: return 'Outros';
+    }
   };
 
-  // Cores para os gráficos
-  const phaseColors = {
-    'prospeccao': '#f97316',
-    'em-atendimento': '#a855f7',
-    'visita-tecnica': '#3b82f6',
-    'proposta': '#ec4899',
-    'negociacao': '#06b6d4',
-    'ganho': '#10b981',
-    'perdido': '#ef4444'
+  const formatLastGenerated = (date: string | null) => {
+    if (!date) return 'Nunca executado';
+    const now = new Date();
+    const generated = new Date(date);
+    const diffMs = now.getTime() - generated.getTime();
+    const diffMins = Math.floor(diffMs / (1000 * 60));
+    
+    if (diffMins < 1) return 'Agora mesmo';
+    if (diffMins < 60) return `${diffMins} min atrás`;
+    if (diffMins < 1440) return `${Math.floor(diffMins / 60)}h atrás`;
+    return `${Math.floor(diffMins / 1440)} dias atrás`;
   };
-
-  const temperatureColors = ['#f97316', '#06d6a0', '#ffd60a'];
 
   return (
     <div className="min-h-screen bg-background" data-testid="reports-dashboard">
@@ -160,511 +174,323 @@ export default function ReportsDashboard() {
         <div className="mb-8">
           <div className="flex justify-between items-start">
             <div>
-              <h1 className="text-3xl font-bold text-foreground" data-testid="title-reports">
-                Relatórios e Análises
-              </h1>
+              <h1 className="text-3xl font-bold text-foreground">Central de Relatórios</h1>
               <p className="text-muted-foreground mt-2">
-                Dados em tempo real do seu funil de vendas - sincronizado com o dashboard
+                Gerencie e visualize seus relatórios personalizados
               </p>
             </div>
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center text-sm text-muted-foreground">
-                <Activity className="h-4 w-4 mr-1" />
-                Última atualização: {lastUpdated.toLocaleTimeString('pt-BR')}
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleManualRefresh}
-                disabled={isLoading}
-                data-testid="button-refresh-reports"
-              >
-                <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-                {isLoading ? 'Atualizando...' : 'Atualizar'}
-              </Button>
-              <Button
-                variant={autoRefresh ? "default" : "outline"}
-                size="sm"
-                onClick={() => setAutoRefresh(!autoRefresh)}
-                data-testid="button-auto-refresh"
-              >
-                <Activity className="h-4 w-4 mr-2" />
-                Auto-refresh {autoRefresh ? 'ON' : 'OFF'}
-              </Button>
-              <Button
-                onClick={() => setCustomReportsOpen(true)}
-                data-testid="button-custom-reports"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Criar Relatório
-              </Button>
-            </div>
+            <Dialog open={createReportOpen} onOpenChange={setCreateReportOpen}>
+              <DialogTrigger asChild>
+                <Button data-testid="button-create-report">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Novo Relatório
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>Criar Novo Relatório</DialogTitle>
+                  <DialogDescription>
+                    Configure seu relatório personalizado com filtros e visualizações
+                  </DialogDescription>
+                </DialogHeader>
+                <CreateReportForm onSuccess={() => {
+                  setCreateReportOpen(false);
+                  refetchReports();
+                }} />
+              </DialogContent>
+            </Dialog>
           </div>
         </div>
 
-        {/* KPIs Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        {/* Quick Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Ciclo de vendas médio este mês
-              </CardTitle>
-              <Clock className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium">Total de Relatórios</CardTitle>
+              <BarChart3 className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold" data-testid="metric-avg-cycle">
-                {reportData?.avgSalesCycle ? formatSalesCycle(reportData.avgSalesCycle) : '0:00'}
-              </div>
-              <p className="text-xs text-green-600 mt-1">
-                Lead time (horas) / média
+              <div className="text-2xl font-bold">{savedReports.length}</div>
+              <p className="text-xs text-muted-foreground">
+                {savedReports.filter(r => r.autoRefresh).length} com auto-atualização
               </p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Total arrecadado
-              </CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium">Executados Hoje</CardTitle>
+              <RefreshCw className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold" data-testid="metric-total-revenue">
-                {reportData?.totalRevenue ? formatCurrency(reportData.totalRevenue) : 'R$ 0,00'}
+              <div className="text-2xl font-bold">
+                {savedReports.filter(r => {
+                  if (!r.lastGenerated) return false;
+                  const today = new Date().toDateString();
+                  const generated = new Date(r.lastGenerated).toDateString();
+                  return today === generated;
+                }).length}
               </div>
-              <p className="text-xs text-blue-600 mt-1">
-                Valor final das oportunidades Soma
+              <p className="text-xs text-muted-foreground">
+                Relatórios atualizados
               </p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Taxa de conversão
-              </CardTitle>
-              <Target className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold" data-testid="metric-conversion-rate">
-                {reportData?.monthlyStats ? 
-                  `${((reportData.monthlyStats.wonOpportunities / Math.max(reportData.monthlyStats.totalOpportunities, 1)) * 100).toFixed(1)}%` 
-                  : '0%'
-                }
-              </div>
-              <p className="text-xs text-green-600 mt-1">
-                Oportunidades ganhas / Total
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Oportunidades ativas
-              </CardTitle>
+              <CardTitle className="text-sm font-medium">Mais Popular</CardTitle>
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold" data-testid="metric-active-opportunities">
-                {reportData?.monthlyStats?.activeOpportunities || 0}
+              <div className="text-2xl font-bold">Pipeline</div>
+              <p className="text-xs text-muted-foreground">
+                Categoria mais usada
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Públicos</CardTitle>
+              <Share2 className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {savedReports.filter(r => r.isPublic).length}
               </div>
-              <p className="text-xs text-blue-600 mt-1">
-                Em andamento no funil
+              <p className="text-xs text-muted-foreground">
+                Compartilhados com equipe
               </p>
             </CardContent>
           </Card>
         </div>
 
-        {/* Charts */}
-        <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList>
-            <TabsTrigger value="overview" data-testid="tab-overview">Visão Geral</TabsTrigger>
-            <TabsTrigger value="performance" data-testid="tab-performance">Performance</TabsTrigger>
-            <TabsTrigger value="analysis" data-testid="tab-analysis">Análise Detalhada</TabsTrigger>
-            <TabsTrigger value="sdr-opportunities" data-testid="tab-sdr-opportunities">Oportunidades SDR</TabsTrigger>
-          </TabsList>
+        {/* Filters */}
+        <div className="flex flex-col sm:flex-row gap-4 mb-6">
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar relatórios..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+              data-testid="input-search-reports"
+            />
+          </div>
+          <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+            <SelectTrigger className="w-48" data-testid="select-category">
+              <Filter className="h-4 w-4 mr-2" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas as categorias</SelectItem>
+              <SelectItem value="custom">Personalizado</SelectItem>
+              <SelectItem value="performance">Performance</SelectItem>
+              <SelectItem value="pipeline">Pipeline</SelectItem>
+              <SelectItem value="analysis">Análise</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
 
-          <TabsContent value="overview" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Oportunidades por etapa */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Oportunidades por etapa</CardTitle>
-                  <CardDescription>
-                    Distribuição das oportunidades nas fases do funil
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={reportData?.opportunitiesByPhase || []}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis 
-                        dataKey="phaseName" 
-                        angle={-45}
-                        textAnchor="end"
-                        height={80}
-                        fontSize={12}
-                      />
-                      <YAxis />
-                      <Tooltip />
-                      <Bar 
-                        dataKey="count" 
-                        fill="#f97316"
-                        radius={[4, 4, 0, 0]}
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-
-              {/* % das temperaturas */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>% das temperaturas</CardTitle>
-                  <CardDescription>
-                    Classificação da temperatura dos negócios
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <PieChart>
-                      <Pie
-                        data={reportData?.businessTemperatures || []}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={60}
-                        outerRadius={120}
-                        paddingAngle={2}
-                        dataKey="count"
-                      >
-                        {reportData?.businessTemperatures?.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={temperatureColors[index % temperatureColors.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip formatter={(value, name, props) => [
-                        `${value} (${props.payload.percentage}%)`,
-                        props.payload.temperature
-                      ]} />
-                      <Legend />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="performance" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Motivo da perda */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Motivo da perda</CardTitle>
-                  <CardDescription>
-                    Principais razões para oportunidades perdidas
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {reportData?.lossReasons?.map((reason, index) => (
-                      <div key={index} className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                        <div className="flex items-center space-x-2">
-                          <AlertTriangle className="h-4 w-4 text-red-500" />
-                          <span className="text-sm font-medium">{reason.reason || 'Não informado'}</span>
-                        </div>
-                        <Badge variant="secondary">{reason.count} cards</Badge>
-                      </div>
-                    )) || (
-                      <p className="text-sm text-muted-foreground text-center py-4">
-                        Nenhuma oportunidade perdida registrada
-                      </p>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Oportunidades por vendedor */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Oportunidades por vendedor</CardTitle>
-                  <CardDescription>
-                    Performance individual dos vendedores
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <PieChart>
-                      <Pie
-                        data={reportData?.opportunitiesBySalesperson || []}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={60}
-                        outerRadius={120}
-                        paddingAngle={2}
-                        dataKey="count"
-                      >
-                        {reportData?.opportunitiesBySalesperson?.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={`hsl(${index * 45 + 20}, 70%, 60%)`} />
-                        ))}
-                      </Pie>
-                      <Tooltip formatter={(value, name, props) => [
-                        `${value} (${props.payload.percentage}%)`,
-                        props.payload.salesperson || 'Não atribuído'
-                      ]} />
-                      <Legend />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="analysis" className="space-y-6">
-            <div className="grid grid-cols-1 gap-6">
-              {/* Resumo detalhado */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Análise Detalhada do Funil</CardTitle>
-                  <CardDescription>
-                    Insights e métricas importantes do seu pipeline de vendas
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="space-y-2">
-                      <h4 className="font-semibold text-lg">Funil de Conversão</h4>
-                      <div className="space-y-2">
-                        {reportData?.opportunitiesByPhase?.map((phase, index) => (
-                          <div key={index} className="flex justify-between items-center">
-                            <span className="text-sm">{phase.phaseName}</span>
-                            <Badge variant="outline">{phase.count}</Badge>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <h4 className="font-semibold text-lg">Performance</h4>
-                      <div className="space-y-2">
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm">Taxa de Fechamento</span>
-                          <Badge variant="outline">
-                            {reportData?.monthlyStats ? 
-                              `${((reportData.monthlyStats.wonOpportunities / Math.max(reportData.monthlyStats.totalOpportunities, 1)) * 100).toFixed(1)}%` 
-                              : '0%'
-                            }
-                          </Badge>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm">Ticket Médio</span>
-                          <Badge variant="outline">
-                            {reportData?.totalRevenue && reportData?.monthlyStats?.wonOpportunities ? 
-                              formatCurrency(reportData.totalRevenue / reportData.monthlyStats.wonOpportunities) 
-                              : 'R$ 0,00'
-                            }
-                          </Badge>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <h4 className="font-semibold text-lg">Equipe</h4>
-                      <div className="space-y-2">
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm">Vendedores Ativos</span>
-                          <Badge variant="outline">{reportData?.opportunitiesBySalesperson?.length || 0}</Badge>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm">Top Performer</span>
-                          <Badge variant="outline">
-                            {reportData?.opportunitiesBySalesperson && reportData.opportunitiesBySalesperson.length > 0 
-                              ? reportData.opportunitiesBySalesperson[0].salesperson 
-                              : 'N/A'
-                            }
-                          </Badge>
-                        </div>
-                      </div>
+        {/* Reports Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredReports.map((report) => (
+            <Card key={report.id} className="hover:shadow-md transition-shadow">
+              <CardHeader className="pb-3">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center space-x-2">
+                    {getCategoryIcon(report.category)}
+                    <div>
+                      <CardTitle className="text-lg">{report.name}</CardTitle>
+                      <CardDescription className="text-sm">
+                        {report.description || 'Sem descrição'}
+                      </CardDescription>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="sdr-opportunities" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Oportunidades SDR</CardTitle>
-                <CardDescription>
-                  {reportData?.monthlyStats?.totalOpportunities || 0} resultados - Selecione filtros do lado esquerdo e adicione fórmulas, altere colunas ou exporte dados usando os botões do lado direito.
-                </CardDescription>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm">
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => handleRunReport(report.id)}>
+                        <Play className="h-4 w-4 mr-2" />
+                        Executar Agora
+                      </DropdownMenuItem>
+                      <DropdownMenuItem>
+                        <Eye className="h-4 w-4 mr-2" />
+                        Visualizar
+                      </DropdownMenuItem>
+                      <DropdownMenuItem>
+                        <Edit className="h-4 w-4 mr-2" />
+                        Editar
+                      </DropdownMenuItem>
+                      <DropdownMenuItem>
+                        <Download className="h-4 w-4 mr-2" />
+                        Exportar
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem 
+                        onClick={() => handleDeleteReport(report.id)}
+                        className="text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Excluir
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               </CardHeader>
-              <CardContent>
-                <SDROpportunitiesTableWithFilter />
+
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between text-sm">
+                  <Badge variant="outline">
+                    {getCategoryName(report.category)}
+                  </Badge>
+                  <div className="flex items-center space-x-1">
+                    {report.autoRefresh ? (
+                      <RefreshCw className="h-3 w-3 text-green-500" />
+                    ) : (
+                      <Pause className="h-3 w-3 text-gray-400" />
+                    )}
+                    <span className="text-xs text-muted-foreground">
+                      {report.autoRefresh ? 'Auto' : 'Manual'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="text-xs text-muted-foreground">
+                  <div className="flex items-center space-x-1">
+                    <Clock className="h-3 w-3" />
+                    <span>Última execução: {formatLastGenerated(report.lastGenerated)}</span>
+                  </div>
+                </div>
+
+                <div className="flex space-x-2">
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    className="flex-1"
+                    onClick={() => handleRunReport(report.id)}
+                  >
+                    <Play className="h-3 w-3 mr-1" />
+                    Executar
+                  </Button>
+                  <Button size="sm" variant="outline">
+                    <Eye className="h-3 w-3" />
+                  </Button>
+                </div>
               </CardContent>
             </Card>
-          </TabsContent>
-        </Tabs>
+          ))}
 
-        <CustomReportsModal 
-          open={customReportsOpen} 
-          onOpenChange={setCustomReportsOpen} 
-        />
+          {filteredReports.length === 0 && (
+            <div className="col-span-full">
+              <Card className="border-dashed">
+                <CardContent className="flex flex-col items-center justify-center py-12">
+                  <BarChart3 className="h-12 w-12 text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">Nenhum relatório encontrado</h3>
+                  <p className="text-muted-foreground text-center mb-4">
+                    {searchTerm || selectedCategory !== "all" 
+                      ? "Tente ajustar seus filtros de busca"
+                      : "Comece criando seu primeiro relatório personalizado"
+                    }
+                  </p>
+                  {!searchTerm && selectedCategory === "all" && (
+                    <Button onClick={() => setCreateReportOpen(true)}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Criar Primeiro Relatório
+                    </Button>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
 }
 
-function SDROpportunitiesTableWithFilter() {
-  const { data: opportunities } = useQuery<any[]>({
-    queryKey: ["/api/opportunities"],
+// Simple create report form component
+function CreateReportForm({ onSuccess }: { onSuccess: () => void }) {
+  const { toast } = useToast();
+  const [formData, setFormData] = useState({
+    name: "",
+    description: "",
+    category: "custom"
   });
 
-  const [creatorFilter, setCreatorFilter] = useState<string>("");
-  const [filteredOpportunities, setFilteredOpportunities] = useState<any[]>([]);
-
-  // Atualizar oportunidades filtradas quando dados ou filtro mudarem
-  useEffect(() => {
-    if (!opportunities) {
-      setFilteredOpportunities([]);
-      return;
-    }
-
-    let filtered = [...opportunities];
-
-    if (creatorFilter) {
-      filtered = filtered.filter(opp => 
-        (opp.createdBy || 'Não atribuído').toLowerCase().includes(creatorFilter.toLowerCase())
-      );
-    }
-
-    setFilteredOpportunities(filtered);
-  }, [opportunities, creatorFilter]);
-
-  // Obter lista única de criadores para o filtro
-  const uniqueCreators = useMemo(() => {
-    if (!opportunities) return [];
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     
-    const creators = opportunities.map(opp => opp.createdBy || 'Não atribuído');
-    return [...new Set(creators)].sort();
-  }, [opportunities]);
-
-  const getPhaseDisplayName = (phase: string) => {
-    const phaseNames: Record<string, string> = {
-      'prospeccao': 'Prospecção',
-      'em-atendimento': 'Em Atendimento',
-      'visita-tecnica': 'Visita Técnica',
-      'proposta': 'Proposta',
-      'negociacao': 'Negociação',
-      'ganho': 'Ganho',
-      'perdido': 'Perdido'
-    };
-    return phaseNames[phase] || phase;
-  };
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const day = date.getDate().toString().padStart(2, '0');
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const year = date.getFullYear();
-    return `${day} de ${getMonthName(month)} de ${year}`;
-  };
-
-  const getMonthName = (month: string) => {
-    const months = [
-      '', 'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
-      'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'
-    ];
-    return months[parseInt(month)];
+    try {
+      await apiRequest("POST", "/api/reports/saved", {
+        ...formData,
+        filters: {},
+        charts: {},
+        layout: {},
+        autoRefresh: true,
+        refreshInterval: 30
+      });
+      
+      toast({
+        title: "Relatório criado",
+        description: "Seu novo relatório foi criado com sucesso."
+      });
+      
+      onSuccess();
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Não foi possível criar o relatório.",
+        variant: "destructive"
+      });
+    }
   };
 
   return (
-    <div className="space-y-4">
-      {/* Filtros */}
-      <div className="flex flex-col sm:flex-row gap-4 p-4 bg-muted/50 rounded-lg">
-        <div className="flex items-center space-x-2">
-          <Filter className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm font-medium">Filtros:</span>
-        </div>
-        
-        <div className="flex flex-col sm:flex-row gap-2">
-          <div className="flex flex-col space-y-1">
-            <label htmlFor="creator-filter" className="text-xs font-medium text-muted-foreground">
-              Criador
-            </label>
-            <select
-              id="creator-filter"
-              value={creatorFilter}
-              onChange={(e) => setCreatorFilter(e.target.value)}
-              className="px-3 py-1 text-sm border border-border rounded-md bg-background"
-            >
-              <option value="">Todos os criadores</option>
-              {uniqueCreators.map((creator) => (
-                <option key={creator} value={creator}>
-                  {creator}
-                </option>
-              ))}
-            </select>
-          </div>
-          
-          {creatorFilter && (
-            <div className="flex items-end">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCreatorFilter("")}
-                className="text-xs"
-              >
-                Limpar filtros
-              </Button>
-            </div>
-          )}
-        </div>
-        
-        <div className="flex items-center text-xs text-muted-foreground ml-auto">
-          {filteredOpportunities.length} de {opportunities?.length || 0} oportunidades
-        </div>
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <label className="text-sm font-medium">Nome do Relatório</label>
+        <Input
+          value={formData.name}
+          onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+          placeholder="Ex: Relatório de Vendas Mensal"
+          required
+        />
       </div>
-
-      {/* Tabela */}
-      <div className="overflow-x-auto">
-        <table className="w-full border-collapse border border-border">
-          <thead>
-            <tr className="bg-muted">
-              <th className="border border-border px-4 py-2 text-left font-medium">Título</th>
-              <th className="border border-border px-4 py-2 text-left font-medium">Fase atual</th>
-              <th className="border border-border px-4 py-2 text-left font-medium">Criador</th>
-              <th className="border border-border px-4 py-2 text-left font-medium">Criado em</th>
-            </tr>
-          </thead>
-          <tbody>
-            {!filteredOpportunities || filteredOpportunities.length === 0 ? (
-              <tr>
-                <td colSpan={4} className="border border-border px-4 py-8 text-center text-muted-foreground">
-                  {creatorFilter ? 'Nenhuma oportunidade encontrada com os filtros aplicados' : 'Nenhuma oportunidade encontrada'}
-                </td>
-              </tr>
-            ) : (
-              filteredOpportunities.map((opportunity: any) => (
-                <tr key={opportunity.id} className="hover:bg-muted/50">
-                  <td className="border border-border px-4 py-2">
-                    {opportunity.company || opportunity.contact}
-                  </td>
-                  <td className="border border-border px-4 py-2">
-                    {getPhaseDisplayName(opportunity.phase)}
-                  </td>
-                  <td className="border border-border px-4 py-2">
-                    {opportunity.createdBy || 'Não atribuído'}
-                  </td>
-                  <td className="border border-border px-4 py-2">
-                    {opportunity.createdAt ? formatDate(opportunity.createdAt) : '-'}
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+      
+      <div>
+        <label className="text-sm font-medium">Descrição</label>
+        <Input
+          value={formData.description}
+          onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+          placeholder="Descreva o propósito deste relatório"
+        />
       </div>
-    </div>
+      
+      <div>
+        <label className="text-sm font-medium">Categoria</label>
+        <Select value={formData.category} onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="custom">Personalizado</SelectItem>
+            <SelectItem value="performance">Performance</SelectItem>
+            <SelectItem value="pipeline">Pipeline</SelectItem>
+            <SelectItem value="analysis">Análise</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      
+      <div className="flex justify-end space-x-2 pt-4">
+        <Button type="button" variant="outline">Cancelar</Button>
+        <Button type="submit">Criar Relatório</Button>
+      </div>
+    </form>
   );
 }
