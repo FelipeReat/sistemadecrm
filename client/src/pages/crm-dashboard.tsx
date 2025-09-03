@@ -83,7 +83,6 @@ export default function CrmDashboard() {
       bgColor: "bg-ganho",
       borderColor: "border-green-200",
       badgeColor: "bg-green-100 text-green-800",
-      successMessage: "Acesse o processo \"Onboarding de Clientes\" para continuar",
     },
     {
       key: PHASES.PERDIDO,
@@ -92,7 +91,6 @@ export default function CrmDashboard() {
       bgColor: "bg-perdido",
       borderColor: "border-red-200",
       badgeColor: "bg-red-100 text-red-800",
-      lossMessage: "Oportunidades perdidas",
     },
   ];
 
