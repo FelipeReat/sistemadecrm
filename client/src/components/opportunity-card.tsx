@@ -13,7 +13,6 @@ const validatePhaseCompletion = (opportunity: Opportunity): { isComplete: boolea
     case 'prospeccao':
       if (!opportunity.opportunityNumber) missingFields.push('Número da oportunidade');
       if (!opportunity.salesperson) missingFields.push('Vendedor');
-      if (!opportunity.businessTemperature) missingFields.push('Temperatura do negócio');
       break;
       
     case 'em-atendimento':
