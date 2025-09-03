@@ -238,7 +238,7 @@ export default function SalesPipelineColumn({ phase, opportunities, isLoading, o
             </div>
           ) : opportunities.length === 0 ? (
             <div className="text-center py-6">
-              <p className="text-sm text-gray-500">Nenhuma oportunidade nesta fase</p>
+              <p className="text-sm text-gray-500 dark:text-gray-300">Nenhuma oportunidade nesta fase</p>
             </div>
           ) : (
             opportunities.map((opportunity) => (
