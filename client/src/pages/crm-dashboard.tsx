@@ -9,7 +9,6 @@ import OpportunityDetailsModal from "@/components/opportunity-details-modal";
 import SettingsModal from "@/components/settings-modal";
 import { PHASES } from "@shared/schema";
 import type { Opportunity } from "@shared/schema";
-import OpportunityDetailsModal from "@/components/opportunity-details-modal";
 
 export default function CrmDashboard() {
   const queryClient = useQueryClient();
