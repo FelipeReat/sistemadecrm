@@ -43,7 +43,6 @@ export default function CrmDashboard() {
       bgColor: "bg-prospeccao",
       borderColor: "border-orange-200",
       badgeColor: "bg-orange-100 text-orange-800",
-      description: "Este é o formulário que coleta informações sobre uma nova solicitação e preenche o pipe com cards.",
     },
     {
       key: PHASES.EM_ATENDIMENTO,
@@ -52,7 +51,6 @@ export default function CrmDashboard() {
       bgColor: "bg-atendimento",
       borderColor: "border-purple-200",
       badgeColor: "bg-purple-100 text-purple-800",
-      description: "Adicione campos, automações e integrações para coletar informações de maneira padronizada.",
     },
     {
       key: PHASES.VISITA_TECNICA,
@@ -85,7 +83,6 @@ export default function CrmDashboard() {
       bgColor: "bg-ganho",
       borderColor: "border-green-200",
       badgeColor: "bg-green-100 text-green-800",
-      description: "Adicione campos, automações e integrações para coletar informações de maneira padronizada.",
       successMessage: "Acesse o processo \"Onboarding de Clientes\" para continuar",
     },
     {
@@ -95,7 +92,6 @@ export default function CrmDashboard() {
       bgColor: "bg-perdido",
       borderColor: "border-red-200",
       badgeColor: "bg-red-100 text-red-800",
-      description: "Adicione campos, automações e integrações para coletar informações de maneira padronizada.",
       lossMessage: "Oportunidades perdidas",
     },
   ];
