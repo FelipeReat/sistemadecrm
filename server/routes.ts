@@ -210,8 +210,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Usuários comuns só podem editar suas próprias oportunidades
-      if (req.session.user!.role === 'usuario' && existingOpportunity.salesperson !== req.session.user!.name) {
-        return res.status(403).json({ message: "Você só pode editar suas próprias oportunidades" });
+      if (req.session.user!.role === 'usuario') {
+        // Se a oportunidade foi criada por este usuário ou ainda não tem vendedor atribuído, pode editar
+        const canEdit = existingOpportunity.createdBy === req.session.user!.name || 
+                       existingOpportunity.salesperson === req.session.user!.name ||
+                       !existingOpportunity.salesperson;
+        
+        if (!canEdit) {
+          return res.status(403).json({ message: "Você só pode editar suas próprias oportunidades" });
+        }
       }
 
       const opportunity = await storage.updateOpportunity(id, validatedData);
