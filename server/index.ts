@@ -74,7 +74,7 @@ app.use((req, res, next) => {
   // Other ports are firewalled. Default to 5000 if not specified.
   // this serves both the API aSSSnd the client.
   // It is the only port that is not firewalled.
-  const port = parseInt(process.env.PORT || "5501", 10);
+  const port = parseInt(process.env.PORT || "5000", 10);
 
   // Use different host binding for development vs production
   // Development (Replit): needs 0.0.0.0 to be accessible
