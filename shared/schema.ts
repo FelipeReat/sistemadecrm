@@ -65,9 +65,9 @@ export const automations = pgTable("automations", {
 });
 
 export const insertOpportunitySchema = createInsertSchema(opportunities, {
-  budget: z.coerce.number().optional(),
-  finalValue: z.coerce.number().optional(),
-  discount: z.coerce.number().optional(),
+  budget: z.coerce.string().optional(), // Decimal fields expect strings
+  finalValue: z.coerce.string().optional(), // Decimal fields expect strings  
+  discount: z.coerce.string().optional(), // Decimal fields expect strings
   visitSchedule: z.string().optional(),
   validityDate: z.string().optional(),
   phaseUpdatedAt: z.string().optional(),

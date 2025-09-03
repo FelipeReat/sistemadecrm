@@ -213,23 +213,19 @@ export default function OpportunityDetailsModal({
       // Clean the formatted values before sending to API
       const cleanedData = { ...data };
       
-      // Clean budget value (remove currency formatting)
+      // Clean budget value (remove currency formatting) - Keep as string
       if (cleanedData.budget) {
-        cleanedData.budget = parseFloat(
-          cleanedData.budget
-            .replace(/[R$\s]/g, '')  // Remove R$ and spaces
-            .replace(/\./g, '')      // Remove thousand separators
-            .replace(',', '.')       // Convert decimal separator
-        );
+        cleanedData.budget = cleanedData.budget
+          .replace(/[R$\s]/g, '')  // Remove R$ and spaces
+          .replace(/\./g, '')      // Remove thousand separators
+          .replace(',', '.')       // Convert decimal separator
       }
       
-      // Clean discount value (remove percentage formatting)
+      // Clean discount value (remove percentage formatting) - Keep as string
       if (cleanedData.discount) {
-        cleanedData.discount = parseFloat(
-          cleanedData.discount
-            .replace('%', '')        // Remove percentage symbol
-            .replace(',', '.')       // Convert decimal separator
-        );
+        cleanedData.discount = cleanedData.discount
+          .replace('%', '')        // Remove percentage symbol
+          .replace(',', '.')       // Convert decimal separator
       }
       
       // Clean date value (convert DD/MM/YYYY to YYYY-MM-DD)
