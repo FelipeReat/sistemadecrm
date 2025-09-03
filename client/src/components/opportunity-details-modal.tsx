@@ -207,8 +207,40 @@ export default function OpportunityDetailsModal({
     setIsSubmitting(true);
 
     try {
+      // Clean the formatted values before sending to API
+      const cleanedData = { ...data };
+      
+      // Clean budget value (remove currency formatting)
+      if (cleanedData.budget) {
+        cleanedData.budget = parseFloat(
+          cleanedData.budget
+            .replace(/[R$\s]/g, '')  // Remove R$ and spaces
+            .replace(/\./g, '')      // Remove thousand separators
+            .replace(',', '.')       // Convert decimal separator
+        );
+      }
+      
+      // Clean discount value (remove percentage formatting)
+      if (cleanedData.discount) {
+        cleanedData.discount = parseFloat(
+          cleanedData.discount
+            .replace('%', '')        // Remove percentage symbol
+            .replace(',', '.')       // Convert decimal separator
+        );
+      }
+      
+      // Clean date value (convert DD/MM/YYYY to YYYY-MM-DD)
+      if (cleanedData.validityDate) {
+        const dateRegex = /^(\d{2})\/(\d{2})\/(\d{4})$/;
+        const match = cleanedData.validityDate.match(dateRegex);
+        if (match) {
+          const [, day, month, year] = match;
+          cleanedData.validityDate = `${year}-${month}-${day}`;
+        }
+      }
+
       // Apenas atualiza os dados da oportunidade
-      await updateOpportunityMutation.mutateAsync({ ...data, id: opportunity.id });
+      await updateOpportunityMutation.mutateAsync({ ...cleanedData, id: opportunity.id });
 
       // Fecha o modal após salvar (sem perguntar sobre mover para próxima fase)
       onOpenChange(false);

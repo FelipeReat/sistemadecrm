@@ -67,6 +67,7 @@ export const automations = pgTable("automations", {
 export const insertOpportunitySchema = createInsertSchema(opportunities, {
   budget: z.coerce.number().optional(),
   finalValue: z.coerce.number().optional(),
+  discount: z.coerce.number().optional(),
   visitSchedule: z.string().optional(),
   validityDate: z.string().optional(),
   phaseUpdatedAt: z.string().optional(),
