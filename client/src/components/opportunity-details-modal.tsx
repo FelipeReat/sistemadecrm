@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
@@ -141,7 +141,7 @@ export default function OpportunityDetailsModal({
       discount: opportunity?.discount || "",
       discountDescription: opportunity?.discountDescription || "",
       validityDate: opportunity?.validityDate || "",
-      budgetNumber: opportunity?.budgetNumber || "",
+      budgetNumber: opportunity?.budgetNumber || opportunity?.opportunityNumber || "",
       budget: opportunity?.budget || "",
     },
   });
@@ -157,6 +157,19 @@ export default function OpportunityDetailsModal({
       lossReason: opportunity?.lossReason || "",
     },
   });
+
+  // Atualizar valores dos formulários quando a oportunidade mudar
+  useEffect(() => {
+    if (opportunity) {
+      propostaForm.reset({
+        discount: opportunity.discount || "",
+        discountDescription: opportunity.discountDescription || "",
+        validityDate: opportunity.validityDate || "",
+        budgetNumber: opportunity.budgetNumber || opportunity.opportunityNumber || "",
+        budget: opportunity.budget || "",
+      });
+    }
+  }, [opportunity, propostaForm]);
 
   const updateOpportunityMutation = useMutation({
     mutationFn: (data: any & { id: string }) =>
