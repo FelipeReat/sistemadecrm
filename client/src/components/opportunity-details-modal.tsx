@@ -143,7 +143,7 @@ export default function OpportunityDetailsModal({
       status: opportunity?.status || "",
       finalValue: opportunity?.finalValue || "",
       negotiationInfo: opportunity?.negotiationInfo || "",
-      contract: typeof opportunity?.contract === 'string' ? opportunity.contract : "",
+      contract: opportunity?.contract || "",
       invoiceNumber: opportunity?.invoiceNumber || "",
       lossReason: opportunity?.lossReason || "",
     },
@@ -257,26 +257,12 @@ export default function OpportunityDetailsModal({
         }
       }
 
-      // Remove campos vazios ou undefined para evitar erros de validação
+      // Remove apenas campos undefined ou null, mantém strings vazias
       Object.keys(cleanedData).forEach(key => {
-        if (cleanedData[key] === '' || cleanedData[key] === undefined || cleanedData[key] === null) {
+        if (cleanedData[key] === undefined || cleanedData[key] === null) {
           delete cleanedData[key];
         }
       });
-
-      // Garantir que campos de string vazios sejam removidos completamente
-      if (cleanedData.contract === '') {
-        delete cleanedData.contract;
-      }
-      if (cleanedData.invoiceNumber === '') {
-        delete cleanedData.invoiceNumber;
-      }
-      if (cleanedData.negotiationInfo === '') {
-        delete cleanedData.negotiationInfo;
-      }
-      if (cleanedData.lossReason === '') {
-        delete cleanedData.lossReason;
-      }
 
       console.log("Data being sent to API:", cleanedData);
 
