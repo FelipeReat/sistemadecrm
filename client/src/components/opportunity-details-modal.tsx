@@ -72,7 +72,7 @@ const negociacaoSchema = z.object({
   status: z.string().min(1, "Status é obrigatório"),
   finalValue: z.string().min(1, "Valor final é obrigatório"),
   negotiationInfo: z.string().optional(),
-  contract: z.string().optional(),
+  contract: z.any().optional(), // Permitir qualquer tipo para o contract
   invoiceNumber: z.string().optional(),
   lossReason: z.string().optional(),
 });
@@ -256,6 +256,13 @@ export default function OpportunityDetailsModal({
           cleanedData.validityDate = `${year}-${month}-${day}`;
         }
       }
+
+      // Remove campos vazios ou undefined para evitar erros de validação
+      Object.keys(cleanedData).forEach(key => {
+        if (cleanedData[key] === '' || cleanedData[key] === undefined || cleanedData[key] === null) {
+          delete cleanedData[key];
+        }
+      });
 
       console.log("Data being sent to API:", cleanedData);
 
