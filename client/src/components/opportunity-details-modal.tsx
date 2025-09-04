@@ -223,7 +223,7 @@ export default function OpportunityDetailsModal({
     try {
       // Clean the formatted values before sending to API
       const cleanedData = { ...data };
-      
+
       // Clean budget value (remove currency formatting) - Keep as string
       if (cleanedData.budget) {
         cleanedData.budget = cleanedData.budget
@@ -231,14 +231,14 @@ export default function OpportunityDetailsModal({
           .replace(/\./g, '')      // Remove thousand separators
           .replace(',', '.')       // Convert decimal separator
       }
-      
+
       // Clean discount value (remove percentage formatting) - Keep as string
       if (cleanedData.discount) {
         cleanedData.discount = cleanedData.discount
           .replace('%', '')        // Remove percentage symbol
           .replace(',', '.')       // Convert decimal separator
       }
-      
+
       // Clean finalValue (remove currency formatting) - Keep as string
       if (cleanedData.finalValue) {
         cleanedData.finalValue = cleanedData.finalValue
@@ -246,7 +246,7 @@ export default function OpportunityDetailsModal({
           .replace(/\./g, '')      // Remove thousand separators
           .replace(',', '.')       // Convert decimal separator
       }
-      
+
       // Clean date value (convert DD/MM/YYYY to YYYY-MM-DD)
       if (cleanedData.validityDate) {
         const dateRegex = /^(\d{2})\/(\d{2})\/(\d{4})$/;
@@ -549,18 +549,35 @@ export default function OpportunityDetailsModal({
                   <FormField
                     control={propostaForm.control}
                     name="budgetNumber"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="flex items-center">
-                          <FileText className="h-4 w-4 mr-2" />
-                          * Número do orçamento
-                        </FormLabel>
-                        <FormControl>
-                          <Input placeholder="ORC-001" {...field} onChange={(e) => field.onChange(masks.cnpjOrCpf(e.target.value))} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+                    render={({ field }) => {
+                      // Verifica se o número do orçamento foi preenchido automaticamente
+                      // Isso acontece quando a oportunidade vem de outras fases e já tem opportunityNumber
+                      const isAutoFilled = opportunity?.opportunityNumber && field.value === opportunity.opportunityNumber;
+                      // Se foi criado direto na fase de proposta, não tem opportunityNumber nas fases anteriores
+                      const wasCreatedDirectlyInProposal = !opportunity?.opportunityNumber;
+
+                      return (
+                        <FormItem>
+                          <FormLabel className="flex items-center">
+                            <FileText className="h-4 w-4 mr-2" />
+                            * Número do orçamento
+                            {isAutoFilled && (
+                              <span className="ml-2 text-xs text-gray-500">(preenchido automaticamente)</span>
+                            )}
+                          </FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="ORC-001"
+                              {...field}
+                              disabled={isAutoFilled}
+                              className={isAutoFilled ? "bg-gray-100 cursor-not-allowed" : ""}
+                              onChange={(e) => field.onChange(masks.cnpjOrCpf(e.target.value))}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      );
+                    }}
                   />
 
                   <FormField
