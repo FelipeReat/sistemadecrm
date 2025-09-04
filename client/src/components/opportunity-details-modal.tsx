@@ -75,6 +75,15 @@ const negociacaoSchema = z.object({
   contract: z.string().optional(),
   invoiceNumber: z.string().optional(),
   lossReason: z.string().optional(),
+}).superRefine((data, ctx) => {
+  // Tornar contrato obrigatório quando status for "proposta-aceita" ou "perdida"
+  if ((data.status === "proposta-aceita" || data.status === "perdida") && (!data.contract || data.contract.trim() === "")) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Número do contrato é obrigatório quando o status é 'Proposta Aceita' ou 'Perdida'",
+      path: ["contract"],
+    });
+  }
 });
 
 type ProspeccaoFormData = z.infer<typeof prospeccaoSchema>;
@@ -161,9 +170,7 @@ export default function OpportunityDetailsModal({
       onOpenChange(false);
     },
     onError: (error: any) => {
-      console.error("Mutation error:", error);
       const errorMessage = error?.response?.data?.message || error?.message || "Erro ao atualizar oportunidade.";
-      console.error("Detailed error message:", errorMessage);
       toast({
         title: "Erro",
         description: errorMessage,
@@ -238,8 +245,6 @@ export default function OpportunityDetailsModal({
         }
       }
 
-      console.log("Data being sent to API:", cleanedData);
-
       // Apenas atualiza os dados da oportunidade
       await updateOpportunityMutation.mutateAsync({ ...cleanedData, id: opportunity.id });
 
@@ -247,7 +252,6 @@ export default function OpportunityDetailsModal({
       onOpenChange(false);
     } catch (error) {
       console.error("Erro ao salvar:", error);
-      console.error("Error details:", error?.response?.data || error?.message || error);
     } finally {
       setIsSubmitting(false);
     }
@@ -630,6 +634,30 @@ export default function OpportunityDetailsModal({
                     </FormItem>
                   )}
                 />
+
+                <FormField
+                  control={propostaForm.control}
+                  name="budgetFile"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center">
+                        <FileText className="h-4 w-4 mr-2" />
+                        Anexar documento da proposta
+                      </FormLabel>
+                      <FormControl>
+                        <FileUpload
+                          multiple={false}
+                          accept=".pdf,.doc,.docx,.xls,.xlsx"
+                          value={field.value ? [field.value] : []}
+                          onFilesChange={(files) => field.onChange(files.length > 0 ? files[0] : null)}
+                          placeholder="Clique para anexar documento da proposta ou arraste arquivo aqui"
+                          data-testid="input-budget-file"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
 
               <DialogFooter className="flex justify-between">
@@ -751,7 +779,7 @@ export default function OpportunityDetailsModal({
                   name="invoiceNumber"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Número da nota fiscal</FormLabel>
+                      <FormLabel>Número da danfe</FormLabel>
                       <FormControl>
                         <Input
                           placeholder="NF-001"

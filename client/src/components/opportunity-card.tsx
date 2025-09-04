@@ -103,6 +103,14 @@ export default function OpportunityCard({ opportunity, onViewDetails }: Opportun
     return null;
   };
 
+  const getOpportunityNumberBadge = () => {
+    // Exibir número do orçamento em todas as fases (exceto prospecção onde já aparece no status badge)
+    if (opportunity.opportunityNumber && opportunity.phase !== 'prospeccao') {
+      return <Badge className="bg-gray-100 text-gray-800 text-xs font-medium">#{opportunity.opportunityNumber}</Badge>;
+    }
+    return null;
+  };
+
   return (
     <div
       className="bg-card rounded-lg border border-border p-3 cursor-move hover:shadow-md transition-shadow"
@@ -127,6 +135,7 @@ export default function OpportunityCard({ opportunity, onViewDetails }: Opportun
           )}
         </div>
         <div className="flex items-center space-x-2">
+          {getOpportunityNumberBadge()}
           {getStatusBadge()}
           <Button 
             variant="ghost" 
