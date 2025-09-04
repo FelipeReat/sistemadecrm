@@ -72,7 +72,7 @@ const negociacaoSchema = z.object({
   status: z.string().min(1, "Status é obrigatório"),
   finalValue: z.string().min(1, "Valor final é obrigatório"),
   negotiationInfo: z.string().optional(),
-  contract: z.any().optional(), // Permitir qualquer tipo para o contract
+  contract: z.string().optional(), // String para o número do contrato
   invoiceNumber: z.string().optional(),
   lossReason: z.string().optional(),
 });
@@ -143,7 +143,7 @@ export default function OpportunityDetailsModal({
       status: opportunity?.status || "",
       finalValue: opportunity?.finalValue || "",
       negotiationInfo: opportunity?.negotiationInfo || "",
-      contract: opportunity?.contract || "",
+      contract: typeof opportunity?.contract === 'string' ? opportunity.contract : "",
       invoiceNumber: opportunity?.invoiceNumber || "",
       lossReason: opportunity?.lossReason || "",
     },
@@ -263,6 +263,20 @@ export default function OpportunityDetailsModal({
           delete cleanedData[key];
         }
       });
+
+      // Garantir que campos de string vazios sejam removidos completamente
+      if (cleanedData.contract === '') {
+        delete cleanedData.contract;
+      }
+      if (cleanedData.invoiceNumber === '') {
+        delete cleanedData.invoiceNumber;
+      }
+      if (cleanedData.negotiationInfo === '') {
+        delete cleanedData.negotiationInfo;
+      }
+      if (cleanedData.lossReason === '') {
+        delete cleanedData.lossReason;
+      }
 
       console.log("Data being sent to API:", cleanedData);
 
