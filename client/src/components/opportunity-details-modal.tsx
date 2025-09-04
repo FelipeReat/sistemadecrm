@@ -75,15 +75,6 @@ const negociacaoSchema = z.object({
   contract: z.string().optional(),
   invoiceNumber: z.string().optional(),
   lossReason: z.string().optional(),
-}).superRefine((data, ctx) => {
-  // Tornar contrato obrigatório quando status for "proposta-aceita" ou "perdida"
-  if ((data.status === "proposta-aceita" || data.status === "perdida") && (!data.contract || data.contract.trim() === "")) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "Número do contrato é obrigatório quando o status é 'Proposta Aceita' ou 'Perdida'",
-      path: ["contract"],
-    });
-  }
 });
 
 type ProspeccaoFormData = z.infer<typeof prospeccaoSchema>;
@@ -248,6 +239,14 @@ export default function OpportunityDetailsModal({
           .replace(',', '.')       // Convert decimal separator
       }
       
+      // Clean finalValue (remove currency formatting) - Keep as string
+      if (cleanedData.finalValue) {
+        cleanedData.finalValue = cleanedData.finalValue
+          .replace(/[R$\s]/g, '')  // Remove R$ and spaces
+          .replace(/\./g, '')      // Remove thousand separators
+          .replace(',', '.')       // Convert decimal separator
+      }
+      
       // Clean date value (convert DD/MM/YYYY to YYYY-MM-DD)
       if (cleanedData.validityDate) {
         const dateRegex = /^(\d{2})\/(\d{2})\/(\d{4})$/;
@@ -258,11 +257,11 @@ export default function OpportunityDetailsModal({
         }
       }
 
+      console.log("Data being sent to API:", cleanedData);
+
       // Apenas atualiza os dados da oportunidade
       await updateOpportunityMutation.mutateAsync({ ...cleanedData, id: opportunity.id });
 
-      // Fecha o modal após salvar (sem perguntar sobre mover para próxima fase)
-      onOpenChange(false);
     } catch (error) {
       console.error("Erro ao salvar:", error);
     } finally {
@@ -740,6 +739,7 @@ export default function OpportunityDetailsModal({
                         <Input
                           placeholder={masks.currency.placeholder}
                           {...field}
+                          value={field.value || ""}
                           onChange={(e) => {
                             masks.currency.onChange(e);
                             field.onChange(e.target.value);
