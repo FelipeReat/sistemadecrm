@@ -103,10 +103,6 @@ export default function OpportunityCard({ opportunity, onViewDetails }: Opportun
     return null;
   };
 
-  const getOpportunityNumberBadge = () => {
-    // Não exibir o número do orçamento no card
-    return null;
-  };
 
   return (
     <div
@@ -132,7 +128,6 @@ export default function OpportunityCard({ opportunity, onViewDetails }: Opportun
           )}
         </div>
         <div className="flex items-center space-x-2">
-          {getOpportunityNumberBadge()}
           {getStatusBadge()}
           <Button 
             variant="ghost" 

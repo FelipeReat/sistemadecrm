@@ -1,5 +1,4 @@
 
-import React from 'react';
 
 export const masks = {
   cpf: "999.999.999-99",

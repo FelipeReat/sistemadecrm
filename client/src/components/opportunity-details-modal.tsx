@@ -264,7 +264,9 @@ export default function OpportunityDetailsModal({
         }
       });
 
-      console.log("Data being sent to API:", cleanedData);
+      // Remove campos de arquivo dos dados antes de enviar
+      delete cleanedData.budgetFile;
+      delete cleanedData.visitPhotos;
 
       // Apenas atualiza os dados da oportunidade
       await updateOpportunityMutation.mutateAsync({ ...cleanedData, id: opportunity.id });
@@ -487,9 +489,14 @@ export default function OpportunityDetailsModal({
                     <FormItem>
                       <FormControl>
                         <Input
-                          type="date"
+                          type="text"
+                          placeholder={masks.date.placeholder}
+                          mask={masks.date.mask}
                           {...field}
-                          placeholder="Data de realização"
+                          onChange={(e) => {
+                            masks.date.onChange(e);
+                            field.onChange(e.target.value);
+                          }}
                         />
                       </FormControl>
                       <FormMessage />

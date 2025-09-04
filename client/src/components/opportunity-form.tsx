@@ -23,7 +23,7 @@ import { FileUpload } from "@/components/ui/file-upload";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { PHASES, insertOpportunitySchema } from "@shared/schema";
-import { masks } from "@/lib/masks";
+import { masks, formatters } from "@/lib/masks";
 
 interface OpportunityFormProps {
   phase: string;
@@ -251,9 +251,15 @@ export default function OpportunityForm({ phase }: OpportunityFormProps) {
         </Label>
         <Input
           id="visitSchedule"
-          type="date"
+          type="text"
+          placeholder={masks.date.placeholder}
+          mask={masks.date.mask}
           className="mt-1"
-          onChange={(e) => handleInputChange("visitSchedule", e.target.value)}
+          onChange={(e) => {
+            masks.date.onChange(e);
+            const isoDate = formatters.dateToISO(e.target.value);
+            handleInputChange("visitSchedule", isoDate);
+          }}
           data-testid="form-visit-schedule"
         />
       </div>
@@ -266,9 +272,15 @@ export default function OpportunityForm({ phase }: OpportunityFormProps) {
         </Label>
         <Input
           id="visitDate"
-          type="date"
+          type="text"
+          placeholder={masks.date.placeholder}
+          mask={masks.date.mask}
           className="mt-1"
-          onChange={(e) => handleInputChange("visitDate", e.target.value)}
+          onChange={(e) => {
+            masks.date.onChange(e);
+            const isoDate = formatters.dateToISO(e.target.value);
+            handleInputChange("visitDate", isoDate);
+          }}
           data-testid="form-visit-date"
         />
       </div>
