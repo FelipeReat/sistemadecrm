@@ -180,6 +180,74 @@ export default function CrmDashboard() {
         </div>
       </header>
 
+      {/* Filter Section */}
+      <div className="bg-muted/50 border-b border-border">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="flex items-center space-x-2">
+              <Filter className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-medium text-foreground">Filtrar por usuário:</span>
+            </div>
+            
+            <Select onValueChange={handleUserSelect} data-testid="select-user-filter">
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder="Selecionar usuário" />
+              </SelectTrigger>
+              <SelectContent>
+                {users.map((user) => (
+                  <SelectItem 
+                    key={user.id} 
+                    value={user.name}
+                    disabled={selectedUsers.includes(user.name)}
+                    data-testid={`user-option-${user.id}`}
+                  >
+                    {user.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {selectedUsers.length > 0 && (
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-sm text-muted-foreground">Filtros ativos:</span>
+                {selectedUsers.map((userName) => (
+                  <Badge 
+                    key={userName} 
+                    variant="secondary" 
+                    className="flex items-center gap-1"
+                    data-testid={`filter-badge-${userName}`}
+                  >
+                    {userName}
+                    <button
+                      onClick={() => handleUserRemove(userName)}
+                      className="ml-1 hover:bg-secondary-foreground/20 rounded-full p-0.5"
+                      data-testid={`remove-filter-${userName}`}
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                ))}
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={clearAllFilters}
+                  className="text-xs"
+                  data-testid="clear-all-filters"
+                >
+                  Limpar todos
+                </Button>
+              </div>
+            )}
+
+            {selectedUsers.length > 0 && (
+              <div className="text-sm text-muted-foreground">
+                Mostrando {filteredOpportunities.length} de {opportunities.length} oportunidades
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
       {/* Main Content */}
       <main className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Stats Overview */}
