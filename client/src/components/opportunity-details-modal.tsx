@@ -888,10 +888,10 @@ export default function OpportunityDetailsModal({
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label className="text-sm font-medium text-gray-700">Status da negociação</Label>
-                <Input 
-                  value={opportunity?.status || ""} 
-                  disabled 
-                  className="bg-gray-50 mt-1" 
+                <Input
+                  value={opportunity?.status || ""}
+                  disabled
+                  className="bg-gray-50 mt-1"
                 />
               </div>
 
@@ -900,13 +900,13 @@ export default function OpportunityDetailsModal({
                   <DollarSign className="h-4 w-4 mr-2" />
                   Valor final negociado
                 </Label>
-                <Input 
+                <Input
                   value={opportunity?.finalValue ? new Intl.NumberFormat("pt-BR", {
                     style: "currency",
                     currency: "BRL",
-                  }).format(parseFloat(opportunity.finalValue.toString())) : ""} 
-                  disabled 
-                  className="bg-gray-50 mt-1" 
+                  }).format(parseFloat(opportunity.finalValue.toString())) : ""}
+                  disabled
+                  className="bg-gray-50 mt-1"
                 />
               </div>
             </div>
@@ -925,10 +925,10 @@ export default function OpportunityDetailsModal({
             {opportunity?.contract && (
               <div>
                 <Label className="text-sm font-medium text-gray-700">Número do contrato</Label>
-                <Input 
-                  value={opportunity.contract} 
-                  disabled 
-                  className="bg-gray-50 mt-1" 
+                <Input
+                  value={opportunity.contract}
+                  disabled
+                  className="bg-gray-50 mt-1"
                 />
               </div>
             )}
@@ -936,10 +936,10 @@ export default function OpportunityDetailsModal({
             {opportunity?.invoiceNumber && (
               <div>
                 <Label className="text-sm font-medium text-gray-700">Número da danfe</Label>
-                <Input 
-                  value={opportunity.invoiceNumber} 
-                  disabled 
-                  className="bg-gray-50 mt-1" 
+                <Input
+                  value={opportunity.invoiceNumber}
+                  disabled
+                  className="bg-gray-50 mt-1"
                 />
               </div>
             )}
