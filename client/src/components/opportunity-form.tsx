@@ -360,7 +360,8 @@ export default function OpportunityForm({ phase }: OpportunityFormProps) {
           mask={masks.date.mask}
           onChange={(e) => {
             masks.date.onChange(e);
-            handleInputChange("validityDate", e.target.value);
+            const isoDate = formatters.dateToISO(e.target.value);
+            handleInputChange("validityDate", isoDate);
           }}
           data-testid="form-validity-date"
         />
