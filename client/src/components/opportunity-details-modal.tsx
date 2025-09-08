@@ -648,13 +648,24 @@ export default function OpportunityDetailsModal({
                           <Input
                             type="text"
                             placeholder={masks.date.placeholder}
-                            mask={masks.date.mask}
                             {...field}
                             value={field.value ? formatters.dateFromISO(field.value) : ''}
                             onChange={(e) => {
-                              masks.date.onChange(e);
-                              const isoDate = formatters.dateToISO(e.target.value);
-                              field.onChange(isoDate);
+                              try {
+                                masks.date.onChange(e);
+                                const displayValue = e.target.value;
+                                
+                                // Se a data está completa, converte para ISO
+                                if (displayValue.length === 10 && displayValue.includes('/')) {
+                                  const isoDate = formatters.dateToISO(displayValue);
+                                  field.onChange(isoDate);
+                                } else {
+                                  // Se não está completa, mantém o valor atual do campo
+                                  field.onChange(field.value);
+                                }
+                              } catch (error) {
+                                console.warn('Error in validity date onChange:', error);
+                              }
                             }}
                           />
                         </FormControl>

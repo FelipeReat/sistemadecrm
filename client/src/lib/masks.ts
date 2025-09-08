@@ -4,8 +4,10 @@ export const masks = {
   phone: "(99) 99999-9999",
   cep: "99999-999",
 
-  // Máscara para data simples (dd/mm/aaaa)
+  // Máscaras de formatação
   date: {
+    mask: "99/99/9999",
+    placeholder: "dd/mm/aaaa",
     onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
       let value = e.target.value.replace(/\D/g, '');
 
@@ -17,9 +19,30 @@ export const masks = {
       }
 
       e.target.value = value;
-    },
-    placeholder: "dd/mm/aaaa",
-    mask: "99/99/9999"
+
+      // Foco automático quando completo - com verificação de segurança
+      if (value.length === 10) {
+        try {
+          const form = e.target.closest('form');
+          if (form) {
+            const inputs = form.querySelectorAll('input:not([disabled]), select:not([disabled]), textarea:not([disabled])');
+            const currentIndex = Array.from(inputs).indexOf(e.target);
+            const nextInput = inputs[currentIndex + 1] as HTMLInputElement;
+            if (nextInput && typeof nextInput.focus === 'function') {
+              setTimeout(() => {
+                try {
+                  nextInput.focus();
+                } catch (error) {
+                  console.warn('Could not focus next input:', error);
+                }
+              }, 10);
+            }
+          }
+        } catch (error) {
+          console.warn('Error in date mask focus handling:', error);
+        }
+      }
+    }
   },
 
   // Máscara para data e hora (dd/mm/aaaa hh:mm)
