@@ -158,7 +158,7 @@ export default function OpportunityCard({ opportunity, onViewDetails }: Opportun
           </div>
         )}
 
-        {opportunity.phase === "prospeccao" && opportunity.salesperson && (
+        {opportunity.salesperson && (
           <div className="flex items-center">
             <User className="h-3 w-3 text-muted-foreground mr-2" />
             <span>Vendedor: {opportunity.salesperson}</span>
@@ -214,12 +214,7 @@ export default function OpportunityCard({ opportunity, onViewDetails }: Opportun
           </div>
         )}
 
-        {(opportunity.phase === "ganho" || opportunity.phase === "perdido") && opportunity.salesperson && (
-          <div className="flex items-center">
-            <User className="h-3 w-3 text-muted-foreground mr-2" />
-            <span>Vendedor: {opportunity.salesperson}</span>
-          </div>
-        )}
+        
 
         {opportunity.phase === "ganho" && (
           <div className="flex items-center">
