@@ -1,14 +1,16 @@
 import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Settings, ChartLine, Trophy, Clock, DollarSign, Plus } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Settings, ChartLine, Trophy, Clock, DollarSign, Plus, Filter, X } from "lucide-react";
 import SalesPipelineColumn from "@/components/sales-pipeline-column";
 import NewOpportunityModal from "@/components/new-opportunity-modal";
 import NewProposalOpportunityModal from "@/components/new-proposal-opportunity-modal";
 import OpportunityDetailsModal from "@/components/opportunity-details-modal";
 import SettingsModal from "@/components/settings-modal";
 import { PHASES } from "@shared/schema";
-import type { Opportunity } from "@shared/schema";
+import type { Opportunity, User } from "@shared/schema";
 
 export default function CrmDashboard() {
   const queryClient = useQueryClient();
@@ -17,6 +19,7 @@ export default function CrmDashboard() {
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [selectedOpportunity, setSelectedOpportunity] = useState<Opportunity | null>(null);
   const [isNewProposalOpportunityModalOpen, setIsNewProposalOpportunityModalOpen] = useState(false);
+  const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
 
   // Fetch all opportunities
   const { data: opportunities = [], isLoading: isLoadingOpportunities } = useQuery<Opportunity[]>({
@@ -28,8 +31,23 @@ export default function CrmDashboard() {
     queryKey: ["/api/stats"],
   });
 
-  // Group opportunities by phase
-  const opportunitiesByPhase = opportunities.reduce((acc, opportunity) => {
+  // Fetch users for filter
+  const { data: users = [] } = useQuery<User[]>({
+    queryKey: ["/api/users/salespeople"],
+  });
+
+  // Filter opportunities based on selected users
+  const filteredOpportunities = selectedUsers.length === 0 
+    ? opportunities 
+    : opportunities.filter(opportunity => {
+        // Check if opportunity is linked to any of the selected users
+        // Either by createdBy or by salesperson field
+        return selectedUsers.includes(opportunity.createdBy) || 
+               (opportunity.salesperson && selectedUsers.includes(opportunity.salesperson));
+      });
+
+  // Group filtered opportunities by phase
+  const opportunitiesByPhase = filteredOpportunities.reduce((acc, opportunity) => {
     if (!acc[opportunity.phase]) {
       acc[opportunity.phase] = [];
     }
@@ -105,6 +123,20 @@ export default function CrmDashboard() {
     if (phase === 'proposta') {
       setIsNewProposalOpportunityModalOpen(true);
     }
+  };
+
+  const handleUserSelect = (userName: string) => {
+    if (!selectedUsers.includes(userName)) {
+      setSelectedUsers([...selectedUsers, userName]);
+    }
+  };
+
+  const handleUserRemove = (userName: string) => {
+    setSelectedUsers(selectedUsers.filter(user => user !== userName));
+  };
+
+  const clearAllFilters = () => {
+    setSelectedUsers([]);
   };
 
   // Invalidate reports when opportunities change to keep them in sync
