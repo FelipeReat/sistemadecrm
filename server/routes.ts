@@ -248,9 +248,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/opportunities/:id", isAuthenticated, canEditAllOpportunities, async (req, res) => {
+  app.delete("/api/opportunities/:id", isAuthenticated, async (req, res) => {
     try {
       const { id } = req.params;
+      
+      // Busca a oportunidade existente para verificar permissões
+      const existingOpportunity = await storage.getOpportunity(id);
+      if (!existingOpportunity) {
+        return res.status(404).json({ message: "Oportunidade não encontrada" });
+      }
+
+      // Usuários comuns só podem excluir suas próprias oportunidades
+      if (req.session.user!.role === 'usuario') {
+        // Se a oportunidade foi criada por este usuário ou ele é o vendedor responsável, pode excluir
+        const canDelete = existingOpportunity.createdBy === req.session.user!.name || 
+                         existingOpportunity.salesperson === req.session.user!.name;
+        
+        if (!canDelete) {
+          return res.status(403).json({ message: "Você só pode excluir suas próprias oportunidades" });
+        }
+      }
+      // Gerentes e Admins podem excluir qualquer oportunidade (sem verificação adicional)
+
       const deleted = await storage.deleteOpportunity(id);
 
       if (!deleted) {

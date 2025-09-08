@@ -3,43 +3,55 @@ import { Badge } from "@/components/ui/badge";
 import OpportunityCard from "./opportunity-card";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useReportsSync } from "@/hooks/useReportsSync";
 import type { Opportunity } from "@shared/schema";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useState } from "react";
 
 // Função para validar se uma oportunidade pode ser movida
 const canMoveOpportunity = (opportunity: Opportunity, targetPhase: string): { canMove: boolean; message?: string } => {
   const currentPhase = opportunity.phase;
-  
+
   // Definir a sequência correta das fases
   const phaseSequence = [
     'prospeccao',
-    'em-atendimento', 
+    'em-atendimento',
     'visita-tecnica',
     'proposta',
     'negociacao',
     'ganho'
   ];
-  
+
   // Perdido pode ser acessado de qualquer fase
   if (targetPhase === 'perdido') {
     return { canMove: true };
   }
-  
+
   const currentIndex = phaseSequence.indexOf(currentPhase);
   const targetIndex = phaseSequence.indexOf(targetPhase);
-  
+
   // Permitir mover de "visita-tecnica" de volta para "em-atendimento"
   if (currentPhase === 'visita-tecnica' && targetPhase === 'em-atendimento') {
     return { canMove: true };
   }
-  
+
   // Não pode mover para trás (exceto para perdido e o caso especial acima)
   if (targetIndex < currentIndex) {
-    return { 
-      canMove: false, 
-      message: "Não é possível retroceder fases. Apenas é possível avançar sequencialmente." 
+    return {
+      canMove: false,
+      message: "Não é possível retroceder fases. Apenas é possível avançar sequencialmente."
     };
   }
-  
+
   // Permitir pular a fase "visita-tecnica" quando estiver em "em-atendimento"
   if (currentPhase === 'em-atendimento' && targetPhase === 'proposta') {
     // Validar se os campos obrigatórios da fase atual estão preenchidos
@@ -52,15 +64,15 @@ const canMoveOpportunity = (opportunity: Opportunity, targetPhase: string): { ca
     }
     return { canMove: true };
   }
-  
+
   // Só pode avançar uma fase por vez (exceto para o caso especial acima)
   if (targetIndex > currentIndex + 1) {
-    return { 
-      canMove: false, 
-      message: "Você deve avançar uma fase por vez. Complete a fase atual antes de prosseguir." 
+    return {
+      canMove: false,
+      message: "Você deve avançar uma fase por vez. Complete a fase atual antes de prosseguir."
     };
   }
-  
+
   // Validar se os campos obrigatórios da fase atual estão preenchidos
   const isCurrentPhaseComplete = validatePhaseCompletion(opportunity);
   if (!isCurrentPhaseComplete.isComplete) {
@@ -69,43 +81,43 @@ const canMoveOpportunity = (opportunity: Opportunity, targetPhase: string): { ca
       message: `Complete os campos obrigatórios da fase atual: ${isCurrentPhaseComplete.missingFields?.join(', ')}`
     };
   }
-  
+
   return { canMove: true };
 };
 
 // Função para validar se uma fase está completa
 const validatePhaseCompletion = (opportunity: Opportunity): { isComplete: boolean; missingFields?: string[] } => {
   const missingFields: string[] = [];
-  
+
   switch (opportunity.phase) {
     case 'prospeccao':
       if (!opportunity.opportunityNumber) missingFields.push('Número da oportunidade');
       if (!opportunity.salesperson) missingFields.push('Vendedor');
       break;
-      
+
     case 'em-atendimento':
       if (!opportunity.salesperson) missingFields.push('Vendedor');
       // Temperatura do negócio só é obrigatória se já foi preenchida anteriormente
       // ou se estamos editando especificamente esta fase
       break;
-      
+
     case 'visita-tecnica':
       if (!opportunity.visitSchedule) missingFields.push('Data de agendamento da visita');
       if (!opportunity.visitDate) missingFields.push('Data de realização da visita');
       break;
-      
+
     case 'proposta':
       if (!opportunity.budgetNumber) missingFields.push('Número da proposta');
       if (!opportunity.budget) missingFields.push('Valor da proposta');
       if (!opportunity.validityDate) missingFields.push('Data de validade');
       break;
-      
+
     case 'negociacao':
       if (!opportunity.finalValue) missingFields.push('Valor final');
       if (!opportunity.negotiationInfo) missingFields.push('Informações da negociação');
       break;
   }
-  
+
   return {
     isComplete: missingFields.length === 0,
     missingFields: missingFields.length > 0 ? missingFields : undefined
@@ -135,13 +147,14 @@ interface SalesPipelineColumnProps {
 export default function SalesPipelineColumn({ phase, opportunities, isLoading, onViewDetails, onCreateOpportunityInPhase }: SalesPipelineColumnProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { invalidateAllData } = useReportsSync();
+  const [opportunityToDelete, setOpportunityToDelete] = useState<Opportunity | null>(null);
 
   const moveOpportunityMutation = useMutation({
     mutationFn: ({ opportunityId, newPhase }: { opportunityId: string; newPhase: string }) =>
       apiRequest("PATCH", `/api/opportunities/${opportunityId}/move/${newPhase}`),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/opportunities"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
+      invalidateAllData(); // Sincroniza dashboard e relatórios
       toast({
         title: "Sucesso",
         description: "Oportunidade movida com sucesso!",
@@ -156,6 +169,28 @@ export default function SalesPipelineColumn({ phase, opportunities, isLoading, o
     },
   });
 
+  const deleteOpportunityMutation = useMutation({
+    mutationFn: (opportunityId: string) =>
+      apiRequest("DELETE", `/api/opportunities/${opportunityId}`),
+    onSuccess: () => {
+      invalidateAllData(); // Sincroniza dashboard e relatórios
+      toast({
+        title: "Sucesso",
+        description: "Oportunidade excluída com sucesso!",
+      });
+      setOpportunityToDelete(null);
+    },
+    onError: (error: any) => {
+      const errorMessage = error?.response?.data?.message || "Erro ao excluir oportunidade.";
+      toast({
+        title: "Erro",
+        description: errorMessage,
+        variant: "destructive",
+      });
+      setOpportunityToDelete(null);
+    },
+  });
+
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
   };
@@ -163,14 +198,14 @@ export default function SalesPipelineColumn({ phase, opportunities, isLoading, o
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     const opportunityData = e.dataTransfer.getData("text/plain");
-    
+
     if (opportunityData) {
       try {
         const { opportunityId, opportunity } = JSON.parse(opportunityData);
-        
+
         // Validar se a oportunidade pode ser movida
         const validation = canMoveOpportunity(opportunity, phase.key);
-        
+
         if (!validation.canMove) {
           toast({
             title: "Movimento não permitido",
@@ -179,16 +214,16 @@ export default function SalesPipelineColumn({ phase, opportunities, isLoading, o
           });
           return;
         }
-        
+
         moveOpportunityMutation.mutate({ opportunityId, newPhase: phase.key });
       } catch (error) {
         // Fallback para formato antigo (apenas ID)
         const opportunityId = opportunityData;
         const opportunity = opportunities.find(opp => opp.id === opportunityId);
-        
+
         if (opportunity) {
           const validation = canMoveOpportunity(opportunity, phase.key);
-          
+
           if (!validation.canMove) {
             toast({
               title: "Movimento não permitido",
@@ -198,7 +233,7 @@ export default function SalesPipelineColumn({ phase, opportunities, isLoading, o
             return;
           }
         }
-        
+
         moveOpportunityMutation.mutate({ opportunityId, newPhase: phase.key });
       }
     }
@@ -220,7 +255,7 @@ export default function SalesPipelineColumn({ phase, opportunities, isLoading, o
   };
 
   return (
-    <div 
+    <div
       className="flex-shrink-0 w-80"
       onDragOver={handleDragOver}
       onDrop={handleDrop}
@@ -248,6 +283,17 @@ export default function SalesPipelineColumn({ phase, opportunities, isLoading, o
                   <span className="text-sm font-bold">+</span>
                 </button>
               )}
+              {/* Botão de Excluir Card */}
+              {opportunities.length > 0 && (
+                <button
+                  onClick={() => setOpportunityToDelete(opportunities[0])} // Seleciona o primeiro card para exclusão como exemplo
+                  className="w-6 h-6 bg-red-500 hover:bg-red-600 rounded-full flex items-center justify-center text-white transition-all duration-200"
+                  title="Excluir Oportunidade"
+                  data-testid="delete-opportunity-button"
+                >
+                  <span className="text-sm font-bold">-</span>
+                </button>
+              )}
             </div>
           </div>
           {phase.description && (
@@ -273,9 +319,9 @@ export default function SalesPipelineColumn({ phase, opportunities, isLoading, o
             </div>
           ) : (
             opportunities.map((opportunity) => (
-              <OpportunityCard 
-                key={opportunity.id} 
-                opportunity={opportunity} 
+              <OpportunityCard
+                key={opportunity.id}
+                opportunity={opportunity}
                 onViewDetails={onViewDetails}
               />
             ))
@@ -288,13 +334,31 @@ export default function SalesPipelineColumn({ phase, opportunities, isLoading, o
             <p className="text-sm text-white dark:text-white text-center opacity-90">{phase.successMessage}</p>
           </div>
         )}
-        
+
         {phase.lossMessage && (
           <div className={`p-4 border-t ${phase.borderColor}`}>
             <p className="text-sm text-white dark:text-white text-center opacity-90">{phase.lossMessage}</p>
           </div>
         )}
       </div>
+
+      {/* Dialog de Confirmação de Exclusão */}
+      <AlertDialog open={!!opportunityToDelete} onOpenChange={(isOpen) => !isOpen && setOpportunityToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir Oportunidade</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir a oportunidade "{opportunityToDelete?.name}"? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setOpportunityToDelete(null)}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => deleteOpportunityMutation.mutate(opportunityToDelete!.id)} className="bg-red-600 hover:bg-red-700">
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
