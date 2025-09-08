@@ -27,7 +27,12 @@ const canMoveOpportunity = (opportunity: Opportunity, targetPhase: string): { ca
   const currentIndex = phaseSequence.indexOf(currentPhase);
   const targetIndex = phaseSequence.indexOf(targetPhase);
   
-  // Não pode mover para trás (exceto para perdido)
+  // Permitir mover de "visita-tecnica" de volta para "em-atendimento"
+  if (currentPhase === 'visita-tecnica' && targetPhase === 'em-atendimento') {
+    return { canMove: true };
+  }
+  
+  // Não pode mover para trás (exceto para perdido e o caso especial acima)
   if (targetIndex < currentIndex) {
     return { 
       canMove: false, 
