@@ -649,11 +649,10 @@ export default function OpportunityDetailsModal({
                             type="text"
                             placeholder={masks.date.placeholder}
                             mask={masks.date.mask}
-                            value={field.value ? formatters.dateFromISO(field.value) : ''}
+                            {...field}
                             onChange={(e) => {
                               masks.date.onChange(e);
-                              const isoDate = formatters.dateToISO(e.target.value);
-                              field.onChange(isoDate);
+                              field.onChange(e.target.value);
                             }}
                           />
                         </FormControl>
