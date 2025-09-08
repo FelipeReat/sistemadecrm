@@ -66,6 +66,7 @@ const propostaSchema = z.object({
   validityDate: z.string().min(1, "Data de validade é obrigatória"),
   budgetNumber: z.string().min(1, "Número do orçamento é obrigatório"),
   budget: z.string().min(1, "Valor do orçamento é obrigatório"),
+  salesperson: z.string().optional(),
 });
 
 // Schema para o formulário de negociação
