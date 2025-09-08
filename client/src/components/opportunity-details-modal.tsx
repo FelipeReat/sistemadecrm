@@ -665,6 +665,40 @@ export default function OpportunityDetailsModal({
 
                 <FormField
                   control={propostaForm.control}
+                  name="salesperson"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center">
+                        <User className="h-4 w-4 mr-2" />
+                        Vendedor responsável
+                      </FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione o vendedor" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {isLoadingSalespeople ? (
+                            <SelectItem value="loading" disabled>Carregando vendedores...</SelectItem>
+                          ) : salespeople && salespeople.length > 0 ? (
+                            salespeople.map((user: any) => (
+                              <SelectItem key={user.id} value={user.name}>
+                                {user.name} ({user.role === 'admin' ? 'Admin' : user.role === 'gerente' ? 'Gerente' : 'Vendedor'})
+                              </SelectItem>
+                            ))
+                          ) : (
+                            <SelectItem value="no-salespeople" disabled>Nenhum vendedor encontrado</SelectItem>
+                          )}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={propostaForm.control}
                   name="discountDescription"
                   render={({ field }) => (
                     <FormItem>
