@@ -283,17 +283,6 @@ export default function SalesPipelineColumn({ phase, opportunities, isLoading, o
                   <span className="text-sm font-bold">+</span>
                 </button>
               )}
-              {/* Botão de Excluir Card */}
-              {opportunities.length > 0 && (
-                <button
-                  onClick={() => setOpportunityToDelete(opportunities[0])} // Seleciona o primeiro card para exclusão como exemplo
-                  className="w-6 h-6 bg-red-500 hover:bg-red-600 rounded-full flex items-center justify-center text-white transition-all duration-200"
-                  title="Excluir Oportunidade"
-                  data-testid="delete-opportunity-button"
-                >
-                  <span className="text-sm font-bold">-</span>
-                </button>
-              )}
             </div>
           </div>
           {phase.description && (
