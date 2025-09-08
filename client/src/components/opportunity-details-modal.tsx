@@ -32,6 +32,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useReportsSync } from "@/hooks/useReportsSync";
 import type { Opportunity } from "@shared/schema";
 import { masks } from "@/lib/masks";
+import { formatters } from "@/lib/formatters";
 
 interface OpportunityDetailsModalProps {
   opportunity: Opportunity | null;
@@ -649,9 +650,11 @@ export default function OpportunityDetailsModal({
                             placeholder={masks.date.placeholder}
                             mask={masks.date.mask}
                             {...field}
+                            value={field.value ? formatters.dateFromISO(field.value) : ''}
                             onChange={(e) => {
                               masks.date.onChange(e);
-                              field.onChange(e.target.value);
+                              const isoDate = formatters.dateToISO(e.target.value);
+                              field.onChange(isoDate);
                             }}
                           />
                         </FormControl>
