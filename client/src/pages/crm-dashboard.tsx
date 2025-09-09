@@ -37,12 +37,12 @@ export default function CrmDashboard() {
   });
 
   // Filter opportunities based on selected users
-  const filteredOpportunities = selectedUsers.length === 0 
-    ? opportunities 
+  const filteredOpportunities = selectedUsers.length === 0
+    ? opportunities
     : opportunities.filter(opportunity => {
         // Check if opportunity is linked to any of the selected users
         // Either by createdBy or by salesperson field
-        return selectedUsers.includes(opportunity.createdBy) || 
+        return selectedUsers.includes(opportunity.createdBy) ||
                (opportunity.salesperson && selectedUsers.includes(opportunity.salesperson));
       });
 
@@ -148,6 +148,9 @@ export default function CrmDashboard() {
     }
   }, [opportunities, queryClient]);
 
+  // Initialize NumberFormat for currency formatting
+  const newIntl = Intl;
+
   return (
     <div className="bg-background min-h-screen font-inter">
       {/* Header */}
@@ -188,15 +191,15 @@ export default function CrmDashboard() {
               <Filter className="h-4 w-4 text-muted-foreground" />
               <span className="text-sm font-medium text-foreground">Filtrar por usuário:</span>
             </div>
-            
+
             <Select onValueChange={handleUserSelect} data-testid="select-user-filter">
               <SelectTrigger className="w-[200px]">
                 <SelectValue placeholder="Selecionar usuário" />
               </SelectTrigger>
               <SelectContent>
                 {users.map((user) => (
-                  <SelectItem 
-                    key={user.id} 
+                  <SelectItem
+                    key={user.id}
                     value={user.name}
                     disabled={selectedUsers.includes(user.name)}
                     data-testid={`user-option-${user.id}`}
@@ -211,9 +214,9 @@ export default function CrmDashboard() {
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-sm text-muted-foreground">Filtros ativos:</span>
                 {selectedUsers.map((userName) => (
-                  <Badge 
-                    key={userName} 
-                    variant="secondary" 
+                  <Badge
+                    key={userName}
+                    variant="secondary"
                     className="flex items-center gap-1"
                     data-testid={`filter-badge-${userName}`}
                   >
@@ -227,9 +230,9 @@ export default function CrmDashboard() {
                     </button>
                   </Badge>
                 ))}
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={clearAllFilters}
                   className="text-xs"
                   data-testid="clear-all-filters"
@@ -300,17 +303,41 @@ export default function CrmDashboard() {
             </div>
           </div>
 
+          {/* Receita Projetada */}
           <div className="bg-card rounded-lg shadow-sm p-4 border border-border">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <div className="w-8 h-8 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center">
-                  <DollarSign className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+                <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/20 rounded-full flex items-center justify-center">
+                  <DollarSign className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                 </div>
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-muted-foreground">Receita Projetada</p>
                 <p className="text-2xl font-bold text-foreground" data-testid="stat-projected-revenue">
-                  {(stats as any)?.projectedRevenue || "R$ 0,00"}
+                  {newIntl.NumberFormat("pt-BR", {
+                    style: "currency",
+                    currency: "BRL",
+                  }).format(projectedRevenue)}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Valor Total (Oportunidades Ganhas) */}
+          <div className="bg-card rounded-lg shadow-sm p-4 border border-border">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <div className="w-8 h-8 bg-emerald-100 dark:bg-emerald-900/20 rounded-full flex items-center justify-center">
+                  <DollarSign className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                </div>
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-muted-foreground">Valor Total</p>
+                <p className="text-2xl font-bold text-foreground" data-testid="stat-total-won-value">
+                  {newIntl.NumberFormat("pt-BR", {
+                    style: "currency",
+                    currency: "BRL",
+                  }).format((stats as any)?.totalWonValue || 0)}
                 </p>
               </div>
             </div>

@@ -215,7 +215,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const canEdit = existingOpportunity.createdBy === req.session.user!.name || 
                        existingOpportunity.salesperson === req.session.user!.name ||
                        !existingOpportunity.salesperson;
-        
+
         if (!canEdit) {
           return res.status(403).json({ message: "Você só pode editar suas próprias oportunidades" });
         }
@@ -251,7 +251,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/opportunities/:id", isAuthenticated, async (req, res) => {
     try {
       const { id } = req.params;
-      
+
       // Busca a oportunidade existente para verificar permissões
       const existingOpportunity = await storage.getOpportunity(id);
       if (!existingOpportunity) {
@@ -263,7 +263,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Se a oportunidade foi criada por este usuário ou ele é o vendedor responsável, pode excluir
         const canDelete = existingOpportunity.createdBy === req.session.user!.name || 
                          existingOpportunity.salesperson === req.session.user!.name;
-        
+
         if (!canDelete) {
           return res.status(403).json({ message: "Você só pode excluir suas próprias oportunidades" });
         }
@@ -346,11 +346,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .filter(o => o.budget && ['proposta', 'negociacao', 'ganho'].includes(o.phase))
         .reduce((sum, o) => sum + parseFloat(o.budget!.toString()), 0);
 
+      // Calculate total value from won opportunities (only from "ganho" phase)
+      const totalWonValue = opportunities
+        .filter(opp => opp.phase === 'ganho')
+        .reduce((sum, opp) => {
+          // Use finalValue if available, otherwise use budget
+          const value = opp.finalValue || opp.budget || 0;
+          return sum + (typeof value === 'string' ? parseFloat(value) : value);
+        }, 0);
+
       res.json({
         totalOpportunities,
         wonOpportunities,
         activeOpportunities,
-        projectedRevenue: `R$ ${projectedRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+        projectedRevenue: `R$ ${projectedRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
+        totalWonValue: `R$ ${totalWonValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
       });
     } catch (error) {
       res.status(500).json({ message: "Erro ao buscar estatísticas" });
@@ -502,7 +512,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return acc;
       }, {} as Record<string, number>);
 
-      const total = opportunities.length;
       const businessTemperatures = Object.entries(temperatureCounts).map(([temperature, count]) => ({
         temperature: temperature.charAt(0).toUpperCase() + temperature.slice(1),
         count,
@@ -795,7 +804,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const validatedData = updateSavedReportSchema.parse(req.body);
       const updatedReport = await storage.updateSavedReport(req.params.id, validatedData);
-      
+
       if (!updatedReport) {
         return res.status(404).json({ message: "Relatório não encontrado" });
       }
@@ -849,7 +858,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Update last generated timestamp
       const updatedReport = await storage.updateReportLastGenerated(req.params.id);
-      
+
       res.json({ 
         message: "Relatório executado com sucesso",
         lastGenerated: updatedReport?.lastGenerated
