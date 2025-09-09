@@ -1,11 +1,18 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertOpportunitySchema, insertAutomationSchema, insertUserSchema, updateUserSchema, loginSchema, insertSavedReportSchema, updateSavedReportSchema } from "@shared/schema";
+import { dbOperations } from "./db-storage";
+import { emailService } from "./email-service";
+import { auditService } from "./audit-service";
+import { backupService } from "./backup-service";
+import { schedulerService } from "./scheduler";
+import { insertOpportunitySchema, insertAutomationSchema, insertUserSchema, updateUserSchema, loginSchema, insertSavedReportSchema, updateSavedReportSchema, insertUserSettingsSchema, insertEmailTemplateSchema } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import { getSession, isAuthenticated, isAdmin, isManagerOrAdmin, canEditAllOpportunities, canViewReports } from "./auth";
 import * as crypto from "crypto";
 import * as z from "zod";
+import * as XLSX from 'xlsx';
+import path from 'path';
 
 // Mock DB and schema for demonstration purposes. Replace with your actual database logic.
 // Assuming 'db' and 'opportunities' are available and configured for your ORM (e.g., Drizzle ORM)

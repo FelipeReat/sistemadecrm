@@ -1,4 +1,4 @@
-import { type Opportunity, type InsertOpportunity, type Automation, type InsertAutomation, type User, type InsertUser, type UpdateUser, type SavedReport, type InsertSavedReport, type UpdateSavedReport } from "@shared/schema";
+import { type Opportunity, type InsertOpportunity, type Automation, type InsertAutomation, type User, type InsertUser, type UpdateUser, type SavedReport, type InsertSavedReport, type UpdateSavedReport, type UserSettings, type InsertUserSettings, type EmailTemplate, type InsertEmailTemplate, type AuditLog, type SalesReport, type SystemBackup } from "@shared/schema";
 import { randomUUID } from "crypto";
 import bcrypt from "bcryptjs";
 
@@ -36,6 +36,33 @@ export interface IStorage {
   updateSavedReport(id: string, updates: UpdateSavedReport): Promise<SavedReport | undefined>;
   deleteSavedReport(id: string): Promise<boolean>;
   updateReportLastGenerated(id: string): Promise<SavedReport | undefined>;
+
+  // User Settings CRUD
+  getUserSettings(userId: string): Promise<UserSettings | undefined>;
+  createUserSettings(settings: InsertUserSettings): Promise<UserSettings>;
+  updateUserSettings(userId: string, settings: Partial<InsertUserSettings>): Promise<UserSettings | undefined>;
+
+  // Email Templates CRUD
+  getEmailTemplates(): Promise<EmailTemplate[]>;
+  getEmailTemplate(id: string): Promise<EmailTemplate | undefined>;
+  getEmailTemplateByTrigger(trigger: string): Promise<EmailTemplate | undefined>;
+  createEmailTemplate(template: InsertEmailTemplate): Promise<EmailTemplate>;
+  updateEmailTemplate(id: string, updates: Partial<InsertEmailTemplate>): Promise<EmailTemplate | undefined>;
+  deleteEmailTemplate(id: string): Promise<boolean>;
+
+  // Audit Logs
+  getAuditLogs(limit?: number): Promise<AuditLog[]>;
+  getEntityAuditLogs(entity: string, entityId: string, limit?: number): Promise<AuditLog[]>;
+  getUserAuditLogs(userId: string, limit?: number): Promise<AuditLog[]>;
+
+  // Sales Reports
+  getSalesReports(period?: string, year?: number, month?: number): Promise<SalesReport[]>;
+  getSalespersonReports(salespersonId: string, months?: number): Promise<SalesReport[]>;
+  getTopPerformers(period?: string, limit?: number): Promise<SalesReport[]>;
+
+  // System Backups
+  getSystemBackups(limit?: number): Promise<SystemBackup[]>;
+  getSystemBackup(id: string): Promise<SystemBackup | undefined>;
 }
 
 export class MemStorage implements IStorage {

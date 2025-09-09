@@ -123,6 +123,80 @@ export const sessions = pgTable(
   (table) => [index("IDX_session_expire").on(table.expire)],
 );
 
+// Email notifications and templates
+export const emailTemplates = pgTable("email_templates", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  subject: text("subject").notNull(),
+  body: text("body").notNull(),
+  trigger: text("trigger").notNull(), // 'opportunity_created', 'phase_changed', etc.
+  active: boolean("active").default(true),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+  updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+export const emailLogs = pgTable("email_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  to: text("to").notNull(),
+  subject: text("subject").notNull(),
+  template: text("template"),
+  status: text("status").notNull(), // 'sent', 'failed', 'pending'
+  error: text("error"),
+  opportunityId: varchar("opportunity_id").references(() => opportunities.id),
+  sentAt: timestamp("sent_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+// User settings and preferences
+export const userSettings = pgTable("user_settings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: text("user_id").notNull(),
+  emailNotifications: boolean("email_notifications").default(true),
+  smsNotifications: boolean("sms_notifications").default(false),
+  pushNotifications: boolean("push_notifications").default(false),
+  autoBackup: boolean("auto_backup").default(true),
+  language: text("language").default("pt-BR"),
+  timezone: text("timezone").default("America/Sao_Paulo"),
+  updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+// Audit logs
+export const auditLogs = pgTable("audit_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: text("user_id").notNull(),
+  action: text("action").notNull(), // 'created', 'updated', 'deleted'
+  entity: text("entity").notNull(), // 'opportunity', 'user', etc.
+  entityId: text("entity_id").notNull(),
+  changes: jsonb("changes"), // Old and new values
+  timestamp: timestamp("timestamp").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+// Sales performance reports
+export const salesReports = pgTable("sales_reports", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  salespersonId: text("salesperson_id").notNull(),
+  period: text("period").notNull(), // 'monthly', 'quarterly', 'yearly'
+  year: integer("year").notNull(),
+  month: integer("month"), // null for yearly reports
+  totalOpportunities: integer("total_opportunities").default(0),
+  wonOpportunities: integer("won_opportunities").default(0),
+  lostOpportunities: integer("lost_opportunities").default(0),
+  totalValue: decimal("total_value", { precision: 12, scale: 2 }).default("0"),
+  wonValue: decimal("won_value", { precision: 12, scale: 2 }).default("0"),
+  conversionRate: decimal("conversion_rate", { precision: 5, scale: 2 }).default("0"),
+  avgDealSize: decimal("avg_deal_size", { precision: 12, scale: 2 }).default("0"),
+  generatedAt: timestamp("generated_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+// System backups
+export const systemBackups = pgTable("system_backups", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  filename: text("filename").notNull(),
+  size: integer("size").notNull(),
+  type: text("type").notNull(), // 'manual', 'automatic'
+  status: text("status").notNull(), // 'completed', 'failed', 'in_progress'
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
 // User storage table.
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -213,3 +287,41 @@ export const REPORT_CATEGORIES = {
 } as const;
 
 export type ReportCategory = typeof REPORT_CATEGORIES[keyof typeof REPORT_CATEGORIES];
+
+// Schemas for new tables
+export const insertEmailTemplateSchema = createInsertSchema(emailTemplates).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertUserSettingsSchema = createInsertSchema(userSettings).omit({
+  id: true,
+  updatedAt: true,
+});
+
+export const insertAuditLogSchema = createInsertSchema(auditLogs).omit({
+  id: true,
+  timestamp: true,
+});
+
+export const insertSalesReportSchema = createInsertSchema(salesReports).omit({
+  id: true,
+  generatedAt: true,
+});
+
+export const insertSystemBackupSchema = createInsertSchema(systemBackups).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertEmailTemplate = z.infer<typeof insertEmailTemplateSchema>;
+export type EmailTemplate = typeof emailTemplates.$inferSelect;
+export type InsertUserSettings = z.infer<typeof insertUserSettingsSchema>;
+export type UserSettings = typeof userSettings.$inferSelect;
+export type InsertAuditLog = z.infer<typeof insertAuditLogSchema>;
+export type AuditLog = typeof auditLogs.$inferSelect;
+export type InsertSalesReport = z.infer<typeof insertSalesReportSchema>;
+export type SalesReport = typeof salesReports.$inferSelect;
+export type EmailLog = typeof emailLogs.$inferSelect;
+export type SystemBackup = typeof systemBackups.$inferSelect;
