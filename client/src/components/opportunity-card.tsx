@@ -183,14 +183,14 @@ export default function OpportunityCard({ opportunity, onViewDetails, onDelete }
         {opportunity.phase === "prospeccao" && opportunity.nextActivityDate && (
           <div className="flex items-center">
             <Calendar className="h-3 w-3 text-muted-foreground mr-2" />
-            <span>Próxima atividade: {new Date(opportunity.nextActivityDate).toLocaleDateString("pt-BR")}</span>
+            <span>Próxima atividade: {new Date(opportunity.nextActivityDate).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" })}</span>
           </div>
         )}
 
         {opportunity.phase === "visita-tecnica" && opportunity.visitSchedule && (
           <div className="flex items-center">
             <Calendar className="h-3 w-3 text-muted-foreground mr-2" />
-            <span>Agendado: {new Date(opportunity.visitSchedule).toLocaleDateString("pt-BR")} às {new Date(opportunity.visitSchedule).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span>
+            <span>Agendado: {new Date(opportunity.visitSchedule).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" })} às {new Date(opportunity.visitSchedule).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span>
           </div>
         )}
 
@@ -211,7 +211,7 @@ export default function OpportunityCard({ opportunity, onViewDetails, onDelete }
         {opportunity.phase === "proposta" && opportunity.validityDate && (
           <div className="flex items-center">
             <Calendar className="h-3 w-3 text-muted-foreground mr-2" />
-            <span>Válida até: {new Date(opportunity.validityDate).toLocaleDateString("pt-BR")}</span>
+            <span>Válida até: {new Date(opportunity.validityDate).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" })}</span>
           </div>
         )}
 
