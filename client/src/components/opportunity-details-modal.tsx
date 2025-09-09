@@ -469,11 +469,11 @@ export default function OpportunityDetailsModal({
                       <FormControl>
                         <Input
                           type="text"
-                          placeholder={masks.date.placeholder}
-                          mask={masks.date.mask}
+                          placeholder={masks.datetime.placeholder}
+                          mask={masks.datetime.mask}
                           {...field}
                           onChange={(e) => {
-                            masks.date.onChange(e);
+                            masks.datetime.onChange(e);
                             field.onChange(e.target.value);
                           }}
                         />
@@ -494,11 +494,11 @@ export default function OpportunityDetailsModal({
                       <FormControl>
                         <Input
                           type="text"
-                          placeholder={masks.date.placeholder}
-                          mask={masks.date.mask}
+                          placeholder={masks.datetime.placeholder}
+                          mask={masks.datetime.mask}
                           {...field}
                           onChange={(e) => {
-                            masks.date.onChange(e);
+                            masks.datetime.onChange(e);
                             field.onChange(e.target.value);
                           }}
                         />

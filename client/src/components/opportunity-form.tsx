@@ -252,13 +252,12 @@ export default function OpportunityForm({ phase }: OpportunityFormProps) {
         <Input
           id="visitSchedule"
           type="text"
-          placeholder={masks.date.placeholder}
-          mask={masks.date.mask}
+          placeholder={masks.datetime.placeholder}
+          mask={masks.datetime.mask}
           className="mt-1"
           onChange={(e) => {
-            masks.date.onChange(e);
-            const isoDate = formatters.dateToISO(e.target.value);
-            handleInputChange("visitSchedule", isoDate);
+            masks.datetime.onChange(e);
+            handleInputChange("visitSchedule", e.target.value);
           }}
           data-testid="form-visit-schedule"
         />
@@ -289,13 +288,12 @@ export default function OpportunityForm({ phase }: OpportunityFormProps) {
         <Input
           id="visitDate"
           type="text"
-          placeholder={masks.date.placeholder}
-          mask={masks.date.mask}
+          placeholder={masks.datetime.placeholder}
+          mask={masks.datetime.mask}
           className="mt-1"
           onChange={(e) => {
-            masks.date.onChange(e);
-            const isoDate = formatters.dateToISO(e.target.value);
-            handleInputChange("visitDate", isoDate);
+            masks.datetime.onChange(e);
+            handleInputChange("visitDate", e.target.value);
           }}
           data-testid="form-visit-date"
         />
