@@ -18,10 +18,48 @@ export const masks = {
         value = value.substring(0, 5) + '/' + value.substring(5, 9);
       }
 
-      e.target.value = value;
-
-      // Foco automático quando completo - com verificação de segurança
+      // Validação de data quando completa
       if (value.length === 10) {
+        const [day, month, year] = value.split('/');
+        const dayNum = parseInt(day, 10);
+        const monthNum = parseInt(month, 10);
+        const yearNum = parseInt(year, 10);
+
+        // Validações básicas
+        if (yearNum < 1900 || yearNum > 2100) {
+          e.target.setCustomValidity('Ano deve estar entre 1900 e 2100');
+          e.target.value = value;
+          return;
+        }
+
+        if (monthNum < 1 || monthNum > 12) {
+          e.target.setCustomValidity('Mês deve estar entre 1 e 12');
+          e.target.value = value;
+          return;
+        }
+
+        if (dayNum < 1 || dayNum > 31) {
+          e.target.setCustomValidity('Dia deve estar entre 1 e 31');
+          e.target.value = value;
+          return;
+        }
+
+        // Validação de data real
+        const testDate = new Date(yearNum, monthNum - 1, dayNum);
+        if (
+          testDate.getFullYear() !== yearNum ||
+          testDate.getMonth() !== monthNum - 1 ||
+          testDate.getDate() !== dayNum
+        ) {
+          e.target.setCustomValidity('Data inválida');
+          e.target.value = value;
+          return;
+        }
+
+        // Data válida - limpar erros
+        e.target.setCustomValidity('');
+        
+        // Foco automático quando completo - com verificação de segurança
         try {
           const form = e.target.closest('form');
           if (form) {
@@ -41,7 +79,12 @@ export const masks = {
         } catch (error) {
           console.warn('Error in date mask focus handling:', error);
         }
+      } else {
+        // Limpar validação customizada se a data não estiver completa
+        e.target.setCustomValidity('');
       }
+
+      e.target.value = value;
     }
   },
 
@@ -64,10 +107,67 @@ export const masks = {
         value = value.substring(0, 13) + ':' + value.substring(13, 15);
       }
 
-      e.target.value = value;
-
-      // Foco automático quando completo
+      // Validação de data e hora quando completa
       if (value.length === 16) {
+        const [datePart, timePart] = value.split(' ');
+        const [day, month, year] = datePart.split('/');
+        const [hour, minute] = timePart.split(':');
+
+        const dayNum = parseInt(day, 10);
+        const monthNum = parseInt(month, 10);
+        const yearNum = parseInt(year, 10);
+        const hourNum = parseInt(hour, 10);
+        const minuteNum = parseInt(minute, 10);
+
+        // Validações básicas
+        if (yearNum < 1900 || yearNum > 2100) {
+          e.target.setCustomValidity('Ano deve estar entre 1900 e 2100');
+          e.target.value = value;
+          return;
+        }
+
+        if (monthNum < 1 || monthNum > 12) {
+          e.target.setCustomValidity('Mês deve estar entre 1 e 12');
+          e.target.value = value;
+          return;
+        }
+
+        if (dayNum < 1 || dayNum > 31) {
+          e.target.setCustomValidity('Dia deve estar entre 1 e 31');
+          e.target.value = value;
+          return;
+        }
+
+        if (hourNum < 0 || hourNum > 23) {
+          e.target.setCustomValidity('Hora deve estar entre 00 e 23');
+          e.target.value = value;
+          return;
+        }
+
+        if (minuteNum < 0 || minuteNum > 59) {
+          e.target.setCustomValidity('Minutos devem estar entre 00 e 59');
+          e.target.value = value;
+          return;
+        }
+
+        // Validação de data real
+        const testDate = new Date(yearNum, monthNum - 1, dayNum, hourNum, minuteNum);
+        if (
+          testDate.getFullYear() !== yearNum ||
+          testDate.getMonth() !== monthNum - 1 ||
+          testDate.getDate() !== dayNum ||
+          testDate.getHours() !== hourNum ||
+          testDate.getMinutes() !== minuteNum
+        ) {
+          e.target.setCustomValidity('Data e hora inválidas');
+          e.target.value = value;
+          return;
+        }
+
+        // Data e hora válidas - limpar erros
+        e.target.setCustomValidity('');
+
+        // Foco automático quando completo
         try {
           const form = e.target.closest('form');
           if (form) {
@@ -87,7 +187,12 @@ export const masks = {
         } catch (error) {
           console.warn('Error in datetime mask focus handling:', error);
         }
+      } else {
+        // Limpar validação customizada se a data/hora não estiver completa
+        e.target.setCustomValidity('');
       }
+
+      e.target.value = value;
     },
     placeholder: "dd/mm/aaaa hh:mm",
     mask: "99/99/9999 99:99"
@@ -185,8 +290,29 @@ export const formatters = {
   dateToISO: (dateStr: string): string => {
     if (!dateStr || dateStr.length !== 10) return '';
     const [day, month, year] = dateStr.split('/');
+    
+    const dayNum = parseInt(day, 10);
+    const monthNum = parseInt(month, 10);
+    const yearNum = parseInt(year, 10);
+
+    // Validações
+    if (isNaN(dayNum) || isNaN(monthNum) || isNaN(yearNum)) return '';
+    if (yearNum < 1900 || yearNum > 2100) return '';
+    if (monthNum < 1 || monthNum > 12) return '';
+    if (dayNum < 1 || dayNum > 31) return '';
+
     // Use local timezone to avoid date shifting
-    const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    const date = new Date(yearNum, monthNum - 1, dayNum);
+    
+    // Verificar se a data é válida
+    if (
+      date.getFullYear() !== yearNum ||
+      date.getMonth() !== monthNum - 1 ||
+      date.getDate() !== dayNum
+    ) {
+      return '';
+    }
+    
     const isoDate = date.getFullYear() + '-' +
                    String(date.getMonth() + 1).padStart(2, '0') + '-' +
                    String(date.getDate()).padStart(2, '0');
