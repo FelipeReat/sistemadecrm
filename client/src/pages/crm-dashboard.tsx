@@ -148,6 +148,11 @@ export default function CrmDashboard() {
     }
   }, [opportunities, queryClient]);
 
+  // Calculate projected revenue from filtered opportunities
+  const projectedRevenue = filteredOpportunities
+    .filter(o => o.budget && ['proposta', 'negociacao', 'ganho'].includes(o.phase))
+    .reduce((sum, o) => sum + parseFloat(o.budget!.toString()), 0);
+
   // Initialize NumberFormat for currency formatting
   const newIntl = Intl;
 
