@@ -259,7 +259,7 @@ export default function CrmDashboard() {
       {/* Main Content */}
       <main className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Stats Overview */}
-        <div className="mb-8 grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="mb-8 grid grid-cols-2 md:grid-cols-5 gap-4">
           <div className="bg-card rounded-lg shadow-sm p-4 border border-border">
             <div className="flex items-center">
               <div className="flex-shrink-0">
