@@ -907,6 +907,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Enhanced API routes for new features
+  
+  // User Settings
+  app.get("/api/user/settings", isAuthenticated, async (req, res) => {
+    try {
+      const settings = await dbOperations.getUserSettings(req.session.userId!);
+      res.json(settings || {
+        emailNotifications: true,
+        smsNotifications: false,
+        pushNotifications: false,
+        autoBackup: true,
+        language: "pt-BR",
+        timezone: "America/Sao_Paulo"
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Erro ao buscar configurações" });
+    }
+  });
+
+  app.put("/api/user/settings", isAuthenticated, async (req, res) => {
+    try {
+      const settings = await dbOperations.updateUserSettings(req.session.userId!, req.body);
+      res.json(settings);
+    } catch (error) {
+      res.status(500).json({ message: "Erro ao atualizar configurações" });
+    }
+  });
+
+  // Manual backup
+  app.post("/api/backup/create", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const success = await backupService.createDatabaseBackup('manual');
+      if (success) {
+        res.json({ message: "Backup criado com sucesso" });
+      } else {
+        res.status(500).json({ message: "Falha ao criar backup" });
+      }
+    } catch (error) {
+      res.status(500).json({ message: "Erro ao criar backup" });
+    }
+  });
+
+  // Excel export
+  app.get("/api/export/excel", isAuthenticated, async (req, res) => {
+    try {
+      const filepath = await backupService.createDataExport('excel');
+      if (filepath) {
+        res.download(filepath, 'crm-export.xlsx');
+      } else {
+        res.status(500).json({ message: "Falha ao criar exportação" });
+      }
+    } catch (error) {
+      res.status(500).json({ message: "Erro ao criar exportação" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

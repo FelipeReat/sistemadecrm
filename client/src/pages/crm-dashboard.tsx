@@ -17,6 +17,20 @@ import OpportunityDetailsModal from "@/components/opportunity-details-modal";
 import SettingsModal from "@/components/settings-modal";
 import { PHASES } from "@shared/schema";
 import type { Opportunity, User } from "@shared/schema";
+import {
+  DndContext,
+  DragEndEvent,
+  DragOverlay,
+  DragStartEvent,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  horizontalListSortingStrategy,
+} from '@dnd-kit/sortable';
 
 export default function CrmDashboard() {
   const queryClient = useQueryClient();
