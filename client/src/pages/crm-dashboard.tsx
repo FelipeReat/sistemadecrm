@@ -1,9 +1,15 @@
 import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Settings, ChartLine, Trophy, Clock, DollarSign, Plus, Filter, X } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Card, CardContent } from "@/components/ui/card";
+import { format } from "date-fns";
+import { Settings, ChartLine, Trophy, Clock, DollarSign, Plus, Filter, X, Search, ArrowUpDown } from "lucide-react";
 import SalesPipelineColumn from "@/components/sales-pipeline-column";
 import NewOpportunityModal from "@/components/new-opportunity-modal";
 import NewProposalOpportunityModal from "@/components/new-proposal-opportunity-modal";
@@ -20,6 +26,16 @@ export default function CrmDashboard() {
   const [selectedOpportunity, setSelectedOpportunity] = useState<Opportunity | null>(null);
   const [isNewProposalOpportunityModalOpen, setIsNewProposalOpportunityModalOpen] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
+  
+  // Advanced filters
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedPhases, setSelectedPhases] = useState<string[]>([]);
+  const [selectedBusinessTemp, setSelectedBusinessTemp] = useState<string>('');
+  const [dateRange, setDateRange] = useState<{from?: Date; to?: Date}>({});
+  const [minValue, setMinValue] = useState<string>('');
+  const [maxValue, setMaxValue] = useState<string>('');
+  const [sortBy, setSortBy] = useState<string>('createdAt');
+  const [sortOrder, setSortOrder] = useState<string>('desc');
 
   // Fetch all opportunities
   const { data: opportunities = [], isLoading: isLoadingOpportunities } = useQuery<Opportunity[]>({
@@ -36,18 +52,85 @@ export default function CrmDashboard() {
     queryKey: ["/api/users/salespeople"],
   });
 
-  // Filter opportunities based on selected users
-  const filteredOpportunities = selectedUsers.length === 0
-    ? opportunities
-    : opportunities.filter(opportunity => {
-        // Check if opportunity is linked to any of the selected users
-        // Either by createdBy or by salesperson field
-        return selectedUsers.includes(opportunity.createdBy) ||
-               (opportunity.salesperson && selectedUsers.includes(opportunity.salesperson));
-      });
+  // Advanced filtering logic
+  const filteredOpportunities = opportunities.filter(opportunity => {
+    // Search term filter (contact, company, cpf, cnpj)
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      const searchMatch = 
+        opportunity.contact.toLowerCase().includes(searchLower) ||
+        opportunity.company.toLowerCase().includes(searchLower) ||
+        (opportunity.cpf && opportunity.cpf.toLowerCase().includes(searchLower)) ||
+        (opportunity.cnpj && opportunity.cnpj.toLowerCase().includes(searchLower));
+      if (!searchMatch) return false;
+    }
+
+    // User filter
+    if (selectedUsers.length > 0) {
+      const userMatch = selectedUsers.includes(opportunity.createdBy) ||
+                       (opportunity.salesperson && selectedUsers.includes(opportunity.salesperson));
+      if (!userMatch) return false;
+    }
+
+    // Phase filter
+    if (selectedPhases.length > 0) {
+      if (!selectedPhases.includes(opportunity.phase)) return false;
+    }
+
+    // Business temperature filter
+    if (selectedBusinessTemp && selectedBusinessTemp !== 'all') {
+      if (opportunity.businessTemperature !== selectedBusinessTemp) return false;
+    }
+
+    // Date range filter
+    if (dateRange.from || dateRange.to) {
+      const oppDate = new Date(opportunity.createdAt);
+      if (dateRange.from && oppDate < dateRange.from) return false;
+      if (dateRange.to && oppDate > dateRange.to) return false;
+    }
+
+    // Value range filter
+    if (minValue || maxValue) {
+      const oppValue = parseFloat(opportunity.budget?.toString() || '0');
+      if (minValue && oppValue < parseFloat(minValue)) return false;
+      if (maxValue && oppValue > parseFloat(maxValue)) return false;
+    }
+
+    return true;
+  });
+
+  // Sort opportunities
+  const sortedAndFilteredOpportunities = [...filteredOpportunities].sort((a, b) => {
+    let aVal: any = a[sortBy as keyof Opportunity];
+    let bVal: any = b[sortBy as keyof Opportunity];
+
+    // Handle date sorting
+    if (sortBy === 'createdAt' || sortBy === 'updatedAt') {
+      aVal = new Date(aVal);
+      bVal = new Date(bVal);
+    }
+
+    // Handle numeric sorting
+    if (sortBy === 'budget' || sortBy === 'finalValue') {
+      aVal = parseFloat(aVal?.toString() || '0');
+      bVal = parseFloat(bVal?.toString() || '0');
+    }
+
+    // Handle string sorting
+    if (typeof aVal === 'string' && typeof bVal === 'string') {
+      aVal = aVal.toLowerCase();
+      bVal = bVal.toLowerCase();
+    }
+
+    if (sortOrder === 'asc') {
+      return aVal > bVal ? 1 : -1;
+    } else {
+      return aVal < bVal ? 1 : -1;
+    }
+  });
 
   // Group filtered opportunities by phase
-  const opportunitiesByPhase = filteredOpportunities.reduce((acc, opportunity) => {
+  const opportunitiesByPhase = sortedAndFilteredOpportunities.reduce((acc, opportunity) => {
     if (!acc[opportunity.phase]) {
       acc[opportunity.phase] = [];
     }
@@ -137,6 +220,24 @@ export default function CrmDashboard() {
 
   const clearAllFilters = () => {
     setSelectedUsers([]);
+    setSearchTerm('');
+    setSelectedPhases([]);
+    setSelectedBusinessTemp('');
+    setDateRange({});
+    setMinValue('');
+    setMaxValue('');
+    setSortBy('createdAt');
+    setSortOrder('desc');
+  };
+
+  const handlePhaseSelect = (phase: string) => {
+    if (!selectedPhases.includes(phase)) {
+      setSelectedPhases([...selectedPhases, phase]);
+    }
+  };
+
+  const handlePhaseRemove = (phase: string) => {
+    setSelectedPhases(selectedPhases.filter(p => p !== phase));
   };
 
   // Invalidate reports when opportunities change to keep them in sync
@@ -149,7 +250,7 @@ export default function CrmDashboard() {
   }, [opportunities, queryClient]);
 
   // Calculate projected revenue from filtered opportunities
-  const projectedRevenue = filteredOpportunities
+  const projectedRevenue = sortedAndFilteredOpportunities
     .filter(o => o.budget && ['proposta', 'negociacao', 'ganho'].includes(o.phase))
     .reduce((sum, o) => sum + parseFloat(o.budget!.toString()), 0);
 
@@ -188,70 +289,218 @@ export default function CrmDashboard() {
         </div>
       </header>
 
-      {/* Filter Section */}
+      {/* Advanced Filter Section */}
       <div className="bg-muted/50 border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex flex-wrap items-center gap-4">
-            <div className="flex items-center space-x-2">
-              <Filter className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm font-medium text-foreground">Filtrar por usuário:</span>
+          <div className="space-y-4">
+            {/* Search and basic filters */}
+            <div className="flex flex-wrap items-center gap-4">
+              <div className="flex items-center space-x-2">
+                <Filter className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-medium text-foreground">Filtros Avançados:</span>
+              </div>
+
+              {/* Global Search */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar cliente, empresa, CPF/CNPJ..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 w-[280px]"
+                  data-testid="search-input"
+                />
+              </div>
+
+              {/* User Filter */}
+              <Select onValueChange={handleUserSelect} data-testid="select-user-filter">
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue placeholder="Vendedor" />
+                </SelectTrigger>
+                <SelectContent>
+                  {users.map((user) => (
+                    <SelectItem
+                      key={user.id}
+                      value={user.name}
+                      disabled={selectedUsers.includes(user.name)}
+                      data-testid={`user-option-${user.id}`}
+                    >
+                      {user.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {/* Phase Filter */}
+              <Select onValueChange={handlePhaseSelect} data-testid="select-phase-filter">
+                <SelectTrigger className="w-[160px]">
+                  <SelectValue placeholder="Fase" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="prospeccao">Prospecção</SelectItem>
+                  <SelectItem value="em-atendimento">Em Atendimento</SelectItem>
+                  <SelectItem value="visita-tecnica">Visita Técnica</SelectItem>
+                  <SelectItem value="proposta">Proposta</SelectItem>
+                  <SelectItem value="negociacao">Negociação</SelectItem>
+                  <SelectItem value="ganho">Ganho</SelectItem>
+                  <SelectItem value="perdido">Perdido</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {/* Business Temperature */}
+              <Select value={selectedBusinessTemp} onValueChange={setSelectedBusinessTemp}>
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue placeholder="Temperatura" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas</SelectItem>
+                  <SelectItem value="quente">Quente</SelectItem>
+                  <SelectItem value="morno">Morno</SelectItem>
+                  <SelectItem value="frio">Frio</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {/* Sort */}
+              <Select value={`${sortBy}-${sortOrder}`} onValueChange={(value) => {
+                const [field, order] = value.split('-');
+                setSortBy(field);
+                setSortOrder(order);
+              }}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="createdAt-desc">Mais Recentes</SelectItem>
+                  <SelectItem value="createdAt-asc">Mais Antigos</SelectItem>
+                  <SelectItem value="budget-desc">Maior Valor</SelectItem>
+                  <SelectItem value="budget-asc">Menor Valor</SelectItem>
+                  <SelectItem value="company-asc">Empresa A-Z</SelectItem>
+                  <SelectItem value="company-desc">Empresa Z-A</SelectItem>
+                  <SelectItem value="phase-asc">Fase</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
-            <Select onValueChange={handleUserSelect} data-testid="select-user-filter">
-              <SelectTrigger className="w-[200px]">
-                <SelectValue placeholder="Selecionar usuário" />
-              </SelectTrigger>
-              <SelectContent>
-                {users.map((user) => (
-                  <SelectItem
-                    key={user.id}
-                    value={user.name}
-                    disabled={selectedUsers.includes(user.name)}
-                    data-testid={`user-option-${user.id}`}
-                  >
-                    {user.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {/* Value Range Filters */}
+            <div className="flex flex-wrap items-center gap-4">
+              <span className="text-sm font-medium text-foreground">Faixa de Valor:</span>
+              <Input
+                placeholder="Valor mín. (R$)"
+                value={minValue}
+                onChange={(e) => setMinValue(e.target.value)}
+                type="number"
+                className="w-[140px]"
+                data-testid="min-value-input"
+              />
+              <span className="text-muted-foreground">até</span>
+              <Input
+                placeholder="Valor máx. (R$)"
+                value={maxValue}
+                onChange={(e) => setMaxValue(e.target.value)}
+                type="number"
+                className="w-[140px]"
+                data-testid="max-value-input"
+              />
 
-            {selectedUsers.length > 0 && (
+              {/* Date Range */}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-[200px] justify-start">
+                    {dateRange.from ? (
+                      dateRange.to ? (
+                        `${format(dateRange.from, 'dd/MM/yyyy')} - ${format(dateRange.to, 'dd/MM/yyyy')}`
+                      ) : (
+                        format(dateRange.from, 'dd/MM/yyyy')
+                      )
+                    ) : (
+                      'Período'
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <Calendar
+                    mode="range"
+                    selected={dateRange as any}
+                    onSelect={setDateRange as any}
+                    numberOfMonths={2}
+                  />
+                </PopoverContent>
+              </Popover>
+
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearAllFilters}
+                data-testid="clear-all-filters"
+              >
+                <X className="mr-2 h-4 w-4" />
+                Limpar Filtros
+              </Button>
+            </div>
+
+            {/* Active Filters Display */}
+            {(selectedUsers.length > 0 || selectedPhases.length > 0 || searchTerm || selectedBusinessTemp || minValue || maxValue || dateRange.from || dateRange.to) && (
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-sm text-muted-foreground">Filtros ativos:</span>
+                
+                {searchTerm && (
+                  <Badge variant="secondary" className="flex items-center gap-1">
+                    Busca: "{searchTerm}"
+                    <button onClick={() => setSearchTerm('')} className="ml-1 hover:bg-secondary-foreground/20 rounded-full p-0.5">
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                )}
+
                 {selectedUsers.map((userName) => (
-                  <Badge
-                    key={userName}
-                    variant="secondary"
-                    className="flex items-center gap-1"
-                    data-testid={`filter-badge-${userName}`}
-                  >
-                    {userName}
-                    <button
-                      onClick={() => handleUserRemove(userName)}
-                      className="ml-1 hover:bg-secondary-foreground/20 rounded-full p-0.5"
-                      data-testid={`remove-filter-${userName}`}
-                    >
+                  <Badge key={userName} variant="secondary" className="flex items-center gap-1">
+                    Vendedor: {userName}
+                    <button onClick={() => handleUserRemove(userName)} className="ml-1 hover:bg-secondary-foreground/20 rounded-full p-0.5">
                       <X className="h-3 w-3" />
                     </button>
                   </Badge>
                 ))}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={clearAllFilters}
-                  className="text-xs"
-                  data-testid="clear-all-filters"
-                >
-                  Limpar todos
-                </Button>
+
+                {selectedPhases.map((phase) => (
+                  <Badge key={phase} variant="secondary" className="flex items-center gap-1">
+                    {phaseConfig.find(p => p.key === phase)?.title || phase}
+                    <button onClick={() => handlePhaseRemove(phase)} className="ml-1 hover:bg-secondary-foreground/20 rounded-full p-0.5">
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                ))}
+
+                {selectedBusinessTemp && selectedBusinessTemp !== 'all' && (
+                  <Badge variant="secondary" className="flex items-center gap-1">
+                    {selectedBusinessTemp}
+                    <button onClick={() => setSelectedBusinessTemp('')} className="ml-1 hover:bg-secondary-foreground/20 rounded-full p-0.5">
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                )}
+
+                {(minValue || maxValue) && (
+                  <Badge variant="secondary" className="flex items-center gap-1">
+                    R$ {minValue || '0'} - {maxValue || '∞'}
+                    <button onClick={() => { setMinValue(''); setMaxValue(''); }} className="ml-1 hover:bg-secondary-foreground/20 rounded-full p-0.5">
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                )}
               </div>
             )}
 
-            {selectedUsers.length > 0 && (
-              <div className="text-sm text-muted-foreground">
-                Mostrando {filteredOpportunities.length} de {opportunities.length} oportunidades
-              </div>
-            )}
+            {/* Results Summary */}
+            <div className="text-sm text-muted-foreground">
+              Mostrando {sortedAndFilteredOpportunities.length} de {opportunities.length} oportunidades
+              {projectedRevenue > 0 && (
+                <span className="ml-4">
+                  • Receita projetada dos filtrados: <span className="font-medium text-foreground">
+                    R$ {projectedRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </span>
+                </span>
+              )}
+            </div>
           </div>
         </div>
       </div>
