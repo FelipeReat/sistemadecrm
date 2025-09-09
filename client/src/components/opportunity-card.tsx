@@ -190,7 +190,7 @@ export default function OpportunityCard({ opportunity, onViewDetails, onDelete }
         {opportunity.phase === "visita-tecnica" && opportunity.visitSchedule && (
           <div className="flex items-center">
             <Calendar className="h-3 w-3 text-muted-foreground mr-2" />
-            <span>Agendado: {new Date(opportunity.visitSchedule).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" })} às {new Date(opportunity.visitSchedule).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span>
+            <span>Agendado: {new Date(opportunity.visitSchedule).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", timeZone: "America/Sao_Paulo" })} às {new Date(opportunity.visitSchedule).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" })}</span>
           </div>
         )}
 
