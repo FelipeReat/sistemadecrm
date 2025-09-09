@@ -7,23 +7,14 @@ const isDatabaseProduction = process.env.NODE_ENV === 'production';
 
 // Create database connection based on environment
 function createDatabase() {
-  // Production: PostgreSQL (RDS)
-  let productionDbUrl = process.env.PROD_DATABASE_URL || process.env.DATABASE_URL;
+  // Use the Replit-provided DATABASE_URL for both development and production
+  const databaseUrl = process.env.DATABASE_URL;
   
-  if (!isDatabaseProduction) {
-    productionDbUrl = process.env.DEV_DATABASE_URL;
+  if (!databaseUrl) {
+    throw new Error("DATABASE_URL must be set");
   }
-  if (!productionDbUrl) {
-    throw new Error(
-      "PROD_DATABASE_URL must be set in production environment",
-    );
-  }
-  
-  // Remove configurações SSL da URL e adiciona sslmode=require
-  let cleanDbUrl = productionDbUrl.replace(/[?&]ssl(mode)?=[^&]*/g, '');
-  cleanDbUrl += cleanDbUrl.includes('?') ? '&sslmode=require' : '?sslmode=require';
 
-  const sql = postgres(cleanDbUrl, {
+  const sql = postgres(databaseUrl, {
     max: 10, // Pool de 10 conexões
     connect_timeout: 30
   });
