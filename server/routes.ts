@@ -360,7 +360,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         wonOpportunities,
         activeOpportunities,
         projectedRevenue: `R$ ${projectedRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
-        totalWonValue: `R$ ${totalWonValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+        totalWonValue: totalWonValue
       });
     } catch (error) {
       res.status(500).json({ message: "Erro ao buscar estatísticas" });
