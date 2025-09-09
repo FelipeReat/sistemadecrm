@@ -247,7 +247,7 @@ export default function OpportunityForm({ phase }: OpportunityFormProps) {
       <div>
         <Label htmlFor="visitSchedule" className="text-sm font-medium text-gray-700 flex items-center">
           <Calendar className="h-4 w-4 mr-2" />
-          * Data da visita
+          * Data de agendamento da visita
         </Label>
         <Input
           id="visitSchedule"
@@ -261,6 +261,22 @@ export default function OpportunityForm({ phase }: OpportunityFormProps) {
             handleInputChange("visitSchedule", isoDate);
           }}
           data-testid="form-visit-schedule"
+        />
+      </div>
+
+      {/* Descrição da Visita */}
+      <div>
+        <Label htmlFor="visitDescription" className="text-sm font-medium text-gray-700 flex items-center">
+          <FileText className="h-4 w-4 mr-2" />
+          Descrição da visita
+        </Label>
+        <Textarea
+          id="visitDescription"
+          placeholder="Descreva os detalhes da visita técnica..."
+          rows={4}
+          className="mt-1"
+          onChange={(e) => handleInputChange("visitDescription", e.target.value)}
+          data-testid="form-visit-description"
         />
       </div>
 

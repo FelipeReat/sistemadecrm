@@ -54,8 +54,9 @@ const emAtendimentoSchema = z.object({
 
 // Schema para o formulário de visita técnica
 const visitaTecnicaSchema = z.object({
-  visitSchedule: z.string().min(1, "Data da visita é obrigatória"),
+  visitSchedule: z.string().min(1, "Data de agendamento da visita é obrigatória"),
   visitDate: z.string().optional(),
+  visitDescription: z.string().optional(),
   visitPhotos: z.array(z.string()).optional(),
 });
 
@@ -124,6 +125,7 @@ export default function OpportunityDetailsModal({
     defaultValues: {
       visitSchedule: opportunity?.visitSchedule || "",
       visitDate: opportunity?.visitRealization || "",
+      visitDescription: opportunity?.visitDescription || "",
       visitPhotos: opportunity?.visitPhotos || [],
     },
   });
@@ -462,7 +464,7 @@ export default function OpportunityDetailsModal({
                     <FormItem>
                       <FormLabel className="flex items-center">
                         <Calendar className="h-4 w-4 mr-2" />
-                        * Data da visita
+                        * Data de agendamento da visita
                       </FormLabel>
                       <FormControl>
                         <Input
@@ -477,7 +479,7 @@ export default function OpportunityDetailsModal({
                         />
                       </FormControl>
                       <FormMessage />
-                    </FormItem>
+                   </FormItem>
                   )}
                 />
 
@@ -506,6 +508,28 @@ export default function OpportunityDetailsModal({
                   )}
                 />
               </div>
+
+              {/* Descrição da visita */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Descrição da visita</Label>
+                <FormField
+                  control={visitaTecnicaForm.control}
+                  name="visitDescription"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Descreva os detalhes da visita técnica..."
+                          className="min-h-[100px]"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
 
                 <FormField
                   control={visitaTecnicaForm.control}
