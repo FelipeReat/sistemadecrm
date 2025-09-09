@@ -50,6 +50,7 @@ export const masks = {
     onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
       let value = e.target.value.replace(/\D/g, '');
 
+      // dd/mm/aaaa hh:mm format
       if (value.length >= 2) {
         value = value.substring(0, 2) + '/' + value.substring(2);
       }
@@ -64,6 +65,29 @@ export const masks = {
       }
 
       e.target.value = value;
+
+      // Foco automático quando completo
+      if (value.length === 16) {
+        try {
+          const form = e.target.closest('form');
+          if (form) {
+            const inputs = form.querySelectorAll('input:not([disabled]), select:not([disabled]), textarea:not([disabled])');
+            const currentIndex = Array.from(inputs).indexOf(e.target);
+            const nextInput = inputs[currentIndex + 1] as HTMLInputElement;
+            if (nextInput && typeof nextInput.focus === 'function') {
+              setTimeout(() => {
+                try {
+                  nextInput.focus();
+                } catch (error) {
+                  console.warn('Could not focus next input:', error);
+                }
+              }, 10);
+            }
+          }
+        } catch (error) {
+          console.warn('Error in datetime mask focus handling:', error);
+        }
+      }
     },
     placeholder: "dd/mm/aaaa hh:mm",
     mask: "99/99/9999 99:99"
@@ -147,7 +171,7 @@ export const formatters = {
     return value;
   },
 
-  // Formata data e hora para exibição
+  // Formata data e hora para exibição (formato brasileiro: dd/mm/aaaa hh:mm)
   formatDateTime: (value: string) => {
     if (!value) return '';
     const cleaned = value.replace(/\D/g, '');
