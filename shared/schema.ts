@@ -87,13 +87,6 @@ export const insertOpportunitySchema = createInsertSchema(opportunities, {
     url: z.string()
   })).optional().default([]),
   contract: z.string().nullable().optional(),
-  budgetFile: z.object({
-    id: z.string(),
-    name: z.string(),
-    size: z.number(),
-    type: z.string(),
-    url: z.string()
-  }).nullable().optional(),
 });
 
 export const insertAutomationSchema = createInsertSchema(automations).omit({

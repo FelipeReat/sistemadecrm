@@ -63,6 +63,8 @@ export class MemStorage implements IStorage {
         email: 'admin@crm.com',
         password: hashedPassword,
         name: 'Administrador',
+        phone: null,
+        bio: null,
         role: 'admin',
         isActive: true,
         createdAt: new Date(),
@@ -92,21 +94,19 @@ export class MemStorage implements IStorage {
       hasRegistration: insertOpportunity.hasRegistration || false,
       proposalOrigin: insertOpportunity.proposalOrigin || null,
       businessTemperature: insertOpportunity.businessTemperature || null,
-      documents: insertOpportunity.documents || [],
+      documents: insertOpportunity.documents ? insertOpportunity.documents.map(doc => JSON.stringify(doc)) : null,
       opportunityNumber: insertOpportunity.opportunityNumber || null,
       salesperson: insertOpportunity.salesperson || null,
       requiresVisit: insertOpportunity.requiresVisit || false,
       statement: insertOpportunity.statement || null,
-      nextActivityDate: insertOpportunity.nextActivityDate || null,
       visitSchedule: insertOpportunity.visitSchedule || null,
-      visitRealization: insertOpportunity.visitRealization || null,
-      visitPhotos: insertOpportunity.visitPhotos || [],
+      visitDate: insertOpportunity.visitDate || null,
+      visitPhotos: insertOpportunity.visitPhotos ? insertOpportunity.visitPhotos.map(photo => JSON.stringify(photo)) : null,
       discount: insertOpportunity.discount || null,
       discountDescription: insertOpportunity.discountDescription || null,
-      validityDate: insertOpportunity.validityDate || null,
+      validityDate: insertOpportunity.validityDate ? new Date(insertOpportunity.validityDate) : null,
       budgetNumber: insertOpportunity.budgetNumber || null,
       budget: insertOpportunity.budget || null,
-      budgetFile: insertOpportunity.budgetFile || null,
       status: insertOpportunity.status || null,
       finalValue: insertOpportunity.finalValue || null,
       negotiationInfo: insertOpportunity.negotiationInfo || null,
@@ -114,7 +114,7 @@ export class MemStorage implements IStorage {
       invoiceNumber: insertOpportunity.invoiceNumber || null,
       lossReason: insertOpportunity.lossReason || null,
       phase: insertOpportunity.phase || 'prospeccao',
-      createdBy: insertOpportunity.createdBy,
+      createdBy: insertOpportunity.createdBy || 'system',
       id,
       createdAt: now,
       updatedAt: now,
@@ -131,8 +131,9 @@ export class MemStorage implements IStorage {
     const updated: Opportunity = {
       ...existing,
       ...updates,
+      phaseUpdatedAt: updates.phase !== existing.phase ? new Date() : existing.phaseUpdatedAt,
       updatedAt: new Date()
-    };
+    } as Opportunity;
     this.opportunities.set(id, updated);
     return updated;
   }
@@ -203,6 +204,8 @@ export class MemStorage implements IStorage {
       email: insertUser.email,
       password: hashedPassword,
       name: insertUser.name,
+      phone: insertUser.phone || null,
+      bio: insertUser.bio || null,
       role: insertUser.role || 'usuario',
       isActive: insertUser.isActive ?? true,
       createdAt: now,

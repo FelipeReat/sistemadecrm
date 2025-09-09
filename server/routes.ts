@@ -506,6 +506,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       })).filter(item => item.count > 0);
 
       // Business temperatures
+      const total = opportunities.length;
       const temperatureCounts = opportunities.reduce((acc, opp) => {
         const temp = opp.businessTemperature || 'morno';
         acc[temp] = (acc[temp] || 0) + 1;
