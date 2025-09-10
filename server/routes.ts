@@ -9,6 +9,7 @@ import { schedulerService } from "./scheduler";
 import { insertOpportunitySchema, insertAutomationSchema, insertUserSchema, updateUserSchema, loginSchema, insertSavedReportSchema, updateSavedReportSchema, insertUserSettingsSchema, insertEmailTemplateSchema } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import { getSession, isAuthenticated, isAdmin, isManagerOrAdmin, canEditAllOpportunities, canViewReports } from "./auth";
+import { rateLimiter } from "./rate-limiter";
 import * as crypto from "crypto";
 import * as z from "zod";
 import * as XLSX from 'xlsx';
@@ -30,19 +31,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/auth/login", async (req, res) => {
     try {
       const { email, password } = loginSchema.parse(req.body);
+      
+      // Verifica rate limiting
+      if (rateLimiter.isBlocked(email)) {
+        const blockTime = rateLimiter.getBlockTimeRemaining(email);
+        console.log(`[AUTH] Login bloqueado para ${email}, tempo restante: ${blockTime} minutos`);
+        return res.status(429).json({ 
+          message: `Muitas tentativas falharam. Tente novamente em ${blockTime} minutos.` 
+        });
+      }
+
       const user = await storage.validateUserPassword(email, password);
 
       if (!user) {
-        return res.status(401).json({ message: "Email ou senha inválidos" });
+        rateLimiter.recordFailedAttempt(email);
+        const remaining = rateLimiter.getRemainingAttempts(email);
+        console.log(`[AUTH] Falha de login para ${email}, tentativas restantes: ${remaining}`);
+        
+        let message = "Email ou senha inválidos";
+        if (remaining <= 2) {
+          message += `. Restam ${remaining} tentativas antes do bloqueio.`;
+        }
+        
+        return res.status(401).json({ message });
       }
 
+      // Verifica se o usuário está ativo
+      if (!user.isActive) {
+        console.log(`[AUTH] Tentativa de login de usuário inativo: ${email}`);
+        return res.status(401).json({ message: "Conta desativada. Entre em contato com o administrador." });
+      }
+
+      // Login bem-sucedido
+      rateLimiter.recordSuccessfulLogin(email);
       req.session.userId = user.id;
       req.session.user = user;
+      req.session.lastAccess = new Date().toISOString();
+
+      console.log(`[AUTH] Login bem-sucedido para ${email} (${user.role})`);
 
       // Remove password from response
       const { password: _, ...userWithoutPassword } = user;
       return res.json({ user: userWithoutPassword });
     } catch (error: any) {
+      console.error(`[AUTH] Erro no login:`, error);
       if (error.name === "ZodError") {
         const validationError = fromZodError(error);
         return res.status(400).json({ message: validationError.message });

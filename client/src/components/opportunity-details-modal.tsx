@@ -111,6 +111,8 @@ export default function OpportunityDetailsModal({
       salesperson: opportunity?.salesperson || "",
       requiresVisit: opportunity?.requiresVisit || false,
     },
+    mode: "onChange", // Validação em tempo real
+    reValidateMode: "onChange"
   });
 
   const emAtendimentoForm = useForm<EmAtendimentoFormData>({
@@ -944,7 +946,7 @@ export default function OpportunityDetailsModal({
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label className="text-sm font-medium text-gray-700">Status da negociação</Label>
+                <Label>Status da negociação</Label>
                 <Input
                   value={opportunity?.status || ""}
                   disabled

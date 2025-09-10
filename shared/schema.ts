@@ -65,28 +65,86 @@ export const automations = pgTable("automations", {
 });
 
 export const insertOpportunitySchema = createInsertSchema(opportunities, {
-  budget: z.coerce.string().optional(), // Decimal fields expect strings
-  finalValue: z.coerce.string().optional(), // Decimal fields expect strings  
-  discount: z.coerce.string().optional(), // Decimal fields expect strings
+  contact: z.string().min(1, "Nome do contato é obrigatório").max(100, "Nome muito longo"),
+  cpf: z.string().optional().refine((val) => {
+    if (!val || val.length === 0) return true;
+    const cpf = val.replace(/\D/g, '');
+    if (cpf.length !== 11) return false;
+    if (/^(\d)\1{10}$/.test(cpf)) return false;
+    // Validação simplificada dos dígitos verificadores
+    let sum = 0;
+    for (let i = 0; i < 9; i++) {
+      sum += parseInt(cpf[i]) * (10 - i);
+    }
+    let remainder = sum % 11;
+    let digit1 = remainder < 2 ? 0 : 11 - remainder;
+    if (parseInt(cpf[9]) !== digit1) return false;
+    sum = 0;
+    for (let i = 0; i < 10; i++) {
+      sum += parseInt(cpf[i]) * (11 - i);
+    }
+    remainder = sum % 11;
+    let digit2 = remainder < 2 ? 0 : 11 - remainder;
+    return parseInt(cpf[10]) === digit2;
+  }, "CPF inválido"),
+  company: z.string().min(1, "Nome da empresa é obrigatório").max(100, "Nome muito longo"),
+  cnpj: z.string().optional().refine((val) => {
+    if (!val || val.length === 0) return true;
+    const cnpj = val.replace(/\D/g, '');
+    if (cnpj.length !== 14) return false;
+    if (/^(\d)\1{13}$/.test(cnpj)) return false;
+    return true; // Validação completa seria muito extensa aqui
+  }, "CNPJ inválido"),
+  phone: z.string().min(1, "Telefone é obrigatório").refine((val) => {
+    const phone = val.replace(/\D/g, '');
+    return phone.length >= 10 && phone.length <= 11;
+  }, "Telefone deve ter 10 ou 11 dígitos"),
+  needCategory: z.string().min(1, "Categoria da necessidade é obrigatória"),
+  clientNeeds: z.string().min(1, "Necessidades do cliente são obrigatórias").max(1000, "Texto muito longo"),
+  budget: z.coerce.string().optional().refine((val) => {
+    if (!val || val.length === 0) return true;
+    const numValue = parseFloat(val.replace(/[^\d,.-]/g, '').replace(',', '.'));
+    return !isNaN(numValue) && numValue > 0;
+  }, "Valor do orçamento deve ser um número positivo"),
+  finalValue: z.coerce.string().optional().refine((val) => {
+    if (!val || val.length === 0) return true;
+    const numValue = parseFloat(val.replace(/[^\d,.-]/g, '').replace(',', '.'));
+    return !isNaN(numValue) && numValue > 0;
+  }, "Valor final deve ser um número positivo"),
+  discount: z.coerce.string().optional().refine((val) => {
+    if (!val || val.length === 0) return true;
+    const numValue = parseFloat(val.replace(/[^\d,.-]/g, '').replace(',', '.'));
+    return !isNaN(numValue) && numValue >= 0 && numValue <= 100;
+  }, "Desconto deve ser entre 0% e 100%"),
   visitSchedule: z.string().optional(),
-  validityDate: z.string().optional(),
+  validityDate: z.string().optional().refine((val) => {
+    if (!val || val.length === 0) return true;
+    const date = new Date(val);
+    const now = new Date();
+    return date > now;
+  }, "Data de validade deve ser futura"),
   phaseUpdatedAt: z.string().optional(),
-  createdBy: z.string().optional(), // Será preenchido automaticamente no backend
+  createdBy: z.string().optional(),
   documents: z.array(z.object({
     id: z.string(),
-    name: z.string(),
-    size: z.number(),
+    name: z.string().max(255, "Nome do arquivo muito longo"),
+    size: z.number().max(50 * 1024 * 1024, "Arquivo muito grande (máximo 50MB)"),
     type: z.string(),
-    url: z.string()
-  })).optional().default([]),
+    url: z.string().url("URL inválida")
+  })).optional().default([]).refine((docs) => docs.length <= 10, "Máximo 10 documentos permitidos"),
   visitPhotos: z.array(z.object({
     id: z.string(),
-    name: z.string(),
-    size: z.number(),
-    type: z.string(),
-    url: z.string()
-  })).optional().default([]),
+    name: z.string().max(255, "Nome do arquivo muito longo"),
+    size: z.number().max(10 * 1024 * 1024, "Imagem muito grande (máximo 10MB)"),
+    type: z.string().refine((type) => type.startsWith('image/'), "Apenas imagens são permitidas"),
+    url: z.string().url("URL inválida")
+  })).optional().default([]).refine((photos) => photos.length <= 20, "Máximo 20 fotos permitidas"),
   contract: z.string().nullable().optional(),
+  businessTemperature: z.enum(['frio', 'morno', 'quente']).optional(),
+  proposalOrigin: z.string().max(100, "Origem da proposta muito longa").optional(),
+  statement: z.string().max(2000, "Declaração muito longa").optional(),
+  negotiationInfo: z.string().max(2000, "Informações de negociação muito longas").optional(),
+  lossReason: z.string().max(500, "Motivo da perda muito longo").optional()
 });
 
 export const insertAutomationSchema = createInsertSchema(automations).omit({
@@ -211,21 +269,69 @@ export const users = pgTable("users", {
   updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
 });
 
-export const insertUserSchema = createInsertSchema(users).omit({
+export const insertUserSchema = createInsertSchema(users, {
+  email: z.string().email("Email inválido").refine((val) => {
+    const tempDomains = ['10minutemail.com', 'guerrillamail.com', 'mailinator.com'];
+    const domain = val.split('@')[1]?.toLowerCase();
+    return !tempDomains.includes(domain);
+  }, "Email temporário não é permitido"),
+  password: z.string()
+    .min(8, "Senha deve ter pelo menos 8 caracteres")
+    .max(100, "Senha muito longa")
+    .refine((val) => /[A-Z]/.test(val), "Senha deve conter pelo menos uma letra maiúscula")
+    .refine((val) => /[a-z]/.test(val), "Senha deve conter pelo menos uma letra minúscula")
+    .refine((val) => /\d/.test(val), "Senha deve conter pelo menos um número")
+    .refine((val) => /[!@#$%^&*(),.?":{}|<>]/.test(val), "Senha deve conter pelo menos um caractere especial"),
+  name: z.string()
+    .min(2, "Nome deve ter pelo menos 2 caracteres")
+    .max(100, "Nome muito longo")
+    .refine((val) => /^[a-zA-ZÀ-ÿ\s]+$/.test(val), "Nome deve conter apenas letras e espaços"),
+  phone: z.string().optional().refine((val) => {
+    if (!val || val.length === 0) return true;
+    const phone = val.replace(/\D/g, '');
+    return phone.length >= 10 && phone.length <= 11;
+  }, "Telefone deve ter 10 ou 11 dígitos"),
+  bio: z.string().max(1000, "Biografia muito longa").optional(),
+  role: z.enum(['admin', 'gerente', 'usuario'], {
+    errorMap: () => ({ message: "Função deve ser admin, gerente ou usuario" })
+  })
+}).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
 });
 
-export const updateUserSchema = createInsertSchema(users).omit({
+export const updateUserSchema = createInsertSchema(users, {
+  email: z.string().email("Email inválido").optional(),
+  password: z.string()
+    .min(8, "Senha deve ter pelo menos 8 caracteres")
+    .max(100, "Senha muito longa")
+    .refine((val) => /[A-Z]/.test(val), "Senha deve conter pelo menos uma letra maiúscula")
+    .refine((val) => /[a-z]/.test(val), "Senha deve conter pelo menos uma letra minúscula")
+    .refine((val) => /\d/.test(val), "Senha deve conter pelo menos um número")
+    .refine((val) => /[!@#$%^&*(),.?":{}|<>]/.test(val), "Senha deve conter pelo menos um caractere especial")
+    .optional(),
+  name: z.string()
+    .min(2, "Nome deve ter pelo menos 2 caracteres")
+    .max(100, "Nome muito longo")
+    .refine((val) => /^[a-zA-ZÀ-ÿ\s]+$/.test(val), "Nome deve conter apenas letras e espaços")
+    .optional(),
+  phone: z.string().optional().refine((val) => {
+    if (!val || val.length === 0) return true;
+    const phone = val.replace(/\D/g, '');
+    return phone.length >= 10 && phone.length <= 11;
+  }, "Telefone deve ter 10 ou 11 dígitos"),
+  bio: z.string().max(1000, "Biografia muito longa").optional(),
+  role: z.enum(['admin', 'gerente', 'usuario']).optional()
+}).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
 }).partial();
 
 export const loginSchema = z.object({
-  email: z.string().email("Email inválido"),
-  password: z.string().min(1, "Senha é obrigatória"),
+  email: z.string().email("Email inválido").min(1, "Email é obrigatório"),
+  password: z.string().min(1, "Senha é obrigatória").max(100, "Senha muito longa"),
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;

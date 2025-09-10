@@ -40,20 +40,38 @@ export function getSession() {
 export const isAuthenticated: RequestHandler = async (req, res, next) => {
   try {
     if (!req.session.userId) {
+      console.log(`[AUTH] Tentativa de acesso não autorizado de IP: ${req.ip}`);
       return res.status(401).json({ message: "Não autorizado" });
     }
 
     const user = await storage.getUser(req.session.userId);
     if (!user || !user.isActive) {
+      console.log(`[AUTH] Usuário inválido ou inativo: ${req.session.userId}`);
       return req.session.destroy((err) => {
         if (res.headersSent) return;
         return res.status(401).json({ message: "Usuário inválido" });
       });
     }
 
+    // Verifica se a sessão não é muito antiga
+    const sessionAge = Date.now() - new Date(req.session.cookie.originalMaxAge || 0).getTime();
+    const maxAge = 7 * 24 * 60 * 60 * 1000; // 7 dias
+    
+    if (sessionAge > maxAge) {
+      console.log(`[AUTH] Sessão expirada para usuário: ${user.email}`);
+      return req.session.destroy((err) => {
+        if (res.headersSent) return;
+        return res.status(401).json({ message: "Sessão expirada" });
+      });
+    }
+
+    // Atualiza último acesso
+    req.session.lastAccess = new Date().toISOString();
     req.session.user = user;
+    
     next();
   } catch (error) {
+    console.error(`[AUTH] Erro na autenticação:`, error);
     if (res.headersSent) return;
     return res.status(500).json({ message: "Erro interno do servidor" });
   }

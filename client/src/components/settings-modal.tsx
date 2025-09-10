@@ -6,6 +6,7 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogFooter
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,12 +43,12 @@ export default function SettingsModal({ open, onOpenChange }: SettingsModalProps
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { theme, setTheme } = useTheme();
-  
+
   // Get current user data
   const { data: currentUser } = useQuery({
     queryKey: ["/api/auth/me"],
   });
-  
+
   // Profile settings state
   const [profileData, setProfileData] = useState({
     name: "",
@@ -85,7 +86,7 @@ export default function SettingsModal({ open, onOpenChange }: SettingsModalProps
     const savedEmailNotifications = localStorage.getItem("emailNotifications") !== "false";
     const savedPushNotifications = localStorage.getItem("pushNotifications") === "true";
     const savedAutoSave = localStorage.getItem("autoSave") !== "false";
-    
+
     setSystemSettings({
       emailNotifications: savedEmailNotifications,
       pushNotifications: savedPushNotifications,
@@ -157,7 +158,7 @@ export default function SettingsModal({ open, onOpenChange }: SettingsModalProps
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      
+
       toast({
         title: "Dados exportados",
         description: "O arquivo foi baixado com sucesso."
@@ -175,7 +176,7 @@ export default function SettingsModal({ open, onOpenChange }: SettingsModalProps
     localStorage.setItem("emailNotifications", systemSettings.emailNotifications.toString());
     localStorage.setItem("pushNotifications", systemSettings.pushNotifications.toString());
     localStorage.setItem("autoSave", systemSettings.autoSave.toString());
-    
+
     toast({
       title: "Configurações atualizadas",
       description: "Suas preferências foram salvas com sucesso."
@@ -211,6 +212,27 @@ export default function SettingsModal({ open, onOpenChange }: SettingsModalProps
           variant: "destructive"
         });
       });
+  };
+
+  // Function to restore settings to default
+  const restoreDefaultSettings = () => {
+    const defaultSettings = {
+      emailNotifications: true,
+      pushNotifications: false,
+      darkMode: theme === "dark", // Keep current dark mode setting or reset to default
+      autoSave: true,
+      language: "pt-BR"
+    };
+    setSystemSettings(defaultSettings);
+    localStorage.setItem("language", defaultSettings.language);
+    localStorage.setItem("emailNotifications", defaultSettings.emailNotifications.toString());
+    localStorage.setItem("pushNotifications", defaultSettings.pushNotifications.toString());
+    localStorage.setItem("autoSave", defaultSettings.autoSave.toString());
+
+    toast({
+      title: "Sucesso",
+      description: "Configurações restauradas para o padrão."
+    });
   };
 
   return (
@@ -279,7 +301,7 @@ export default function SettingsModal({ open, onOpenChange }: SettingsModalProps
                     />
                   </div>
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="phone">Telefone</Label>
@@ -567,6 +589,23 @@ export default function SettingsModal({ open, onOpenChange }: SettingsModalProps
             </Card>
           </TabsContent>
         </Tabs>
+
+        <DialogFooter className="flex justify-between">
+            <Button 
+              type="button" 
+              variant="outline"
+              onClick={restoreDefaultSettings}
+            >
+              Restaurar Padrão
+            </Button>
+            <Button 
+              type="submit" 
+              disabled={updateProfileMutation.isPending}
+              onClick={handleSaveProfile} // Assuming profile save is the primary action for submit
+            >
+              {updateProfileMutation.isPending ? "Salvando..." : "Salvar Alterações"}
+            </Button>
+          </DialogFooter>
       </DialogContent>
     </Dialog>
   );
