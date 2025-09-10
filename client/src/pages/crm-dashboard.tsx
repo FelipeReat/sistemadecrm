@@ -8,6 +8,8 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { format } from "date-fns";
 import { Settings, ChartLine, Trophy, Clock, DollarSign, Plus, Filter, X, Search, ArrowUpDown } from "lucide-react";
 import SalesPipelineColumn from "@/components/sales-pipeline-column";
@@ -39,6 +41,7 @@ export default function CrmDashboard() {
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [selectedOpportunity, setSelectedOpportunity] = useState<Opportunity | null>(null);
   const [isNewProposalOpportunityModalOpen, setIsNewProposalOpportunityModalOpen] = useState(false);
+  const [isAdvancedFiltersModalOpen, setIsAdvancedFiltersModalOpen] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   
   // Advanced filters
@@ -303,153 +306,39 @@ export default function CrmDashboard() {
         </div>
       </header>
 
-      {/* Advanced Filter Section */}
+      {/* Filter Section */}
       <div className="bg-muted/50 border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="space-y-4">
-            {/* Search and basic filters */}
+            {/* Filter Button and Active Filters */}
             <div className="flex flex-wrap items-center gap-4">
-              <div className="flex items-center space-x-2">
-                <Filter className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm font-medium text-foreground">Filtros Avançados:</span>
-              </div>
-
-              {/* Global Search */}
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar cliente, empresa, CPF/CNPJ..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 w-[280px]"
-                  data-testid="search-input"
-                />
-              </div>
-
-              {/* User Filter */}
-              <Select onValueChange={handleUserSelect} data-testid="select-user-filter">
-                <SelectTrigger className="w-[200px]">
-                  <SelectValue placeholder="Vendedor" />
-                </SelectTrigger>
-                <SelectContent>
-                  {users.map((user) => (
-                    <SelectItem
-                      key={user.id}
-                      value={user.name}
-                      disabled={selectedUsers.includes(user.name)}
-                      data-testid={`user-option-${user.id}`}
-                    >
-                      {user.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              {/* Phase Filter */}
-              <Select onValueChange={handlePhaseSelect} data-testid="select-phase-filter">
-                <SelectTrigger className="w-[160px]">
-                  <SelectValue placeholder="Fase" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="prospeccao">Prospecção</SelectItem>
-                  <SelectItem value="em-atendimento">Em Atendimento</SelectItem>
-                  <SelectItem value="visita-tecnica">Visita Técnica</SelectItem>
-                  <SelectItem value="proposta">Proposta</SelectItem>
-                  <SelectItem value="negociacao">Negociação</SelectItem>
-                  <SelectItem value="ganho">Ganho</SelectItem>
-                  <SelectItem value="perdido">Perdido</SelectItem>
-                </SelectContent>
-              </Select>
-
-              {/* Business Temperature */}
-              <Select value={selectedBusinessTemp} onValueChange={setSelectedBusinessTemp}>
-                <SelectTrigger className="w-[140px]">
-                  <SelectValue placeholder="Temperatura" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todas</SelectItem>
-                  <SelectItem value="quente">Quente</SelectItem>
-                  <SelectItem value="morno">Morno</SelectItem>
-                  <SelectItem value="frio">Frio</SelectItem>
-                </SelectContent>
-              </Select>
-
-              {/* Sort */}
-              <Select value={`${sortBy}-${sortOrder}`} onValueChange={(value) => {
-                const [field, order] = value.split('-');
-                setSortBy(field);
-                setSortOrder(order);
-              }}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="createdAt-desc">Mais Recentes</SelectItem>
-                  <SelectItem value="createdAt-asc">Mais Antigos</SelectItem>
-                  <SelectItem value="budget-desc">Maior Valor</SelectItem>
-                  <SelectItem value="budget-asc">Menor Valor</SelectItem>
-                  <SelectItem value="company-asc">Empresa A-Z</SelectItem>
-                  <SelectItem value="company-desc">Empresa Z-A</SelectItem>
-                  <SelectItem value="phase-asc">Fase</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Value Range Filters */}
-            <div className="flex flex-wrap items-center gap-4">
-              <span className="text-sm font-medium text-foreground">Faixa de Valor:</span>
-              <Input
-                placeholder="Valor mín. (R$)"
-                value={minValue}
-                onChange={(e) => setMinValue(e.target.value)}
-                type="number"
-                className="w-[140px]"
-                data-testid="min-value-input"
-              />
-              <span className="text-muted-foreground">até</span>
-              <Input
-                placeholder="Valor máx. (R$)"
-                value={maxValue}
-                onChange={(e) => setMaxValue(e.target.value)}
-                type="number"
-                className="w-[140px]"
-                data-testid="max-value-input"
-              />
-
-              {/* Date Range */}
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className="w-[200px] justify-start">
-                    {dateRange.from ? (
-                      dateRange.to ? (
-                        `${format(dateRange.from, 'dd/MM/yyyy')} - ${format(dateRange.to, 'dd/MM/yyyy')}`
-                      ) : (
-                        format(dateRange.from, 'dd/MM/yyyy')
-                      )
-                    ) : (
-                      'Período'
-                    )}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar
-                    mode="range"
-                    selected={dateRange as any}
-                    onSelect={setDateRange as any}
-                    numberOfMonths={2}
-                  />
-                </PopoverContent>
-              </Popover>
-
               <Button
-                variant="ghost"
-                size="sm"
-                onClick={clearAllFilters}
-                data-testid="clear-all-filters"
+                variant="outline"
+                onClick={() => setIsAdvancedFiltersModalOpen(true)}
+                className="flex items-center space-x-2"
+                data-testid="advanced-filters-button"
               >
-                <X className="mr-2 h-4 w-4" />
-                Limpar Filtros
+                <Filter className="h-4 w-4" />
+                <span>Filtros Avançados</span>
+                {(selectedUsers.length > 0 || selectedPhases.length > 0 || searchTerm || selectedBusinessTemp || minValue || maxValue || dateRange.from || dateRange.to) && (
+                  <Badge variant="destructive" className="h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs">
+                    {(selectedUsers.length + selectedPhases.length + (searchTerm ? 1 : 0) + (selectedBusinessTemp && selectedBusinessTemp !== 'all' ? 1 : 0) + ((minValue || maxValue) ? 1 : 0) + ((dateRange.from || dateRange.to) ? 1 : 0))}
+                  </Badge>
+                )}
               </Button>
+
+              {/* Clear All Filters Button */}
+              {(selectedUsers.length > 0 || selectedPhases.length > 0 || searchTerm || selectedBusinessTemp || minValue || maxValue || dateRange.from || dateRange.to) && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearAllFilters}
+                  data-testid="clear-all-filters"
+                >
+                  <X className="mr-2 h-4 w-4" />
+                  Limpar Filtros
+                </Button>
+              )}
             </div>
 
             {/* Active Filters Display */}
@@ -649,6 +538,198 @@ export default function CrmDashboard() {
         open={isSettingsModalOpen}
         onOpenChange={setIsSettingsModalOpen}
       />
+
+      {/* Modal de Filtros Avançados */}
+      <Dialog open={isAdvancedFiltersModalOpen} onOpenChange={setIsAdvancedFiltersModalOpen}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <Filter className="h-5 w-5" />
+              <span>Filtros Avançados</span>
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-6">
+            {/* Busca Global */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-foreground">Busca Global</Label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar cliente, empresa, CPF/CNPJ..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                  data-testid="search-input-modal"
+                />
+              </div>
+            </div>
+
+            {/* Filtros por Vendedor */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-foreground">Vendedores</Label>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                {users.map((user) => (
+                  <div key={user.id} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`user-${user.id}`}
+                      checked={selectedUsers.includes(user.name)}
+                      onCheckedChange={(checked) => {
+                        if (checked) {
+                          handleUserSelect(user.name);
+                        } else {
+                          handleUserRemove(user.name);
+                        }
+                      }}
+                    />
+                    <Label htmlFor={`user-${user.id}`} className="text-sm font-normal">
+                      {user.name}
+                    </Label>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Filtros por Fase */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-foreground">Fases</Label>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                {phaseConfig.map((phase) => (
+                  <div key={phase.key} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`phase-${phase.key}`}
+                      checked={selectedPhases.includes(phase.key)}
+                      onCheckedChange={(checked) => {
+                        if (checked) {
+                          handlePhaseSelect(phase.key);
+                        } else {
+                          handlePhaseRemove(phase.key);
+                        }
+                      }}
+                    />
+                    <Label htmlFor={`phase-${phase.key}`} className="text-sm font-normal">
+                      {phase.title}
+                    </Label>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Temperatura do Negócio */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-foreground">Temperatura do Negócio</Label>
+              <Select value={selectedBusinessTemp} onValueChange={setSelectedBusinessTemp}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione uma temperatura" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas</SelectItem>
+                  <SelectItem value="quente">Quente</SelectItem>
+                  <SelectItem value="morno">Morno</SelectItem>
+                  <SelectItem value="frio">Frio</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Faixa de Valor */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-foreground">Faixa de Valor</Label>
+              <div className="flex items-center space-x-4">
+                <div className="flex-1">
+                  <Label className="text-xs text-muted-foreground">Valor mínimo (R$)</Label>
+                  <Input
+                    placeholder="0,00"
+                    value={minValue}
+                    onChange={(e) => setMinValue(e.target.value)}
+                    type="number"
+                    data-testid="min-value-input-modal"
+                  />
+                </div>
+                <span className="text-muted-foreground mt-6">até</span>
+                <div className="flex-1">
+                  <Label className="text-xs text-muted-foreground">Valor máximo (R$)</Label>
+                  <Input
+                    placeholder="Sem limite"
+                    value={maxValue}
+                    onChange={(e) => setMaxValue(e.target.value)}
+                    type="number"
+                    data-testid="max-value-input-modal"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Período */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-foreground">Período de Criação</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-full justify-start">
+                    {dateRange.from ? (
+                      dateRange.to ? (
+                        `${format(dateRange.from, 'dd/MM/yyyy')} - ${format(dateRange.to, 'dd/MM/yyyy')}`
+                      ) : (
+                        format(dateRange.from, 'dd/MM/yyyy')
+                      )
+                    ) : (
+                      'Selecione um período'
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <Calendar
+                    mode="range"
+                    selected={dateRange as any}
+                    onSelect={setDateRange as any}
+                    numberOfMonths={2}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            {/* Ordenação */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-foreground">Ordenação</Label>
+              <Select 
+                value={`${sortBy}-${sortOrder}`} 
+                onValueChange={(value) => {
+                  const [field, order] = value.split('-');
+                  setSortBy(field);
+                  setSortOrder(order);
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="createdAt-desc">Mais Recentes</SelectItem>
+                  <SelectItem value="createdAt-asc">Mais Antigos</SelectItem>
+                  <SelectItem value="budget-desc">Maior Valor</SelectItem>
+                  <SelectItem value="budget-asc">Menor Valor</SelectItem>
+                  <SelectItem value="company-asc">Empresa A-Z</SelectItem>
+                  <SelectItem value="company-desc">Empresa Z-A</SelectItem>
+                  <SelectItem value="phase-asc">Fase</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <DialogFooter className="flex justify-between">
+            <Button
+              variant="outline"
+              onClick={clearAllFilters}
+            >
+              <X className="mr-2 h-4 w-4" />
+              Limpar Filtros
+            </Button>
+            <Button
+              onClick={() => setIsAdvancedFiltersModalOpen(false)}
+            >
+              Aplicar Filtros
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
