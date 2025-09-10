@@ -597,7 +597,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .sort((a, b) => b.revenue - a.revenue);
 
       // Motivos de perda
-      const lostOpportunities = opportunities.filter(o => o.phase === 'perdido');
       const lossReasons = lostOpportunities.reduce((acc, opp) => {
         const reason = opp.lossReason || 'Não informado';
         acc[reason] = (acc[reason] || 0) + 1;
