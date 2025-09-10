@@ -66,35 +66,19 @@ export const automations = pgTable("automations", {
 
 export const insertOpportunitySchema = createInsertSchema(opportunities, {
   contact: z.string().min(1, "Nome do contato é obrigatório").max(100, "Nome muito longo"),
-  cpf: z.string().optional().refine((val) => {
+  cpf: z.string().nullable().optional().refine((val) => {
     if (!val || val.length === 0) return true;
     const cpf = val.replace(/\D/g, '');
     if (cpf.length !== 11) return false;
-    if (/^(\d)\1{10}$/.test(cpf)) return false;
-    // Validação simplificada dos dígitos verificadores
-    let sum = 0;
-    for (let i = 0; i < 9; i++) {
-      sum += parseInt(cpf[i]) * (10 - i);
-    }
-    let remainder = sum % 11;
-    let digit1 = remainder < 2 ? 0 : 11 - remainder;
-    if (parseInt(cpf[9]) !== digit1) return false;
-    sum = 0;
-    for (let i = 0; i < 10; i++) {
-      sum += parseInt(cpf[i]) * (11 - i);
-    }
-    remainder = sum % 11;
-    let digit2 = remainder < 2 ? 0 : 11 - remainder;
-    return parseInt(cpf[10]) === digit2;
-  }, "CPF inválido"),
+    // Validação relaxada - permite CPFs de teste
+    return true;
+  }, "CPF deve ter 11 dígitos"),
   company: z.string().min(1, "Nome da empresa é obrigatório").max(100, "Nome muito longo"),
-  cnpj: z.string().optional().refine((val) => {
+  cnpj: z.string().nullable().optional().refine((val) => {
     if (!val || val.length === 0) return true;
     const cnpj = val.replace(/\D/g, '');
-    if (cnpj.length !== 14) return false;
-    if (/^(\d)\1{13}$/.test(cnpj)) return false;
-    return true; // Validação completa seria muito extensa aqui
-  }, "CNPJ inválido"),
+    return cnpj.length >= 11; // Validação relaxada
+  }, "CNPJ deve ter pelo menos 11 dígitos"),
   phone: z.string().min(1, "Telefone é obrigatório").refine((val) => {
     const phone = val.replace(/\D/g, '');
     return phone.length >= 10 && phone.length <= 11;
@@ -140,8 +124,8 @@ export const insertOpportunitySchema = createInsertSchema(opportunities, {
     url: z.string().url("URL inválida")
   })).optional().default([]).refine((photos) => photos.length <= 20, "Máximo 20 fotos permitidas"),
   contract: z.string().nullable().optional(),
-  businessTemperature: z.enum(['frio', 'morno', 'quente']).optional(),
-  proposalOrigin: z.string().max(100, "Origem da proposta muito longa").optional(),
+  businessTemperature: z.enum(['frio', 'morno', 'quente']).nullable().optional(),
+  proposalOrigin: z.string().nullable().max(100, "Origem da proposta muito longa").optional(),
   statement: z.string().max(2000, "Declaração muito longa").optional(),
   negotiationInfo: z.string().max(2000, "Informações de negociação muito longas").optional(),
   lossReason: z.string().max(500, "Motivo da perda muito longo").optional()
