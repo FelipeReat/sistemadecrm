@@ -125,7 +125,7 @@ export const insertOpportunitySchema = createInsertSchema(opportunities, {
   })).optional().default([]).refine((photos) => photos.length <= 20, "Máximo 20 fotos permitidas"),
   contract: z.string().nullable().optional(),
   businessTemperature: z.enum(['frio', 'morno', 'quente']).nullable().optional(),
-  proposalOrigin: z.string().nullable().max(100, "Origem da proposta muito longa").optional(),
+  proposalOrigin: z.union([z.string().max(100, "Origem da proposta muito longa"), z.null()]).optional(),
   statement: z.string().max(2000, "Declaração muito longa").optional(),
   negotiationInfo: z.string().max(2000, "Informações de negociação muito longas").optional(),
   lossReason: z.string().max(500, "Motivo da perda muito longo").optional()
