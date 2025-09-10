@@ -9,6 +9,7 @@ declare module 'express-session' {
   interface SessionData {
     userId?: string;
     user?: User;
+    lastAccess?: string;
   }
 }
 
@@ -53,16 +54,18 @@ export const isAuthenticated: RequestHandler = async (req, res, next) => {
       });
     }
 
-    // Verifica se a sessão não é muito antiga
-    const sessionAge = Date.now() - new Date(req.session.cookie.originalMaxAge || 0).getTime();
-    const maxAge = 7 * 24 * 60 * 60 * 1000; // 7 dias
-    
-    if (sessionAge > maxAge) {
-      console.log(`[AUTH] Sessão expirada para usuário: ${user.email}`);
-      return req.session.destroy((err) => {
-        if (res.headersSent) return;
-        return res.status(401).json({ message: "Sessão expirada" });
-      });
+    // Verifica se a sessão não é muito antiga (se lastAccess existe)
+    if (req.session.lastAccess) {
+      const sessionAge = Date.now() - new Date(req.session.lastAccess).getTime();
+      const maxAge = 7 * 24 * 60 * 60 * 1000; // 7 dias
+      
+      if (sessionAge > maxAge) {
+        console.log(`[AUTH] Sessão expirada para usuário: ${user.email}`);
+        return req.session.destroy((err) => {
+          if (res.headersSent) return;
+          return res.status(401).json({ message: "Sessão expirada" });
+        });
+      }
     }
 
     // Atualiza último acesso
