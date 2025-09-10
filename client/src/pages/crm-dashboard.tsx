@@ -310,107 +310,41 @@ export default function CrmDashboard() {
       <div className="bg-muted/50 border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="space-y-4">
-            {/* Filter Button and Active Filters */}
-            <div className="flex flex-wrap items-center gap-4">
-              <Button
-                variant="outline"
-                onClick={() => setIsAdvancedFiltersModalOpen(true)}
-                className="flex items-center space-x-2"
-                data-testid="advanced-filters-button"
-              >
-                <Filter className="h-4 w-4" />
-                <span>Filtros Avançados</span>
-                {(selectedUsers.length > 0 || selectedPhases.length > 0 || searchTerm || selectedBusinessTemp || minValue || maxValue || dateRange.from || dateRange.to) && (
-                  <Badge variant="destructive" className="h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs">
-                    {(selectedUsers.length + selectedPhases.length + (searchTerm ? 1 : 0) + (selectedBusinessTemp && selectedBusinessTemp !== 'all' ? 1 : 0) + ((minValue || maxValue) ? 1 : 0) + ((dateRange.from || dateRange.to) ? 1 : 0))}
-                  </Badge>
-                )}
-              </Button>
-
-              {/* Clear All Filters Button */}
-              {(selectedUsers.length > 0 || selectedPhases.length > 0 || searchTerm || selectedBusinessTemp || minValue || maxValue || dateRange.from || dateRange.to) && (
+            {/* Filter Controls and Results Summary */}
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+              {/* Left side: Filter Button and Clear Filters */}
+              <div className="flex flex-wrap items-center gap-4">
                 <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={clearAllFilters}
-                  data-testid="clear-all-filters"
+                  variant="outline"
+                  onClick={() => setIsAdvancedFiltersModalOpen(true)}
+                  className="flex items-center space-x-2"
+                  data-testid="advanced-filters-button"
                 >
-                  <X className="mr-2 h-4 w-4" />
-                  Limpar Filtros
+                  <Filter className="h-4 w-4" />
+                  <span>Filtros Avançados</span>
+                  {(selectedUsers.length > 0 || selectedPhases.length > 0 || searchTerm || selectedBusinessTemp || minValue || maxValue || dateRange.from || dateRange.to) && (
+                    <Badge variant="destructive" className="h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs">
+                      {(selectedUsers.length + selectedPhases.length + (searchTerm ? 1 : 0) + (selectedBusinessTemp && selectedBusinessTemp !== 'all' ? 1 : 0) + ((minValue || maxValue) ? 1 : 0) + ((dateRange.from || dateRange.to) ? 1 : 0))}
+                    </Badge>
+                  )}
                 </Button>
-              )}
-            </div>
 
-            {/* Active Filters and Results Summary */}
-            {(selectedUsers.length > 0 || selectedPhases.length > 0 || searchTerm || selectedBusinessTemp || minValue || maxValue || dateRange.from || dateRange.to) && (
-              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-                {/* Active Filters Display */}
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-sm text-muted-foreground">Filtros ativos:</span>
-                  
-                  {searchTerm && (
-                    <Badge variant="secondary" className="flex items-center gap-1">
-                      Busca: "{searchTerm}"
-                      <button onClick={() => setSearchTerm('')} className="ml-1 hover:bg-secondary-foreground/20 rounded-full p-0.5">
-                        <X className="h-3 w-3" />
-                      </button>
-                    </Badge>
-                  )}
-
-                  {selectedUsers.map((userName) => (
-                    <Badge key={userName} variant="secondary" className="flex items-center gap-1">
-                      Vendedor: {userName}
-                      <button onClick={() => handleUserRemove(userName)} className="ml-1 hover:bg-secondary-foreground/20 rounded-full p-0.5">
-                        <X className="h-3 w-3" />
-                      </button>
-                    </Badge>
-                  ))}
-
-                  {selectedPhases.map((phase) => (
-                    <Badge key={phase} variant="secondary" className="flex items-center gap-1">
-                      {phaseConfig.find(p => p.key === phase)?.title || phase}
-                      <button onClick={() => handlePhaseRemove(phase)} className="ml-1 hover:bg-secondary-foreground/20 rounded-full p-0.5">
-                        <X className="h-3 w-3" />
-                      </button>
-                    </Badge>
-                  ))}
-
-                  {selectedBusinessTemp && selectedBusinessTemp !== 'all' && (
-                    <Badge variant="secondary" className="flex items-center gap-1">
-                      {selectedBusinessTemp}
-                      <button onClick={() => setSelectedBusinessTemp('')} className="ml-1 hover:bg-secondary-foreground/20 rounded-full p-0.5">
-                        <X className="h-3 w-3" />
-                      </button>
-                    </Badge>
-                  )}
-
-                  {(minValue || maxValue) && (
-                    <Badge variant="secondary" className="flex items-center gap-1">
-                      R$ {minValue || '0'} - {maxValue || '∞'}
-                      <button onClick={() => { setMinValue(''); setMaxValue(''); }} className="ml-1 hover:bg-secondary-foreground/20 rounded-full p-0.5">
-                        <X className="h-3 w-3" />
-                      </button>
-                    </Badge>
-                  )}
-                </div>
-
-                {/* Results Summary */}
-                <div className="text-sm text-muted-foreground flex-shrink-0">
-                  Mostrando {sortedAndFilteredOpportunities.length} de {opportunities.length} oportunidades
-                  {projectedRevenue > 0 && (
-                    <span className="ml-4">
-                      • Receita projetada: <span className="font-medium text-foreground">
-                        R$ {projectedRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                      </span>
-                    </span>
-                  )}
-                </div>
+                {/* Clear All Filters Button */}
+                {(selectedUsers.length > 0 || selectedPhases.length > 0 || searchTerm || selectedBusinessTemp || minValue || maxValue || dateRange.from || dateRange.to) && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={clearAllFilters}
+                    data-testid="clear-all-filters"
+                  >
+                    <X className="mr-2 h-4 w-4" />
+                    Limpar Filtros
+                  </Button>
+                )}
               </div>
-            )}
 
-            {/* Results Summary quando não há filtros ativos */}
-            {!(selectedUsers.length > 0 || selectedPhases.length > 0 || searchTerm || selectedBusinessTemp || minValue || maxValue || dateRange.from || dateRange.to) && (
-              <div className="text-sm text-muted-foreground">
+              {/* Right side: Results Summary */}
+              <div className="text-sm text-muted-foreground flex-shrink-0">
                 Mostrando {sortedAndFilteredOpportunities.length} de {opportunities.length} oportunidades
                 {projectedRevenue > 0 && (
                   <span className="ml-4">
@@ -418,6 +352,58 @@ export default function CrmDashboard() {
                       R$ {projectedRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                     </span>
                   </span>
+                )}
+              </div>
+            </div>
+
+            {/* Active Filters Display */}
+            {(selectedUsers.length > 0 || selectedPhases.length > 0 || searchTerm || selectedBusinessTemp || minValue || maxValue || dateRange.from || dateRange.to) && (
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-sm text-muted-foreground">Filtros ativos:</span>
+                
+                {searchTerm && (
+                  <Badge variant="secondary" className="flex items-center gap-1">
+                    Busca: "{searchTerm}"
+                    <button onClick={() => setSearchTerm('')} className="ml-1 hover:bg-secondary-foreground/20 rounded-full p-0.5">
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                )}
+
+                {selectedUsers.map((userName) => (
+                  <Badge key={userName} variant="secondary" className="flex items-center gap-1">
+                    Vendedor: {userName}
+                    <button onClick={() => handleUserRemove(userName)} className="ml-1 hover:bg-secondary-foreground/20 rounded-full p-0.5">
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                ))}
+
+                {selectedPhases.map((phase) => (
+                  <Badge key={phase} variant="secondary" className="flex items-center gap-1">
+                    {phaseConfig.find(p => p.key === phase)?.title || phase}
+                    <button onClick={() => handlePhaseRemove(phase)} className="ml-1 hover:bg-secondary-foreground/20 rounded-full p-0.5">
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                ))}
+
+                {selectedBusinessTemp && selectedBusinessTemp !== 'all' && (
+                  <Badge variant="secondary" className="flex items-center gap-1">
+                    {selectedBusinessTemp}
+                    <button onClick={() => setSelectedBusinessTemp('')} className="ml-1 hover:bg-secondary-foreground/20 rounded-full p-0.5">
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                )}
+
+                {(minValue || maxValue) && (
+                  <Badge variant="secondary" className="flex items-center gap-1">
+                    R$ {minValue || '0'} - {maxValue || '∞'}
+                    <button onClick={() => { setMinValue(''); setMaxValue(''); }} className="ml-1 hover:bg-secondary-foreground/20 rounded-full p-0.5">
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
                 )}
               </div>
             )}
