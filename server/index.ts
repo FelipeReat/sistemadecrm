@@ -58,10 +58,9 @@ app.use((req, res, next) => {
   // setting up all the other routes so the catch-all route
   // doesn't interfere with the other routes
   console.log("NODE_ENV:", process.env.NODE_ENV);
-  // Force development mode since we're running the dev script
-  // The Windows 'set' command doesn't work properly on Linux
-  const isProduction = false;
-  console.log("Forcing development mode, isProduction:", isProduction);
+  // Detect production mode from NODE_ENV
+  const isProduction = process.env.NODE_ENV === 'production';
+  console.log("Production mode detection, isProduction:", isProduction);
 
   if (!isProduction) {
     log("Setting up Vite development server");
@@ -72,15 +71,15 @@ app.use((req, res, next) => {
   }
 
   // ALWAYS serve the app on port 5000 in Replit
-  // Other ports are firewalled. Force port 5000 for Replit compatibility.
+  // Other ports are firewalled. Use environment-aware port selection for portability.
   // this serves both the API and the client.
-  // It is the only port that is not firewalled.
-  const port = 5000;
+  // It is the only port that is not firewalled in Replit.
+  const port = process.env.REPL_ID ? 5000 : parseInt(process.env.PORT || "5000", 10);
 
-  // Use different host binding for development vs production
-  // Development (Replit): needs 0.0.0.0 to be accessible
-  // Production (Windows): use localhost to SSSSavoid Windows socket issues
-  const host = isProduction ? "localhost" : "0.0.0.0";
+  // Use configurable host binding with safe default
+  // Default to 0.0.0.0 for accessibility in cloud environments like Replit
+  // Can be overridden with HOST environment variable if needed
+  const host = process.env.HOST || "0.0.0.0";
 
   server.listen(
     {
