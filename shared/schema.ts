@@ -124,7 +124,7 @@ export const insertOpportunitySchema = createInsertSchema(opportunities, {
     return date > now;
   }, "Data de validade deve ser futura"),
   phaseUpdatedAt: z.string().optional(),
-  createdBy: z.string().optional(),
+  createdBy: z.string().min(1, "Criado por é obrigatório"),
   documents: z.array(z.object({
     id: z.string(),
     name: z.string().max(255, "Nome do arquivo muito longo"),

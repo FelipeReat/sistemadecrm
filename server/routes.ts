@@ -229,8 +229,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const opportunity = await storage.createOpportunity(opportunityData);
       res.status(201).json(opportunity);
     } catch (error: any) {
+      console.error("Erro ao criar oportunidade:", error);
+      console.log("Dados recebidos:", req.body);
       if (error.name === "ZodError") {
         const validationError = fromZodError(error);
+        console.log("Erro de validação detalhado:", validationError);
         return res.status(400).json({ message: validationError.message });
       }
       res.status(500).json({ message: "Erro ao criar oportunidade" });
