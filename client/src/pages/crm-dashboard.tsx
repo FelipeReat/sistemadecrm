@@ -341,69 +341,86 @@ export default function CrmDashboard() {
               )}
             </div>
 
-            {/* Active Filters Display */}
+            {/* Active Filters and Results Summary */}
             {(selectedUsers.length > 0 || selectedPhases.length > 0 || searchTerm || selectedBusinessTemp || minValue || maxValue || dateRange.from || dateRange.to) && (
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-sm text-muted-foreground">Filtros ativos:</span>
-                
-                {searchTerm && (
-                  <Badge variant="secondary" className="flex items-center gap-1">
-                    Busca: "{searchTerm}"
-                    <button onClick={() => setSearchTerm('')} className="ml-1 hover:bg-secondary-foreground/20 rounded-full p-0.5">
-                      <X className="h-3 w-3" />
-                    </button>
-                  </Badge>
-                )}
+              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                {/* Active Filters Display */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-sm text-muted-foreground">Filtros ativos:</span>
+                  
+                  {searchTerm && (
+                    <Badge variant="secondary" className="flex items-center gap-1">
+                      Busca: "{searchTerm}"
+                      <button onClick={() => setSearchTerm('')} className="ml-1 hover:bg-secondary-foreground/20 rounded-full p-0.5">
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  )}
 
-                {selectedUsers.map((userName) => (
-                  <Badge key={userName} variant="secondary" className="flex items-center gap-1">
-                    Vendedor: {userName}
-                    <button onClick={() => handleUserRemove(userName)} className="ml-1 hover:bg-secondary-foreground/20 rounded-full p-0.5">
-                      <X className="h-3 w-3" />
-                    </button>
-                  </Badge>
-                ))}
+                  {selectedUsers.map((userName) => (
+                    <Badge key={userName} variant="secondary" className="flex items-center gap-1">
+                      Vendedor: {userName}
+                      <button onClick={() => handleUserRemove(userName)} className="ml-1 hover:bg-secondary-foreground/20 rounded-full p-0.5">
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
 
-                {selectedPhases.map((phase) => (
-                  <Badge key={phase} variant="secondary" className="flex items-center gap-1">
-                    {phaseConfig.find(p => p.key === phase)?.title || phase}
-                    <button onClick={() => handlePhaseRemove(phase)} className="ml-1 hover:bg-secondary-foreground/20 rounded-full p-0.5">
-                      <X className="h-3 w-3" />
-                    </button>
-                  </Badge>
-                ))}
+                  {selectedPhases.map((phase) => (
+                    <Badge key={phase} variant="secondary" className="flex items-center gap-1">
+                      {phaseConfig.find(p => p.key === phase)?.title || phase}
+                      <button onClick={() => handlePhaseRemove(phase)} className="ml-1 hover:bg-secondary-foreground/20 rounded-full p-0.5">
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
 
-                {selectedBusinessTemp && selectedBusinessTemp !== 'all' && (
-                  <Badge variant="secondary" className="flex items-center gap-1">
-                    {selectedBusinessTemp}
-                    <button onClick={() => setSelectedBusinessTemp('')} className="ml-1 hover:bg-secondary-foreground/20 rounded-full p-0.5">
-                      <X className="h-3 w-3" />
-                    </button>
-                  </Badge>
-                )}
+                  {selectedBusinessTemp && selectedBusinessTemp !== 'all' && (
+                    <Badge variant="secondary" className="flex items-center gap-1">
+                      {selectedBusinessTemp}
+                      <button onClick={() => setSelectedBusinessTemp('')} className="ml-1 hover:bg-secondary-foreground/20 rounded-full p-0.5">
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  )}
 
-                {(minValue || maxValue) && (
-                  <Badge variant="secondary" className="flex items-center gap-1">
-                    R$ {minValue || '0'} - {maxValue || '∞'}
-                    <button onClick={() => { setMinValue(''); setMaxValue(''); }} className="ml-1 hover:bg-secondary-foreground/20 rounded-full p-0.5">
-                      <X className="h-3 w-3" />
-                    </button>
-                  </Badge>
-                )}
+                  {(minValue || maxValue) && (
+                    <Badge variant="secondary" className="flex items-center gap-1">
+                      R$ {minValue || '0'} - {maxValue || '∞'}
+                      <button onClick={() => { setMinValue(''); setMaxValue(''); }} className="ml-1 hover:bg-secondary-foreground/20 rounded-full p-0.5">
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  )}
+                </div>
+
+                {/* Results Summary */}
+                <div className="text-sm text-muted-foreground flex-shrink-0">
+                  Mostrando {sortedAndFilteredOpportunities.length} de {opportunities.length} oportunidades
+                  {projectedRevenue > 0 && (
+                    <span className="ml-4">
+                      • Receita projetada: <span className="font-medium text-foreground">
+                        R$ {projectedRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      </span>
+                    </span>
+                  )}
+                </div>
               </div>
             )}
 
-            {/* Results Summary */}
-            <div className="text-sm text-muted-foreground">
-              Mostrando {sortedAndFilteredOpportunities.length} de {opportunities.length} oportunidades
-              {projectedRevenue > 0 && (
-                <span className="ml-4">
-                  • Receita projetada dos filtrados: <span className="font-medium text-foreground">
-                    R$ {projectedRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+            {/* Results Summary quando não há filtros ativos */}
+            {!(selectedUsers.length > 0 || selectedPhases.length > 0 || searchTerm || selectedBusinessTemp || minValue || maxValue || dateRange.from || dateRange.to) && (
+              <div className="text-sm text-muted-foreground">
+                Mostrando {sortedAndFilteredOpportunities.length} de {opportunities.length} oportunidades
+                {projectedRevenue > 0 && (
+                  <span className="ml-4">
+                    • Receita projetada: <span className="font-medium text-foreground">
+                      R$ {projectedRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    </span>
                   </span>
-                </span>
-              )}
-            </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
