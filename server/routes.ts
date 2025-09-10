@@ -31,7 +31,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/auth/login", async (req, res) => {
     try {
       const { email, password } = loginSchema.parse(req.body);
-      
+
       // Verifica rate limiting
       if (rateLimiter.isBlocked(email)) {
         const blockTime = rateLimiter.getBlockTimeRemaining(email);
@@ -47,12 +47,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         rateLimiter.recordFailedAttempt(email);
         const remaining = rateLimiter.getRemainingAttempts(email);
         console.log(`[AUTH] Falha de login para ${email}, tentativas restantes: ${remaining}`);
-        
+
         let message = "Email ou senha inválidos";
         if (remaining <= 2) {
           message += `. Restam ${remaining} tentativas antes do bloqueio.`;
         }
-        
+
         return res.status(401).json({ message });
       }
 
@@ -505,101 +505,131 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Reports endpoints
+  // Reports endpoints - dados reais do CRM
   app.get("/api/reports/dashboard", isAuthenticated, async (req, res) => {
     try {
       const opportunities = await storage.getOpportunities();
+      const users = await storage.getUsers();
 
-      // Calculate average sales cycle (in days)
-      const wonOpportunities = opportunities.filter(o => o.phase === 'ganho' && o.createdAt);
-      const avgSalesCycle = wonOpportunities.length > 0 
-        ? wonOpportunities.reduce((sum, opp) => {
-            const created = new Date(opp.createdAt!);
-            const now = new Date();
-            const daysDiff = (now.getTime() - created.getTime()) / (1000 * 3600 * 24);
-            return sum + daysDiff;
-          }, 0) / wonOpportunities.length
-        : 0;
+      // Métricas básicas
+      const totalOpportunities = opportunities.length;
+      const wonOpportunities = opportunities.filter(o => o.phase === 'ganho').length;
+      const lostOpportunities = opportunities.filter(o => o.phase === 'perdido').length;
+      const activeOpportunities = opportunities.filter(o => !['ganho', 'perdido'].includes(o.phase)).length;
 
-      // Calculate total revenue from won opportunities
-      const totalRevenue = wonOpportunities.reduce((sum, opp) => {
-        return sum + (opp.finalValue ? parseFloat(opp.finalValue.toString()) : 
-                     opp.budget ? parseFloat(opp.budget.toString()) : 0);
+      // Receita total
+      const totalRevenue = opportunities
+        .filter(o => o.phase === 'ganho')
+        .reduce((sum, opp) => {
+          const value = parseFloat(opp.finalValue?.toString() || opp.budget?.toString() || '0');
+          return sum + (isNaN(value) ? 0 : value);
+        }, 0);
+
+      // Valor total do pipeline
+      const pipelineValue = opportunities.reduce((sum, opp) => {
+        const value = parseFloat(opp.budget?.toString() || '0');
+        return sum + (isNaN(value) ? 0 : value);
       }, 0);
 
-      // Opportunities by phase
-      const phaseNames = {
-        'prospeccao': 'Prospecção',
-        'em-atendimento': 'Em Atendimento',
-        'visita-tecnica': 'Visita Técnica',
-        'proposta': 'Proposta',
-        'negociacao': 'Negociação',
-        'ganho': 'Ganho',
-        'perdido': 'Perdido'
-      };
+      // Taxa de conversão
+      const conversionRate = totalOpportunities > 0 ? (wonOpportunities / totalOpportunities) * 100 : 0;
 
-      const opportunitiesByPhase = Object.entries(phaseNames).map(([phase, phaseName]) => ({
+      // Ticket médio
+      const avgTicket = wonOpportunities > 0 ? totalRevenue / wonOpportunities : 0;
+
+      // Tempo médio de ciclo de venda
+      const avgSalesCycle = wonOpportunities > 0 
+        ? opportunities
+            .filter(o => o.phase === 'ganho')
+            .reduce((sum, opp) => {
+              const created = new Date(opp.createdAt);
+              const updated = new Date(opp.updatedAt);
+              const cycleDays = Math.floor((updated.getTime() - created.getTime()) / (1000 * 60 * 60 * 24));
+              return sum + Math.max(cycleDays, 1); // Mínimo 1 dia
+            }, 0) / wonOpportunities
+        : 0;
+
+      // Distribuição por fase
+      const phaseCounts = opportunities.reduce((acc, opp) => {
+        acc[opp.phase] = (acc[opp.phase] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+
+      const phaseDistribution = Object.entries(phaseCounts).map(([phase, count]) => ({
         phase,
-        phaseName,
-        count: opportunities.filter(o => o.phase === phase).length
-      })).filter(item => item.count > 0);
+        count,
+        percentage: totalOpportunities > 0 ? Math.round((count / totalOpportunities) * 100) : 0
+      }));
 
-      // Business temperatures
-      const total = opportunities.length;
+      // Distribuição por temperatura
       const temperatureCounts = opportunities.reduce((acc, opp) => {
         const temp = opp.businessTemperature || 'morno';
         acc[temp] = (acc[temp] || 0) + 1;
         return acc;
       }, {} as Record<string, number>);
 
-      const businessTemperatures = Object.entries(temperatureCounts).map(([temperature, count]) => ({
-        temperature: temperature.charAt(0).toUpperCase() + temperature.slice(1),
+      const temperatureDistribution = Object.entries(temperatureCounts).map(([temperature, count]) => ({
+        temperature,
         count,
-        percentage: total > 0 ? Math.round((count / total) * 100) : 0
+        percentage: totalOpportunities > 0 ? Math.round((count / totalOpportunities) * 100) : 0
       }));
 
-      // Loss reasons
+      // Performance por vendedor
+      const salesPerformance = users
+        .filter(u => u.role === 'usuario')
+        .map(user => {
+          const userOpportunities = opportunities.filter(o => o.salesperson === user.name);
+          const userWon = userOpportunities.filter(o => o.phase === 'ganho');
+          const userRevenue = userWon.reduce((sum, opp) => {
+            const value = parseFloat(opp.finalValue?.toString() || opp.budget?.toString() || '0');
+            return sum + (isNaN(value) ? 0 : value);
+          }, 0);
+
+          return {
+            salesperson: user.name,
+            totalOpportunities: userOpportunities.length,
+            wonOpportunities: userWon.length,
+            revenue: userRevenue,
+            conversionRate: userOpportunities.length > 0 ? (userWon.length / userOpportunities.length) * 100 : 0
+          };
+        })
+        .filter(s => s.totalOpportunities > 0)
+        .sort((a, b) => b.revenue - a.revenue);
+
+      // Motivos de perda
       const lostOpportunities = opportunities.filter(o => o.phase === 'perdido');
-      const lossReasonCounts = lostOpportunities.reduce((acc, opp) => {
+      const lossReasons = lostOpportunities.reduce((acc, opp) => {
         const reason = opp.lossReason || 'Não informado';
         acc[reason] = (acc[reason] || 0) + 1;
         return acc;
       }, {} as Record<string, number>);
 
-      const lossReasons = Object.entries(lossReasonCounts).map(([reason, count]) => ({
-        reason,
-        count
-      })).sort((a, b) => b.count - a.count);
-
-      // Opportunities by salesperson
-      const salespersonCounts = opportunities.reduce((acc, opp) => {
-        const salesperson = opp.salesperson || 'Não atribuído';
-        acc[salesperson] = (acc[salesperson] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
-
-      const opportunitiesBySalesperson = Object.entries(salespersonCounts).map(([salesperson, count]) => ({
-        salesperson,
-        count,
-        percentage: total > 0 ? Math.round((count / total) * 100) : 0
-      })).sort((a, b) => b.count - a.count);
-
-      // Monthly stats
-      const monthlyStats = {
-        totalOpportunities: opportunities.length,
-        wonOpportunities: opportunities.filter(o => o.phase === 'ganho').length,
-        lostOpportunities: opportunities.filter(o => o.phase === 'perdido').length,
-        activeOpportunities: opportunities.filter(o => !['ganho', 'perdido'].includes(o.phase)).length
-      };
+      const lossReasonsArray = Object.entries(lossReasons)
+        .map(([reason, count]) => ({ reason, count }))
+        .sort((a, b) => b.count - a.count);
 
       const reportData = {
-        avgSalesCycle,
-        totalRevenue,
-        opportunitiesByPhase,
-        businessTemperatures,
-        lossReasons,
-        opportunitiesBySalesperson,
-        monthlyStats
+        summary: {
+          totalOpportunities,
+          wonOpportunities,
+          lostOpportunities,
+          activeOpportunities,
+          totalRevenue,
+          pipelineValue,
+          conversionRate,
+          avgTicket,
+          avgSalesCycle
+        },
+        distributions: {
+          phases: phaseDistribution,
+          temperatures: temperatureDistribution
+        },
+        performance: {
+          salespeople: salesPerformance
+        },
+        lossAnalysis: {
+          reasons: lossReasonsArray
+        }
       };
 
       res.json(reportData);
@@ -940,7 +970,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Enhanced API routes for new features
-  
+
   // User Settings
   app.get("/api/user/settings", isAuthenticated, async (req, res) => {
     try {

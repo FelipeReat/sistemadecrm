@@ -1,171 +1,221 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+
+import { useQuery } from "@tanstack/react-query";
 import { useState, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import { 
-  Plus, 
   Search, 
   Filter, 
-  MoreVertical, 
-  Edit, 
-  Trash2, 
-  Play, 
-  Pause, 
   RefreshCw, 
   Clock, 
   BarChart3, 
   TrendingUp, 
-  Users, 
+  Thermometer,
   Target,
-  Eye,
-  Share2,
-  Download
+  DollarSign,
+  Users,
+  Calendar,
+  Award
 } from "lucide-react";
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger,
-  DropdownMenuSeparator
-} from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
-import type { SavedReport } from "@shared/schema";
+import type { Opportunity, User } from "@shared/schema";
+import { PHASES } from "@shared/schema";
 
 export default function ReportsDashboard() {
-  const queryClient = useQueryClient();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("all");
-  const [createReportOpen, setCreateReportOpen] = useState(false);
+  const [selectedPhase, setSelectedPhase] = useState("all");
+  const [selectedTemperature, setSelectedTemperature] = useState("all");
 
-  // Fetch saved reports
-  const { data: savedReports = [], isLoading: reportsLoading, refetch: refetchReports } = useQuery<SavedReport[]>({
-    queryKey: ["/api/reports/saved"],
-    refetchInterval: 60000,
-  });
-
-  // Fetch quick stats
-  const { data: quickStats, isLoading: statsLoading } = useQuery({
-    queryKey: ["/api/reports/quick-stats"],
+  // Fetch opportunities
+  const { data: opportunities = [], isLoading: opportunitiesLoading, refetch } = useQuery<Opportunity[]>({
+    queryKey: ["/api/opportunities"],
     refetchInterval: 30000,
   });
 
-  // Filter reports
-  const filteredReports = useMemo(() => {
-    let filtered = savedReports;
+  // Fetch users
+  const { data: users = [] } = useQuery<User[]>({
+    queryKey: ["/api/users/salespeople"],
+  });
 
-    if (selectedCategory !== "all") {
-      filtered = filtered.filter(report => report.category === selectedCategory);
+  // Filter opportunities
+  const filteredOpportunities = useMemo(() => {
+    let filtered = opportunities;
+
+    if (selectedPhase !== "all") {
+      filtered = filtered.filter(opp => opp.phase === selectedPhase);
+    }
+
+    if (selectedTemperature !== "all") {
+      filtered = filtered.filter(opp => opp.businessTemperature === selectedTemperature);
     }
 
     if (searchTerm) {
-      filtered = filtered.filter(report => 
-        report.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (report.description && report.description.toLowerCase().includes(searchTerm.toLowerCase()))
+      filtered = filtered.filter(opp => 
+        opp.contact.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        opp.company.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
     return filtered;
-  }, [savedReports, searchTerm, selectedCategory]);
+  }, [opportunities, selectedPhase, selectedTemperature, searchTerm]);
 
-  // Handle actions
-  const handleRunReport = async (reportId: string) => {
-    try {
-      await apiRequest("POST", `/api/reports/saved/${reportId}/run`);
-      await refetchReports();
-      toast({
-        title: "Relatório atualizado",
-        description: "Os dados foram atualizados com sucesso."
-      });
-    } catch (error) {
-      toast({
-        title: "Erro",
-        description: "Não foi possível executar o relatório.",
-        variant: "destructive"
-      });
-    }
+  // Calculate metrics
+  const metrics = useMemo(() => {
+    const total = filteredOpportunities.length;
+    const won = filteredOpportunities.filter(o => o.phase === 'ganho').length;
+    const lost = filteredOpportunities.filter(o => o.phase === 'perdido').length;
+    const active = filteredOpportunities.filter(o => !['ganho', 'perdido'].includes(o.phase)).length;
+
+    const totalValue = filteredOpportunities.reduce((sum, o) => {
+      const value = parseFloat(o.budget?.toString() || '0');
+      return sum + (isNaN(value) ? 0 : value);
+    }, 0);
+
+    const wonValue = filteredOpportunities
+      .filter(o => o.phase === 'ganho')
+      .reduce((sum, o) => {
+        const value = parseFloat(o.finalValue?.toString() || o.budget?.toString() || '0');
+        return sum + (isNaN(value) ? 0 : value);
+      }, 0);
+
+    const conversionRate = total > 0 ? (won / total) * 100 : 0;
+    const avgTicket = won > 0 ? wonValue / won : 0;
+
+    return {
+      total,
+      won,
+      lost,
+      active,
+      totalValue,
+      wonValue,
+      conversionRate,
+      avgTicket
+    };
+  }, [filteredOpportunities]);
+
+  // Phase distribution
+  const phaseDistribution = useMemo(() => {
+    const phaseCounts = filteredOpportunities.reduce((acc, opp) => {
+      acc[opp.phase] = (acc[opp.phase] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    const phaseConfig = [
+      { key: PHASES.PROSPECCAO, title: "Prospecção", color: "bg-orange-500" },
+      { key: PHASES.EM_ATENDIMENTO, title: "Em Atendimento", color: "bg-purple-500" },
+      { key: PHASES.VISITA_TECNICA, title: "Visita Técnica", color: "bg-blue-500" },
+      { key: PHASES.PROPOSTA, title: "Proposta", color: "bg-pink-500" },
+      { key: PHASES.NEGOCIACAO, title: "Negociação", color: "bg-indigo-500" },
+      { key: PHASES.GANHO, title: "Ganho", color: "bg-green-500" },
+      { key: PHASES.PERDIDO, title: "Perdido", color: "bg-red-500" },
+    ];
+
+    return phaseConfig.map(phase => ({
+      ...phase,
+      count: phaseCounts[phase.key] || 0,
+      percentage: filteredOpportunities.length > 0 ? ((phaseCounts[phase.key] || 0) / filteredOpportunities.length) * 100 : 0
+    })).filter(phase => phase.count > 0);
+  }, [filteredOpportunities]);
+
+  // Temperature distribution
+  const temperatureDistribution = useMemo(() => {
+    const tempCounts = filteredOpportunities.reduce((acc, opp) => {
+      const temp = opp.businessTemperature || 'morno';
+      acc[temp] = (acc[temp] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    return [
+      { name: "Quente", value: tempCounts.quente || 0, color: "bg-red-500" },
+      { name: "Morno", value: tempCounts.morno || 0, color: "bg-yellow-500" },
+      { name: "Frio", value: tempCounts.frio || 0, color: "bg-blue-500" }
+    ].filter(temp => temp.value > 0);
+  }, [filteredOpportunities]);
+
+  // Average time per phase (simplified calculation)
+  const averageTimePerPhase = useMemo(() => {
+    const phaseConfig = [
+      { key: PHASES.PROSPECCAO, title: "Prospecção" },
+      { key: PHASES.EM_ATENDIMENTO, title: "Em Atendimento" },
+      { key: PHASES.VISITA_TECNICA, title: "Visita Técnica" },
+      { key: PHASES.PROPOSTA, title: "Proposta" },
+      { key: PHASES.NEGOCIACAO, title: "Negociação" },
+    ];
+
+    return phaseConfig.map(phase => {
+      const phaseOpportunities = filteredOpportunities.filter(o => o.phase === phase.key);
+      
+      if (phaseOpportunities.length === 0) return { ...phase, avgDays: 0, count: 0 };
+
+      const avgDays = phaseOpportunities.reduce((sum, opp) => {
+        const createdAt = new Date(opp.createdAt);
+        const now = new Date();
+        const daysDiff = Math.floor((now.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24));
+        return sum + daysDiff;
+      }, 0) / phaseOpportunities.length;
+
+      return {
+        ...phase,
+        avgDays: Math.round(avgDays),
+        count: phaseOpportunities.length
+      };
+    }).filter(phase => phase.count > 0);
+  }, [filteredOpportunities]);
+
+  // Performance by salesperson
+  const performanceBySalesperson = useMemo(() => {
+    const salespeople = users.reduce((acc, user) => {
+      acc[user.name] = { name: user.name, total: 0, won: 0, value: 0 };
+      return acc;
+    }, {} as Record<string, { name: string; total: number; won: number; value: number }>);
+
+    filteredOpportunities.forEach(opp => {
+      const salesperson = opp.salesperson || 'Não atribuído';
+      if (!salespeople[salesperson]) {
+        salespeople[salesperson] = { name: salesperson, total: 0, won: 0, value: 0 };
+      }
+
+      salespeople[salesperson].total++;
+      if (opp.phase === 'ganho') {
+        salespeople[salesperson].won++;
+        const value = parseFloat(opp.finalValue?.toString() || opp.budget?.toString() || '0');
+        salespeople[salesperson].value += isNaN(value) ? 0 : value;
+      }
+    });
+
+    return Object.values(salespeople)
+      .filter(s => s.total > 0)
+      .map(s => ({
+        ...s,
+        conversionRate: s.total > 0 ? (s.won / s.total) * 100 : 0
+      }))
+      .sort((a, b) => b.value - a.value);
+  }, [filteredOpportunities, users]);
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+    }).format(value);
   };
 
-  const handleDeleteReport = async (reportId: string) => {
-    try {
-      await apiRequest("DELETE", `/api/reports/saved/${reportId}`);
-      await refetchReports();
-      toast({
-        title: "Relatório removido",
-        description: "O relatório foi excluído com sucesso."
-      });
-    } catch (error) {
-      toast({
-        title: "Erro",
-        description: "Não foi possível remover o relatório.",
-        variant: "destructive"
-      });
-    }
-  };
-
-  if (reportsLoading || statsLoading) {
+  if (opportunitiesLoading) {
     return (
       <div className="min-h-screen bg-background p-6">
         <div className="max-w-7xl mx-auto">
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-foreground">Central de Relatórios</h1>
-            <p className="text-muted-foreground mt-2">Carregando seus relatórios...</p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {[1, 2, 3].map((i) => (
-              <Card key={i} className="animate-pulse">
-                <CardHeader>
-                  <div className="h-4 bg-muted rounded w-3/4"></div>
-                  <div className="h-3 bg-muted rounded w-1/2"></div>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-20 bg-muted rounded"></div>
-                </CardContent>
-              </Card>
-            ))}
+            <h1 className="text-3xl font-bold text-foreground">Relatórios do CRM</h1>
+            <p className="text-muted-foreground mt-2">Carregando dados...</p>
           </div>
         </div>
       </div>
     );
   }
-
-  const getCategoryIcon = (category: string) => {
-    switch (category) {
-      case 'performance': return <TrendingUp className="h-4 w-4" />;
-      case 'pipeline': return <BarChart3 className="h-4 w-4" />;
-      case 'analysis': return <Target className="h-4 w-4" />;
-      default: return <BarChart3 className="h-4 w-4" />;
-    }
-  };
-
-  const getCategoryName = (category: string) => {
-    switch (category) {
-      case 'performance': return 'Performance';
-      case 'pipeline': return 'Pipeline';
-      case 'analysis': return 'Análise';
-      case 'custom': return 'Personalizado';
-      default: return 'Outros';
-    }
-  };
-
-  const formatLastGenerated = (date: string | null) => {
-    if (!date) return 'Nunca executado';
-    const now = new Date();
-    const generated = new Date(date);
-    const diffMs = now.getTime() - generated.getTime();
-    const diffMins = Math.floor(diffMs / (1000 * 60));
-    
-    if (diffMins < 1) return 'Agora mesmo';
-    if (diffMins < 60) return `${diffMins} min atrás`;
-    if (diffMins < 1440) return `${Math.floor(diffMins / 60)}h atrás`;
-    return `${Math.floor(diffMins / 1440)} dias atrás`;
-  };
 
   return (
     <div className="min-h-screen bg-background" data-testid="reports-dashboard">
@@ -174,96 +224,16 @@ export default function ReportsDashboard() {
         <div className="mb-8">
           <div className="flex justify-between items-start">
             <div>
-              <h1 className="text-3xl font-bold text-foreground">Central de Relatórios</h1>
+              <h1 className="text-3xl font-bold text-foreground">Relatórios do CRM</h1>
               <p className="text-muted-foreground mt-2">
-                Gerencie e visualize seus relatórios personalizados
+                Análise completa do funil de vendas e performance
               </p>
             </div>
-            <Dialog open={createReportOpen} onOpenChange={setCreateReportOpen}>
-              <DialogTrigger asChild>
-                <Button data-testid="button-create-report">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Novo Relatório
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-2xl">
-                <DialogHeader>
-                  <DialogTitle>Criar Novo Relatório</DialogTitle>
-                  <DialogDescription>
-                    Configure seu relatório personalizado com filtros e visualizações
-                  </DialogDescription>
-                </DialogHeader>
-                <CreateReportForm onSuccess={() => {
-                  setCreateReportOpen(false);
-                  refetchReports();
-                }} />
-              </DialogContent>
-            </Dialog>
+            <Button onClick={() => refetch()} variant="outline">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Atualizar
+            </Button>
           </div>
-        </div>
-
-        {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total de Relatórios</CardTitle>
-              <BarChart3 className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{savedReports.length}</div>
-              <p className="text-xs text-muted-foreground">
-                {savedReports.filter(r => r.autoRefresh).length} com auto-atualização
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Executados Hoje</CardTitle>
-              <RefreshCw className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {savedReports.filter(r => {
-                  if (!r.lastGenerated) return false;
-                  const today = new Date().toDateString();
-                  const generated = new Date(r.lastGenerated).toDateString();
-                  return today === generated;
-                }).length}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Relatórios atualizados
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Mais Popular</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">Pipeline</div>
-              <p className="text-xs text-muted-foreground">
-                Categoria mais usada
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Públicos</CardTitle>
-              <Share2 className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {savedReports.filter(r => r.isPublic).length}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Compartilhados com equipe
-              </p>
-            </CardContent>
-          </Card>
         </div>
 
         {/* Filters */}
@@ -271,226 +241,208 @@ export default function ReportsDashboard() {
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Buscar relatórios..."
+              placeholder="Buscar por cliente ou empresa..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10"
-              data-testid="input-search-reports"
             />
           </div>
-          <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-            <SelectTrigger className="w-48" data-testid="select-category">
+          <Select value={selectedPhase} onValueChange={setSelectedPhase}>
+            <SelectTrigger className="w-48">
               <Filter className="h-4 w-4 mr-2" />
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Todas as categorias</SelectItem>
-              <SelectItem value="custom">Personalizado</SelectItem>
-              <SelectItem value="performance">Performance</SelectItem>
-              <SelectItem value="pipeline">Pipeline</SelectItem>
-              <SelectItem value="analysis">Análise</SelectItem>
+              <SelectItem value="all">Todas as fases</SelectItem>
+              <SelectItem value="prospeccao">Prospecção</SelectItem>
+              <SelectItem value="em_atendimento">Em Atendimento</SelectItem>
+              <SelectItem value="visita_tecnica">Visita Técnica</SelectItem>
+              <SelectItem value="proposta">Proposta</SelectItem>
+              <SelectItem value="negociacao">Negociação</SelectItem>
+              <SelectItem value="ganho">Ganho</SelectItem>
+              <SelectItem value="perdido">Perdido</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={selectedTemperature} onValueChange={setSelectedTemperature}>
+            <SelectTrigger className="w-48">
+              <Thermometer className="h-4 w-4 mr-2" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas as temperaturas</SelectItem>
+              <SelectItem value="quente">Quente</SelectItem>
+              <SelectItem value="morno">Morno</SelectItem>
+              <SelectItem value="frio">Frio</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
-        {/* Reports Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredReports.map((report) => (
-            <Card key={report.id} className="hover:shadow-md transition-shadow">
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
+        {/* Summary Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total de Oportunidades</CardTitle>
+              <Target className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{metrics.total}</div>
+              <p className="text-xs text-muted-foreground">
+                {metrics.active} ativas • {metrics.won} ganhas • {metrics.lost} perdidas
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Taxa de Conversão</CardTitle>
+              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{metrics.conversionRate.toFixed(1)}%</div>
+              <p className="text-xs text-muted-foreground">
+                {metrics.won} conversões de {metrics.total} oportunidades
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Receita Total</CardTitle>
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{formatCurrency(metrics.wonValue)}</div>
+              <p className="text-xs text-muted-foreground">
+                De {formatCurrency(metrics.totalValue)} em pipeline
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Ticket Médio</CardTitle>
+              <Award className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{formatCurrency(metrics.avgTicket)}</div>
+              <p className="text-xs text-muted-foreground">
+                Valor médio por venda
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          {/* Distribution by Phase */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <BarChart3 className="h-5 w-5" />
+                <span>Distribuição por Fase</span>
+              </CardTitle>
+              <CardDescription>Quantidade de oportunidades em cada fase</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {phaseDistribution.map((phase) => (
+                <div key={phase.key} className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className={`w-3 h-3 rounded-full ${phase.color}`}></div>
+                    <span className="text-sm font-medium">{phase.title}</span>
+                  </div>
                   <div className="flex items-center space-x-2">
-                    {getCategoryIcon(report.category)}
-                    <div>
-                      <CardTitle className="text-lg">{report.name}</CardTitle>
-                      <CardDescription className="text-sm">
-                        {report.description || 'Sem descrição'}
-                      </CardDescription>
+                    <span className="text-sm text-muted-foreground">{phase.percentage.toFixed(1)}%</span>
+                    <Badge variant="secondary">{phase.count}</Badge>
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+
+          {/* Temperature Distribution */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Thermometer className="h-5 w-5" />
+                <span>Temperatura de Negócio</span>
+              </CardTitle>
+              <CardDescription>Distribuição das oportunidades por temperatura</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {temperatureDistribution.map((temp) => (
+                <div key={temp.name} className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className={`w-3 h-3 rounded-full ${temp.color}`}></div>
+                    <span className="text-sm font-medium">{temp.name}</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-sm text-muted-foreground">
+                      {filteredOpportunities.length > 0 ? ((temp.value / filteredOpportunities.length) * 100).toFixed(1) : 0}%
+                    </span>
+                    <Badge variant="secondary">{temp.value}</Badge>
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Average Time Per Phase */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Clock className="h-5 w-5" />
+                <span>Tempo Médio por Fase</span>
+              </CardTitle>
+              <CardDescription>Tempo médio que as oportunidades ficam em cada fase</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {averageTimePerPhase.map((phase) => (
+                <div key={phase.key} className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm font-medium">{phase.title}</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-sm text-muted-foreground">{phase.avgDays} dias</span>
+                    <Badge variant="outline">{phase.count} oportunidades</Badge>
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+
+          {/* Performance by Salesperson */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Users className="h-5 w-5" />
+                <span>Performance por Vendedor</span>
+              </CardTitle>
+              <CardDescription>Ranking de vendedores por valor gerado</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {performanceBySalesperson.slice(0, 5).map((salesperson) => (
+                <div key={salesperson.name} className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <div className="text-sm font-medium">{salesperson.name}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {salesperson.won}/{salesperson.total} • {salesperson.conversionRate.toFixed(1)}%
                     </div>
                   </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm">
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => handleRunReport(report.id)}>
-                        <Play className="h-4 w-4 mr-2" />
-                        Executar Agora
-                      </DropdownMenuItem>
-                      <DropdownMenuItem>
-                        <Eye className="h-4 w-4 mr-2" />
-                        Visualizar
-                      </DropdownMenuItem>
-                      <DropdownMenuItem>
-                        <Edit className="h-4 w-4 mr-2" />
-                        Editar
-                      </DropdownMenuItem>
-                      <DropdownMenuItem>
-                        <Download className="h-4 w-4 mr-2" />
-                        Exportar
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem 
-                        onClick={() => handleDeleteReport(report.id)}
-                        className="text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Excluir
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </CardHeader>
-
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between text-sm">
-                  <Badge variant="outline">
-                    {getCategoryName(report.category)}
-                  </Badge>
-                  <div className="flex items-center space-x-1">
-                    {report.autoRefresh ? (
-                      <RefreshCw className="h-3 w-3 text-green-500" />
-                    ) : (
-                      <Pause className="h-3 w-3 text-gray-400" />
-                    )}
-                    <span className="text-xs text-muted-foreground">
-                      {report.autoRefresh ? 'Auto' : 'Manual'}
-                    </span>
+                  <div className="text-right">
+                    <div className="text-sm font-bold">{formatCurrency(salesperson.value)}</div>
                   </div>
                 </div>
+              ))}
+            </CardContent>
+          </Card>
+        </div>
 
-                <div className="text-xs text-muted-foreground">
-                  <div className="flex items-center space-x-1">
-                    <Clock className="h-3 w-3" />
-                    <span>Última execução: {formatLastGenerated(report.lastGenerated)}</span>
-                  </div>
-                </div>
-
-                <div className="flex space-x-2">
-                  <Button 
-                    size="sm" 
-                    variant="outline" 
-                    className="flex-1"
-                    onClick={() => handleRunReport(report.id)}
-                  >
-                    <Play className="h-3 w-3 mr-1" />
-                    Executar
-                  </Button>
-                  <Button size="sm" variant="outline">
-                    <Eye className="h-3 w-3" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-
-          {filteredReports.length === 0 && (
-            <div className="col-span-full">
-              <Card className="border-dashed">
-                <CardContent className="flex flex-col items-center justify-center py-12">
-                  <BarChart3 className="h-12 w-12 text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">Nenhum relatório encontrado</h3>
-                  <p className="text-muted-foreground text-center mb-4">
-                    {searchTerm || selectedCategory !== "all" 
-                      ? "Tente ajustar seus filtros de busca"
-                      : "Comece criando seu primeiro relatório personalizado"
-                    }
-                  </p>
-                  {!searchTerm && selectedCategory === "all" && (
-                    <Button onClick={() => setCreateReportOpen(true)}>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Criar Primeiro Relatório
-                    </Button>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-          )}
+        <div className="mt-8 text-center text-sm text-muted-foreground">
+          Mostrando {filteredOpportunities.length} de {opportunities.length} oportunidades
         </div>
       </div>
     </div>
-  );
-}
-
-// Simple create report form component
-function CreateReportForm({ onSuccess }: { onSuccess: () => void }) {
-  const { toast } = useToast();
-  const [formData, setFormData] = useState({
-    name: "",
-    description: "",
-    category: "custom"
-  });
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    try {
-      await apiRequest("POST", "/api/reports/saved", {
-        ...formData,
-        filters: {},
-        charts: {},
-        layout: {},
-        autoRefresh: true,
-        refreshInterval: 30
-      });
-      
-      toast({
-        title: "Relatório criado",
-        description: "Seu novo relatório foi criado com sucesso."
-      });
-      
-      onSuccess();
-    } catch (error) {
-      toast({
-        title: "Erro",
-        description: "Não foi possível criar o relatório.",
-        variant: "destructive"
-      });
-    }
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div>
-        <label className="text-sm font-medium">Nome do Relatório</label>
-        <Input
-          value={formData.name}
-          onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-          placeholder="Ex: Relatório de Vendas Mensal"
-          required
-        />
-      </div>
-      
-      <div>
-        <label className="text-sm font-medium">Descrição</label>
-        <Input
-          value={formData.description}
-          onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-          placeholder="Descreva o propósito deste relatório"
-        />
-      </div>
-      
-      <div>
-        <label className="text-sm font-medium">Categoria</label>
-        <Select value={formData.category} onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}>
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="custom">Personalizado</SelectItem>
-            <SelectItem value="performance">Performance</SelectItem>
-            <SelectItem value="pipeline">Pipeline</SelectItem>
-            <SelectItem value="analysis">Análise</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-      
-      <div className="flex justify-end space-x-2 pt-4">
-        <Button type="button" variant="outline">Cancelar</Button>
-        <Button type="submit">Criar Relatório</Button>
-      </div>
-    </form>
   );
 }
