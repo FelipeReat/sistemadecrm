@@ -223,13 +223,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("=== DEBUG: Dados recebidos ===");
       console.log(JSON.stringify(req.body, null, 2));
       console.log("=== Tentando validar com Zod ===");
-      const validatedData = insertOpportunitySchema.parse(req.body);
       // Adiciona automaticamente quem criou a oportunidade
-      const opportunityData = {
-        ...validatedData,
-        createdBy: req.session.user!.name
+      const dataToValidate = {
+        ...req.body,
+        createdBy: req.session.user!.name || req.session.user!.email || "Usuário"
       };
-      const opportunity = await storage.createOpportunity(opportunityData);
+      console.log("=== Dados para validação (com createdBy) ===");
+      console.log(JSON.stringify(dataToValidate, null, 2));
+      const validatedData = insertOpportunitySchema.parse(dataToValidate);
+      const opportunity = await storage.createOpportunity(validatedData);
       res.status(201).json(opportunity);
     } catch (error: any) {
       console.log("=== ERRO DE VALIDAÇÃO ===");
