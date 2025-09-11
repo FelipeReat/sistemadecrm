@@ -220,6 +220,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create opportunity
   app.post("/api/opportunities", isAuthenticated, async (req, res) => {
     try {
+      console.log("=== DEBUG: Dados recebidos ===");
+      console.log(JSON.stringify(req.body, null, 2));
+      console.log("=== Tentando validar com Zod ===");
       const validatedData = insertOpportunitySchema.parse(req.body);
       // Adiciona automaticamente quem criou a oportunidade
       const opportunityData = {
