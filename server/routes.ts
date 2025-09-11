@@ -27,6 +27,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Setup session middleware
   app.use(getSession());
 
+  // Health check endpoint for deployment monitoring
+  app.get("/healthz", (_req, res) => res.status(200).send("ok"));
+
   // Auth routes
   app.post("/api/auth/login", async (req, res) => {
     try {
