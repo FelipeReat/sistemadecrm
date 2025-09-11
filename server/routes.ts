@@ -220,27 +220,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create opportunity
   app.post("/api/opportunities", isAuthenticated, async (req, res) => {
     try {
-      console.log("=== DEBUG: Dados recebidos ===");
-      console.log(JSON.stringify(req.body, null, 2));
-      console.log("=== Tentando validar com Zod ===");
       // Adiciona automaticamente quem criou a oportunidade
       const dataToValidate = {
         ...req.body,
         createdBy: req.session.user!.name || req.session.user!.email || "Usuário"
       };
-      console.log("=== Dados para validação (com createdBy) ===");
-      console.log(JSON.stringify(dataToValidate, null, 2));
       const validatedData = insertOpportunitySchema.parse(dataToValidate);
       const opportunity = await storage.createOpportunity(validatedData);
       res.status(201).json(opportunity);
     } catch (error: any) {
-      console.log("=== ERRO DE VALIDAÇÃO ===");
-      console.log("Nome do erro:", error.name);
-      console.log("Erro completo:", error);
       if (error.name === "ZodError") {
-        console.log("Detalhes do Zod Error:", JSON.stringify(error.issues, null, 2));
         const validationError = fromZodError(error);
-        console.log("Mensagem formatada:", validationError.message);
         return res.status(400).json({ message: validationError.message });
       }
       res.status(500).json({ message: "Erro ao criar oportunidade" });

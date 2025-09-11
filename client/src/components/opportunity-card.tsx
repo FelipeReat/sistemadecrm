@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { Opportunity } from "@shared/schema";
+import { formatters } from "@/lib/formatters";
 
 // Função para validar se uma fase está completa
 const validatePhaseCompletion = (opportunity: Opportunity): { isComplete: boolean; missingFields?: string[] } => {
@@ -193,8 +194,9 @@ export default function OpportunityCard({ opportunity, onViewDetails, onDelete }
             <span>
               Agendado: {(() => {
                 try {
-                  const date = new Date(opportunity.visitSchedule);
-                  if (isNaN(date.getTime())) {
+                  // Parse da data brasileira DD/MM/AAAA HH:MM
+                  const date = formatters.parseDateTime(opportunity.visitSchedule);
+                  if (!date || isNaN(date.getTime())) {
                     return "Data inválida";
                   }
                   const dateStr = date.toLocaleDateString("pt-BR", { 

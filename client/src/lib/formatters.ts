@@ -51,5 +51,25 @@ export const formatters = {
   currencyToNumber: (value: string): number => {
     if (!value) return 0;
     return parseFloat(value.replace(/[^\d,]/g, '').replace(',', '.')) || 0;
+  },
+
+  // Converte data/hora brasileira para objeto Date
+  parseDateTime: (dateTimeStr: string): Date | null => {
+    if (!dateTimeStr) return null;
+    
+    // Formato esperado: DD/MM/AAAA HH:MM
+    const regex = /^(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2})$/;
+    const match = dateTimeStr.match(regex);
+    
+    if (!match) return null;
+    
+    const [, day, month, year, hour, minute] = match;
+    return new Date(
+      parseInt(year),
+      parseInt(month) - 1, // mês em JS é zero-indexado
+      parseInt(day),
+      parseInt(hour),
+      parseInt(minute)
+    );
   }
 };
