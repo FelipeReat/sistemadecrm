@@ -155,12 +155,17 @@ export function ImportModal({ isOpen, onClose, onImportComplete }: ImportModalPr
 
     setIsLoading(true);
     try {
+      // Filter out unmapped fields
+      const filteredMapping = Object.fromEntries(
+        Object.entries(mapping).filter(([_, value]) => value && value !== 'unmapped')
+      );
+
       const response = await fetch('/api/import/validate-mapping', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           fileId: uploadData.fileId,
-          mapping,
+          mapping: filteredMapping,
         }),
       });
 
@@ -198,12 +203,17 @@ export function ImportModal({ isOpen, onClose, onImportComplete }: ImportModalPr
 
     setIsLoading(true);
     try {
+      // Filter out unmapped fields
+      const filteredMapping = Object.fromEntries(
+        Object.entries(mapping).filter(([_, value]) => value && value !== 'unmapped')
+      );
+
       const response = await fetch('/api/import/preview', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           fileId: uploadData.fileId,
-          mapping,
+          mapping: filteredMapping,
         }),
       });
 
@@ -230,12 +240,17 @@ export function ImportModal({ isOpen, onClose, onImportComplete }: ImportModalPr
 
     setIsLoading(true);
     try {
+      // Filter out unmapped fields
+      const filteredMapping = Object.fromEntries(
+        Object.entries(mapping).filter(([_, value]) => value && value !== 'unmapped')
+      );
+
       const response = await fetch('/api/import/execute', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           fileId: uploadData.fileId,
-          mapping,
+          mapping: filteredMapping,
           options: {
             skipInvalidRows: true,
           },
@@ -447,7 +462,7 @@ export function ImportModal({ isOpen, onClose, onImportComplete }: ImportModalPr
                               <SelectValue placeholder="Selecione um campo" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="">Não mapear</SelectItem>
+                              <SelectItem value="unmapped">Não mapear</SelectItem>
                               {Object.entries(FIELD_MAPPINGS).map(([key, config]) => (
                                 <SelectItem key={key} value={key}>
                                   {config.displayName}

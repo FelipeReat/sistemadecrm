@@ -520,7 +520,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Métricas básicas
       const totalOpportunities = opportunities.length;
       const wonOpportunities = opportunities.filter(o => o.phase === 'ganho').length;
-      const lostOpportunities = opportunities.filter(o => o.phase === 'perdido').length;
+      const lostOpportunitiesArray = opportunities.filter(o => o.phase === 'perdido');
+      const lostOpportunities = lostOpportunitiesArray.length;
       const activeOpportunities = opportunities.filter(o => !['ganho', 'perdido'].includes(o.phase)).length;
 
       // Receita total
@@ -603,15 +604,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .sort((a, b) => b.revenue - a.revenue);
 
       // Motivos de perda
-      const lossReasons = lostOpportunities.reduce((acc, opp) => {
+      const lossReasons = lostOpportunitiesArray.reduce((acc: Record<string, number>, opp) => {
         const reason = opp.lossReason || 'Não informado';
         acc[reason] = (acc[reason] || 0) + 1;
         return acc;
       }, {} as Record<string, number>);
 
       const lossReasonsArray = Object.entries(lossReasons)
-        .map(([reason, count]) => ({ reason, count }))
-        .sort((a, b) => b.count - a.count);
+        .map(([reason, count]) => ({ reason, count: count as number }))
+        .sort((a, b) => (b.count as number) - (a.count as number));
 
       const reportData = {
         summary: {
