@@ -11,12 +11,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { format } from "date-fns";
-import { Settings, ChartLine, Trophy, Clock, DollarSign, Plus, Filter, X, Search, ArrowUpDown } from "lucide-react";
+import { Settings, ChartLine, Trophy, Clock, DollarSign, Plus, Filter, X, Search, ArrowUpDown, Upload } from "lucide-react";
 import SalesPipelineColumn from "@/components/sales-pipeline-column";
 import NewOpportunityModal from "@/components/new-opportunity-modal";
 import NewProposalOpportunityModal from "@/components/new-proposal-opportunity-modal";
 import OpportunityDetailsModal from "@/components/opportunity-details-modal";
 import SettingsModal from "@/components/settings-modal";
+import { ImportModal } from "@/components/import-modal";
 import { PHASES } from "@shared/schema";
 import type { Opportunity, User } from "@shared/schema";
 import {
@@ -42,6 +43,7 @@ export default function CrmDashboard() {
   const [selectedOpportunity, setSelectedOpportunity] = useState<Opportunity | null>(null);
   const [isNewProposalOpportunityModalOpen, setIsNewProposalOpportunityModalOpen] = useState(false);
   const [isAdvancedFiltersModalOpen, setIsAdvancedFiltersModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   
   // Advanced filters
@@ -292,6 +294,14 @@ export default function CrmDashboard() {
               >
                 <Plus className="mr-2 h-4 w-4" />
                 Nova Oportunidade
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setIsImportModalOpen(true)}
+                data-testid="button-import-data"
+              >
+                <Upload className="mr-2 h-4 w-4" />
+                Importar Dados
               </Button>
               <Button
                 variant="outline"
@@ -733,6 +743,16 @@ export default function CrmDashboard() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Import Modal */}
+      <ImportModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        onImportComplete={() => {
+          queryClient.invalidateQueries({ queryKey: ["/api/opportunities"] });
+          queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
+        }}
+      />
     </div>
   );
 }
