@@ -25,7 +25,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Button } from "@/components/ui/button";
-import { Calendar, FileText, Handshake, MapPin, DollarSign, Upload, User, X } from "lucide-react";
+import { Calendar, FileText, Handshake, MapPin, DollarSign, Upload, User, X, Trash2 } from "lucide-react";
 import { FileUpload } from "@/components/ui/file-upload";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -215,10 +215,47 @@ export default function OpportunityDetailsModal({
     },
   });
 
+  const deleteOpportunityMutation = useMutation({
+    mutationFn: (opportunityId: string) =>
+      apiRequest("DELETE", `/api/opportunities/${opportunityId}`),
+    onSuccess: () => {
+      invalidateAllData(); // Sincroniza dashboard e relatórios
+      toast({
+        title: "Sucesso",
+        description: "Oportunidade excluída com sucesso!",
+      });
+      onOpenChange(false);
+    },
+    onError: (error: any) => {
+      const errorMessage = error?.response?.data?.message || error?.message || "Erro ao excluir oportunidade.";
+      toast({
+        title: "Erro",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    },
+    onSettled: () => {
+      setIsSubmitting(false);
+    },
+  });
+
   const getNextPhase = (currentPhase: string): string | null => {
     const phaseOrder = ["prospeccao", "em-atendimento", "visita-tecnica", "proposta", "negociacao", "ganho"];
     const currentIndex = phaseOrder.indexOf(currentPhase);
     return currentIndex < phaseOrder.length - 1 ? phaseOrder[currentIndex + 1] : null;
+  };
+
+  const handleDelete = () => {
+    if (!opportunity) return;
+    
+    const confirmed = window.confirm(
+      `Tem certeza que deseja excluir a oportunidade da empresa "${opportunity.company}"? Esta ação não pode ser desfeita.`
+    );
+    
+    if (confirmed) {
+      setIsSubmitting(true);
+      deleteOpportunityMutation.mutate(opportunity.id);
+    }
   };
 
   const handleSubmit = async (data: any) => {
@@ -1030,10 +1067,24 @@ export default function OpportunityDetailsModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center space-x-2">
-            <FileText className="h-5 w-5 text-blue-600" />
-            <span>Detalhes da Oportunidade</span>
-          </DialogTitle>
+          <div className="flex items-center justify-between">
+            <DialogTitle className="flex items-center space-x-2">
+              <FileText className="h-5 w-5 text-blue-600" />
+              <span>Detalhes da Oportunidade</span>
+            </DialogTitle>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={handleDelete}
+              disabled={isSubmitting || deleteOpportunityMutation.isPending}
+              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+              data-testid="button-delete-opportunity"
+              title="Excluir oportunidade"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
           <DialogDescription>
             Empresa: {opportunity.company} • Fase: {opportunity.phase}
           </DialogDescription>
