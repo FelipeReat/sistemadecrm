@@ -1075,22 +1075,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       displayName: 'Telefone', 
       required: false,
       transform: (value: any) => {
-        const phone = value?.toString().replace(/\D/g, '') || '';
-        return phone || null;
+        if (!value) return null;
+        const phone = value.toString().replace(/\D/g, '') || '';
+        if (phone.length === 0) return null;
+        
+        // Add Brazil country code if not present and phone is valid
+        if (!phone.startsWith('55') && phone.length >= 10 && phone.length <= 11) {
+          return `55${phone}`;
+        }
+        
+        return phone;
       },
       validation: (value: any) => {
         if (!value) return true; // Optional field
-        const phone = value?.toString().replace(/\D/g, '') || '';
+        const phone = value.toString().replace(/\D/g, '') || '';
         
         if (phone.length === 0) return true; // Empty is valid since optional
         
-        // Aceita telefones com código do país Brasil (55)
-        if (phone.startsWith('55')) {
-          return phone.length >= 12 && phone.length <= 13; // 55 + DDD + telefone
-        }
-        
-        // Telefones nacionais (sem código do país)
-        return phone.length >= 10 && phone.length <= 11;
+        // Accept any reasonable phone format (flexible validation)
+        return phone.length >= 8 && phone.length <= 15;
       }
     },
     cpf: { 
@@ -1299,11 +1302,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   function transformRow(row: any, mapping: Record<string, string>, createdBy: string): any {
     const transformed: any = {
       createdBy: createdBy,
-      // Set defaults for required fields
+      // Set defaults for required fields with proper default values
       hasRegistration: false,
       requiresVisit: false,
       documents: [],
-      visitPhotos: []
+      visitPhotos: [],
+      // Set default phase if not provided
+      phase: 'prospeccao',
+      // Set default temperature if not provided  
+      businessTemperature: 'morno'
     };
 
     for (const [excelColumn, systemField] of Object.entries(mapping)) {
@@ -1312,20 +1319,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       let value = row[excelColumn];
 
-      if (fieldConfig.transform) {
-        value = fieldConfig.transform(value);
+      // Handle empty/null values first
+      if (value === null || value === undefined || value === '' || value === 'null' || value === 'undefined') {
+        value = null;
       }
 
-      // Handle null/empty values
-      if (value === null || value === undefined || value === '') {
-        if (fieldConfig.required) {
-          continue; // Skip, validation will catch this
-        } else {
+      if (fieldConfig.transform && value !== null) {
+        try {
+          value = fieldConfig.transform(value);
+        } catch (error) {
+          console.warn(`Transform error for field ${systemField}:`, error);
           value = null;
         }
       }
 
-      transformed[systemField] = value;
+      // Only set the field if we have a valid value or if it's an optional field
+      if (value !== null && value !== undefined) {
+        transformed[systemField] = value;
+      }
+    }
+
+    // Ensure required fields have at least empty string if not provided
+    if (!transformed.contact && !transformed.company) {
+      transformed.contact = 'Contato não informado';
+      transformed.company = 'Empresa não informada';
     }
 
     return transformed;
@@ -1541,35 +1558,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
           let failed = 0;
           const errors: any[] = [];
 
+          console.log(`Starting import for user ${userId}, processing ${data.length} rows`);
+          console.log(`Mapping:`, JSON.stringify(mapping, null, 2));
+
           for (let i = 0; i < data.length; i++) {
             const row = data[i];
             const progress = Math.round(((i + 1) / data.length) * 100);
 
             try {
-              // Validate row
+              // Always skip invalid rows to avoid blocking the entire import
               const rowErrors = validateRow(row, mapping, i);
-              if (rowErrors.length > 0 && !options.skipInvalidRows) {
+              if (rowErrors.length > 0) {
                 failed++;
                 errors.push(...rowErrors);
+                
+                // Update progress even for failed rows
+                const currentSession = importSessions.get(fileId);
+                if (currentSession) {
+                  currentSession.progress = progress;
+                  currentSession.results = {
+                    created,
+                    updated: 0,
+                    skipped: 0,
+                    failed,
+                    errors: errors.slice(0, 100) // Limit errors to prevent memory issues
+                  };
+                  importSessions.set(fileId, currentSession);
+                }
                 continue;
               }
 
               // Transform row
               const transformedData = transformRow(row, mapping, userId);
+              
+              console.log(`Processing row ${i + 1}:`, JSON.stringify(transformedData, null, 2));
 
-              // Validate with Zod schema
-              const validatedData = insertOpportunitySchema.parse(transformedData);
+              // Validate with Zod schema - with better error handling
+              let validatedData;
+              try {
+                validatedData = insertOpportunitySchema.parse(transformedData);
+              } catch (zodError: any) {
+                console.error(`Zod validation error for row ${i + 1}:`, zodError.errors);
+                failed++;
+                errors.push({
+                  row: i + 2,
+                  message: `Erro de validação: ${zodError.errors.map((e: any) => `${e.path.join('.')}: ${e.message}`).join(', ')}`,
+                  data: row,
+                  transformedData: transformedData
+                });
+                continue;
+              }
 
               // Insert into database
               await storage.createOpportunity(validatedData);
               created++;
 
             } catch (error: any) {
+              console.error(`Import error for row ${i + 1}:`, error);
               failed++;
               errors.push({
                 row: i + 2,
                 message: error.message || 'Erro ao importar linha',
-                data: row
+                data: row,
+                stack: error.stack
               });
             }
 
