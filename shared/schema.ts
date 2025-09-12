@@ -65,26 +65,45 @@ export const automations = pgTable("automations", {
 });
 
 export const insertOpportunitySchema = createInsertSchema(opportunities, {
-  contact: z.string().min(1, "Nome do contato é obrigatório").optional().transform(val => val || "Não informado"),
-  cpf: z.string().nullable().optional().refine((val) => {
-    if (!val || val.length === 0) return true;
-    const cpf = val.replace(/\D/g, '');
-    if (cpf.length !== 11) return false;
-    // Validação relaxada - permite CPFs de teste
-    return true;
-  }, "CPF deve ter 11 dígitos"),
-  company: z.string().min(1, "Nome da empresa é obrigatório").optional().transform(val => val || "Não informado"),
-  cnpj: z.string().nullable().optional().refine((val) => {
-    if (!val || val.length === 0) return true;
-    const cnpj = val.replace(/\D/g, '');
-    return cnpj.length >= 11; // Validação relaxada
-  }, "CNPJ deve ter pelo menos 11 dígitos"),
-  phone: z.string().optional().nullable(),
-  hasRegistration: z.boolean().optional(),
-  proposalOrigin: z.string().optional().nullable(),
-  businessTemperature: z.union([z.enum(['frio', 'morno', 'quente']), z.string(), z.null()]).optional(),
-  needCategory: z.string().optional().nullable(),
-  clientNeeds: z.string().optional().nullable(),
+  contact: z.string().optional().nullable().transform(val => {
+    if (!val || val.trim() === '') return "Não informado";
+    return val.trim();
+  }),
+  cpf: z.string().nullable().optional().transform(val => {
+    if (!val || val.trim() === '') return null;
+    return val.replace(/\D/g, '') || null;
+  }),
+  company: z.string().optional().nullable().transform(val => {
+    if (!val || val.trim() === '') return "Não informado";
+    return val.trim();
+  }),
+  cnpj: z.string().nullable().optional().transform(val => {
+    if (!val || val.trim() === '') return null;
+    return val.replace(/\D/g, '') || null;
+  }),
+  phone: z.string().optional().nullable().transform(val => {
+    if (!val || val.trim() === '') return null;
+    return val.replace(/\D/g, '') || null;
+  }),
+  hasRegistration: z.boolean().optional().default(false),
+  proposalOrigin: z.string().optional().nullable().transform(val => {
+    if (!val || val.trim() === '') return null;
+    return val.trim();
+  }),
+  businessTemperature: z.string().optional().nullable().transform(val => {
+    if (!val || val.trim() === '') return 'morno';
+    const temp = val.toString().toLowerCase().trim();
+    if (['frio', 'morno', 'quente'].includes(temp)) return temp;
+    return 'morno';
+  }),
+  needCategory: z.string().optional().nullable().transform(val => {
+    if (!val || val.trim() === '') return null;
+    return val.trim();
+  }),
+  clientNeeds: z.string().optional().nullable().transform(val => {
+    if (!val || val.trim() === '') return null;
+    return val.trim();
+  }),
   documents: z.array(z.object({
     id: z.string(),
     name: z.string().max(255, "Nome do arquivo muito longo"),
@@ -94,62 +113,113 @@ export const insertOpportunitySchema = createInsertSchema(opportunities, {
   })).optional().default([]).refine((docs) => docs.length <= 10, "Máximo 10 documentos permitidos"),
 
   // Fase 2: Prospecção
-  opportunityNumber: z.string().optional().nullable(),
-  salesperson: z.string().optional().nullable(),
-  requiresVisit: z.boolean().optional(),
-  statement: z.string().max(2000, "Declaração muito longa").optional().nullable(),
+  opportunityNumber: z.string().optional().nullable().transform(val => {
+    if (!val || val.trim() === '') return null;
+    return val.trim();
+  }),
+  salesperson: z.string().optional().nullable().transform(val => {
+    if (!val || val.trim() === '') return null;
+    return val.trim();
+  }),
+  requiresVisit: z.boolean().optional().default(false),
+  statement: z.string().optional().nullable().transform(val => {
+    if (!val || val.trim() === '') return null;
+    return val.trim().slice(0, 2000); // Trunca se muito longo
+  }),
 
   // Fase 4: Visita Técnica
-  visitSchedule: z.string().optional().nullable(),
-  visitDate: z.string().optional().nullable(),
-  visitPhotos: z.array(z.object({
-    id: z.string(),
-    name: z.string().max(255, "Nome do arquivo muito longo"),
-    size: z.number().max(10 * 1024 * 1024, "Imagem muito grande (máximo 10MB)"),
-    type: z.string().refine((type) => type.startsWith('image/'), "Apenas imagens são permitidas"),
-    url: z.string().url("URL inválida")
-  })).optional().default([]).refine((photos) => photos.length <= 20, "Máximo 20 fotos permitidas"),
+  visitSchedule: z.string().optional().nullable().transform(val => {
+    if (!val || val.trim() === '') return null;
+    return val.trim();
+  }),
+  visitDate: z.string().optional().nullable().transform(val => {
+    if (!val || val.trim() === '') return null;
+    return val.trim();
+  }),
+  visitPhotos: z.array(z.any()).optional().default([]),
 
   // Fase 5: Proposta
-  discount: z.coerce.string().optional().refine((val) => {
-    if (!val || val.length === 0) return true;
-    const numValue = parseFloat(val.replace(/[^\d,.-]/g, '').replace(',', '.'));
-    return !isNaN(numValue) && numValue >= 0 && numValue <= 100;
-  }, "Desconto deve ser entre 0% e 100%").nullable(),
-  discountDescription: z.string().optional().nullable(),
-  validityDate: z.string().optional().refine((val) => {
-    if (!val || val.length === 0) return true;
-    const date = new Date(val);
-    const now = new Date();
-    return date > now;
-  }, "Data de validade deve ser futura").nullable(),
-  budgetNumber: z.string().optional().nullable(),
-  budget: z.coerce.string().optional().refine((val) => {
-    if (!val || val.length === 0) return true;
-    const numValue = parseFloat(val.replace(/[^\d,.-]/g, '').replace(',', '.'));
-    return !isNaN(numValue) && numValue > 0;
-  }, "Valor do orçamento deve ser um número positivo").nullable(),
+  discount: z.any().optional().nullable().transform(val => {
+    if (!val || val === '') return null;
+    try {
+      const numValue = parseFloat(val.toString().replace(/[^\d,.-]/g, '').replace(',', '.'));
+      if (isNaN(numValue) || numValue < 0 || numValue > 100) return null;
+      return numValue.toString();
+    } catch {
+      return null;
+    }
+  }),
+  discountDescription: z.string().optional().nullable().transform(val => {
+    if (!val || val.trim() === '') return null;
+    return val.trim();
+  }),
+  validityDate: z.any().optional().nullable().transform(val => {
+    if (!val || val === '') return null;
+    try {
+      const date = new Date(val);
+      if (isNaN(date.getTime())) return null;
+      return val.toString();
+    } catch {
+      return null;
+    }
+  }),
+  budgetNumber: z.string().optional().nullable().transform(val => {
+    if (!val || val.trim() === '') return null;
+    return val.trim();
+  }),
+  budget: z.any().optional().nullable().transform(val => {
+    if (!val || val === '') return null;
+    try {
+      const numValue = parseFloat(val.toString().replace(/[^\d,.-]/g, '').replace(',', '.'));
+      if (isNaN(numValue) || numValue <= 0) return null;
+      return numValue.toString();
+    } catch {
+      return null;
+    }
+  }),
 
   // Fase 6: Negociação
-  status: z.string().optional().nullable(),
-  finalValue: z.coerce.string().optional().refine((val) => {
-    if (!val || val.length === 0) return true;
-    const numValue = parseFloat(val.replace(/[^\d,.-]/g, '').replace(',', '.'));
-    return !isNaN(numValue) && numValue > 0;
-  }, "Valor final deve ser um número positivo").nullable(),
-  negotiationInfo: z.string().max(2000, "Informações de negociação muito longas").optional().nullable(),
-  contract: z.string().nullable().optional(),
-  invoiceNumber: z.string().optional().nullable(),
-  lossReason: z.string().max(500, "Motivo da perda muito longo").optional().nullable(),
+  status: z.string().optional().nullable().transform(val => {
+    if (!val || val.trim() === '') return null;
+    return val.trim();
+  }),
+  finalValue: z.any().optional().nullable().transform(val => {
+    if (!val || val === '') return null;
+    try {
+      const numValue = parseFloat(val.toString().replace(/[^\d,.-]/g, '').replace(',', '.'));
+      if (isNaN(numValue) || numValue <= 0) return null;
+      return numValue.toString();
+    } catch {
+      return null;
+    }
+  }),
+  negotiationInfo: z.string().optional().nullable().transform(val => {
+    if (!val || val.trim() === '') return null;
+    return val.trim().slice(0, 2000); // Trunca se muito longo
+  }),
+  contract: z.string().nullable().optional().transform(val => {
+    if (!val || val.trim() === '') return null;
+    return val.trim();
+  }),
+  invoiceNumber: z.string().optional().nullable().transform(val => {
+    if (!val || val.trim() === '') return null;
+    return val.trim();
+  }),
+  lossReason: z.string().optional().nullable().transform(val => {
+    if (!val || val.trim() === '') return null;
+    return val.trim().slice(0, 500); // Trunca se muito longo
+  }),
 
   // Controle de fase
-  phase: z.string().optional().nullable(),
+  phase: z.string().optional().nullable().transform(val => {
+    if (!val || val.trim() === '') return 'prospeccao';
+    return val.trim();
+  }),
 
   // Auditoria
   createdBy: z.string().min(1, "Criado por é obrigatório"),
 
-  // Timestamps - these are usually set by the database or default values, so they might not be needed in the insert schema if they have defaults.
-  // If they are meant to be provided during insert, they should be optional.
+  // Timestamps
   createdAt: z.string().optional(),
   updatedAt: z.string().optional(),
   phaseUpdatedAt: z.string().optional().nullable(),
