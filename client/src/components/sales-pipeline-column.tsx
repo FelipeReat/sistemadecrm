@@ -320,7 +320,6 @@ export default function SalesPipelineColumn({ phase, opportunities, isLoading, o
                 key={opportunity.id}
                 opportunity={opportunity}
                 onViewDetails={onViewDetails}
-                onDelete={setOpportunityToDelete}
               />
             ))
           )}

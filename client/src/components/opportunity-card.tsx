@@ -1,4 +1,4 @@
-import { User, Phone, Building, Calendar, FileText, DollarSign, MapPin, TriangleAlert, CheckCircle, AlertCircle, Trash2 } from "lucide-react";
+import { User, Phone, Building, Calendar, FileText, DollarSign, MapPin, TriangleAlert, CheckCircle, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { formatDistanceToNow } from "date-fns";
@@ -53,10 +53,9 @@ const validatePhaseCompletion = (opportunity: Opportunity): { isComplete: boolea
 interface OpportunityCardProps {
   opportunity: Opportunity;
   onViewDetails?: (opportunity: Opportunity) => void;
-  onDelete?: (opportunity: Opportunity) => void;
 }
 
-export default function OpportunityCard({ opportunity, onViewDetails, onDelete }: OpportunityCardProps) {
+export default function OpportunityCard({ opportunity, onViewDetails }: OpportunityCardProps) {
   const phaseValidation = validatePhaseCompletion(opportunity);
   
   const handleDragStart = (e: React.DragEvent) => {
@@ -139,20 +138,6 @@ export default function OpportunityCard({ opportunity, onViewDetails, onDelete }
           >
             Ver detalhes
           </Button>
-          {onDelete && (
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="text-red-500 hover:text-red-600 text-xs font-medium h-auto p-1"
-              onClick={(e) => {
-                e.stopPropagation();
-                onDelete(opportunity);
-              }}
-              title="Excluir oportunidade"
-            >
-              <Trash2 className="h-3 w-3" />
-            </Button>
-          )}
         </div>
       </div>
 
