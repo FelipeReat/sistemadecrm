@@ -73,8 +73,15 @@ export const phoneValidator = z
   .min(1, "Telefone é obrigatório")
   .refine((val) => {
     const phone = val.replace(/\D/g, '');
+    
+    // Aceita telefones com código do país Brasil (55)
+    if (phone.startsWith('55')) {
+      return phone.length >= 12 && phone.length <= 13;
+    }
+    
+    // Telefones nacionais (sem código do país)
     return phone.length >= 10 && phone.length <= 11;
-  }, "Telefone deve ter 10 ou 11 dígitos");
+  }, "Telefone deve ter 10-11 dígitos ou 12-13 dígitos com código do país (+55)");
 
 export const emailValidator = z
   .string()

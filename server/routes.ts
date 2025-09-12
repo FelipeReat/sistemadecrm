@@ -1081,6 +1081,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       validation: (value: any) => {
         if (!value) return true; // Optional field
         const phone = value?.toString().replace(/\D/g, '') || '';
+        
+        // Aceita telefones com código do país Brasil (55)
+        if (phone.startsWith('55')) {
+          return phone.length >= 12 && phone.length <= 13; // 55 + DDD + telefone
+        }
+        
+        // Telefones nacionais (sem código do país)
         return phone.length >= 10 && phone.length <= 11;
       }
     },
