@@ -1,0 +1,651 @@
+# Excel Importer for CRM System
+
+## Overview
+Design for a comprehensive Excel importer component that allows users to import CRM data (opportunities, leads, contacts) from Excel/CSV files into the existing sistema de CRM. The importer includes data validation, mapping, preview, and error handling capabilities.
+
+## Technology Stack & Dependencies
+- **Frontend**: React 18, TypeScript, ShadCN UI components
+- **Backend**: Node.js, Express.js, TypeScript
+- **Excel Processing**: XLSX library (already imported in routes.ts)
+- **Database**: PostgreSQL (production), SQLite (development)
+- **ORM**: Drizzle ORM with existing schema
+- **File Upload**: Existing FileUpload component and useFileUpload hook
+- **Validation**: Zod schemas (shared/schema.ts)
+
+## Component Architecture
+
+### Frontend Components Hierarchy
+
+```
+ImportModal (Main Container)
+├── FileUploadStep
+│   └── FileUpload (existing component)
+├── ColumnMappingStep
+│   ├── MappingTable
+│   ├── ColumnSelector
+│   └── RequiredFieldIndicator
+├── DataPreviewStep
+│   ├── DataTable
+│   ├── ValidationSummary
+│   └── ErrorList
+└── ImportProgressStep
+    ├── ProgressBar
+    ├── StatusIndicator
+    └── ResultSummary
+```
+
+### Component Definitions
+
+#### ImportModal Component
+**Props Interface:**
+```typescript
+interface ImportModalProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onImportComplete?: (results: ImportResults) => void;
+}
+```
+
+**State Management:**
+```typescript
+interface ImportState {
+  currentStep: 'upload' | 'mapping' | 'preview' | 'progress';
+  file: File | null;
+  columns: string[];
+  mapping: Record<string, string>;
+  previewData: any[];
+  validationErrors: ValidationError[];
+  importProgress: number;
+  importResults: ImportResults | null;
+}
+```
+
+#### ColumnMappingStep Component
+**Props Interface:**
+```typescript
+interface ColumnMappingProps {
+  columns: string[];
+  mapping: Record<string, string>;
+  onMappingChange: (mapping: Record<string, string>) => void;
+  onNext: () => void;
+  onBack: () => void;
+}
+```
+
+**Field Mapping Configuration:**
+```typescript
+interface FieldMapping {
+  systemField: string;
+  displayName: string;
+  required: boolean;
+  dataType: 'text' | 'number' | 'date' | 'email' | 'phone';
+  validation?: (value: any) => boolean;
+  transform?: (value: any) => any;
+}
+```
+
+#### DataPreviewStep Component
+**Props Interface:**
+```typescript
+interface DataPreviewProps {
+  data: any[];
+  mapping: Record<string, string>;
+  validationErrors: ValidationError[];
+  onValidate: () => Promise<void>;
+  onImport: () => void;
+  onBack: () => void;
+}
+```
+
+## Data Flow Between Layers
+
+```mermaid
+graph TD
+    A[Excel File Upload] --> B[Parse Excel Data]
+    B --> C[Column Detection]
+    C --> D[User Maps Columns]
+    D --> E[Data Validation]
+    E --> F[Preview Generation]
+    F --> G[User Confirms Import]
+    G --> H[Batch Processing]
+    H --> I[Database Insert]
+    I --> J[Progress Updates]
+    J --> K[Import Results]
+    
+    E --> L[Validation Errors]
+    L --> M[Error Correction]
+    M --> E
+```
+
+### Backend Processing Flow
+
+#### Excel Processing Pipeline
+```typescript
+interface ExcelProcessingPipeline {
+  parseFile(file: Buffer): Promise<ParsedData>;
+  validateData(data: any[], mapping: Record<string, string>): Promise<ValidationResult>;
+  transformData(data: any[], mapping: Record<string, string>): Promise<TransformedData[]>;
+  importData(data: TransformedData[]): Promise<ImportResults>;
+}
+```
+
+#### Data Transformation Chain
+```typescript
+interface DataTransformer {
+  normalizePhoneNumbers(phone: string): string;
+  validateCPF(cpf: string): boolean;
+  validateCNPJ(cnpj: string): boolean;
+  parseDecimal(value: string): number | null;
+  parseDate(value: string): Date | null;
+  sanitizeText(text: string): string;
+}
+```
+
+## API Endpoints Reference
+
+### File Upload Endpoint
+```
+POST /api/import/upload
+Content-Type: multipart/form-data
+
+Request Body:
+- file: Excel/CSV file
+
+Response:
+{
+  "fileId": "uuid",
+  "filename": "example.xlsx",
+  "columns": ["Nome", "Email", "Telefone", ...],
+  "rowCount": 150,
+  "preview": [...] // First 5 rows
+}
+```
+
+### Column Mapping Validation
+```
+POST /api/import/validate-mapping
+Content-Type: application/json
+
+Request Body:
+{
+  "fileId": "uuid",
+  "mapping": {
+    "Nome": "contact",
+    "Email": "email",
+    "Telefone": "phone",
+    ...
+  }
+}
+
+Response:
+{
+  "isValid": true,
+  "requiredFieldsMapped": true,
+  "warnings": [...],
+  "errors": [...]
+}
+```
+
+### Data Preview & Validation
+```
+POST /api/import/preview
+Content-Type: application/json
+
+Request Body:
+{
+  "fileId": "uuid",
+  "mapping": {...},
+  "options": {
+    "skipHeaderRow": true,
+    "duplicateHandling": "skip" | "overwrite" | "create_new"
+  }
+}
+
+Response:
+{
+  "previewData": [...], // First 10 processed records
+  "validationSummary": {
+    "totalRows": 150,
+    "validRows": 142,
+    "invalidRows": 8,
+    "duplicateRows": 3
+  },
+  "errors": [
+    {
+      "row": 5,
+      "field": "phone",
+      "value": "123abc",
+      "error": "Invalid phone number format"
+    }
+  ]
+}
+```
+
+### Import Execution
+```
+POST /api/import/execute
+Content-Type: application/json
+
+Request Body:
+{
+  "fileId": "uuid",
+  "mapping": {...},
+  "options": {...},
+  "validationOverrides": {
+    "skipInvalidRows": true,
+    "updateExisting": false
+  }
+}
+
+Response:
+{
+  "importId": "uuid",
+  "status": "processing" | "completed" | "failed",
+  "progress": 0-100
+}
+```
+
+### Import Status Tracking
+```
+GET /api/import/status/:importId
+
+Response:
+{
+  "importId": "uuid",
+  "status": "processing",
+  "progress": 65,
+  "processedRows": 97,
+  "totalRows": 150,
+  "errors": [...],
+  "results": {
+    "created": 85,
+    "updated": 12,
+    "skipped": 5,
+    "failed": 3
+  }
+}
+```
+
+## Data Models & ORM Mapping
+
+### Import Session Schema
+```typescript
+interface ImportSession {
+  id: string;
+  userId: string;
+  filename: string;
+  fileSize: number;
+  filePath: string;
+  totalRows: number;
+  processedRows: number;
+  successfulRows: number;
+  failedRows: number;
+  mapping: Record<string, string>;
+  options: ImportOptions;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  errors: ImportError[];
+  createdAt: Date;
+  completedAt?: Date;
+}
+```
+
+### Validation Error Schema
+```typescript
+interface ValidationError {
+  row: number;
+  column: string;
+  value: any;
+  errorType: 'required' | 'format' | 'duplicate' | 'constraint';
+  message: string;
+  severity: 'error' | 'warning';
+}
+```
+
+### Field Mapping Configuration
+```typescript
+const FIELD_MAPPINGS: Record<string, FieldMapping> = {
+  contact: {
+    systemField: 'contact',
+    displayName: 'Nome do Contato',
+    required: true,
+    dataType: 'text',
+    validation: (value) => value && value.length >= 2
+  },
+  company: {
+    systemField: 'company',
+    displayName: 'Nome da Empresa',
+    required: true,
+    dataType: 'text',
+    validation: (value) => value && value.length >= 2
+  },
+  phone: {
+    systemField: 'phone',
+    displayName: 'Telefone',
+    required: true,
+    dataType: 'phone',
+    validation: (value) => /^\(\d{2}\)\s\d{4,5}-\d{4}$/.test(value),
+    transform: (value) => value.replace(/\D/g, '')
+  },
+  cpf: {
+    systemField: 'cpf',
+    displayName: 'CPF',
+    required: false,
+    dataType: 'text',
+    validation: validateCPF,
+    transform: (value) => value.replace(/\D/g, '')
+  },
+  cnpj: {
+    systemField: 'cnpj',
+    displayName: 'CNPJ',
+    required: false,
+    dataType: 'text',
+    validation: validateCNPJ,
+    transform: (value) => value.replace(/\D/g, '')
+  },
+  needCategory: {
+    systemField: 'needCategory',
+    displayName: 'Categoria da Necessidade',
+    required: true,
+    dataType: 'text',
+    validation: (value) => value && value.length >= 5
+  },
+  clientNeeds: {
+    systemField: 'clientNeeds',
+    displayName: 'Necessidades do Cliente',
+    required: true,
+    dataType: 'text',
+    validation: (value) => value && value.length >= 10
+  },
+  budget: {
+    systemField: 'budget',
+    displayName: 'Orçamento',
+    required: false,
+    dataType: 'number',
+    validation: (value) => !value || (parseFloat(value) > 0),
+    transform: (value) => value ? parseFloat(value.toString().replace(/[R$\s,]/g, '').replace('.', '')) : null
+  },
+  businessTemperature: {
+    systemField: 'businessTemperature',
+    displayName: 'Temperatura do Negócio',
+    required: false,
+    dataType: 'text',
+    validation: (value) => !value || ['frio', 'morno', 'quente'].includes(value.toLowerCase()),
+    transform: (value) => value ? value.toLowerCase() : null
+  },
+  salesperson: {
+    systemField: 'salesperson',
+    displayName: 'Vendedor',
+    required: false,
+    dataType: 'text',
+    validation: (value) => true
+  }
+};
+```
+
+## Business Logic Layer
+
+### Import Process Orchestrator
+```typescript
+class ImportOrchestrator {
+  async processImport(session: ImportSession): Promise<ImportResults> {
+    const steps = [
+      this.validateFileStructure,
+      this.parseAndValidateData,
+      this.checkForDuplicates,
+      this.transformData,
+      this.createOpportunities,
+      this.generateReport
+    ];
+    
+    for (const step of steps) {
+      await step(session);
+      await this.updateProgress(session);
+    }
+    
+    return session.results;
+  }
+}
+```
+
+### Data Validation Layer
+```typescript
+class DataValidator {
+  async validateRow(row: any, mapping: Record<string, string>): Promise<ValidationResult> {
+    const errors: ValidationError[] = [];
+    const warnings: ValidationError[] = [];
+    
+    // Required field validation
+    for (const [excelColumn, systemField] of Object.entries(mapping)) {
+      const fieldConfig = FIELD_MAPPINGS[systemField];
+      const value = row[excelColumn];
+      
+      if (fieldConfig.required && (!value || value.toString().trim() === '')) {
+        errors.push({
+          column: excelColumn,
+          errorType: 'required',
+          message: `${fieldConfig.displayName} é obrigatório`,
+          severity: 'error'
+        });
+      }
+      
+      if (value && fieldConfig.validation && !fieldConfig.validation(value)) {
+        errors.push({
+          column: excelColumn,
+          errorType: 'format',
+          message: `Formato inválido para ${fieldConfig.displayName}`,
+          severity: 'error'
+        });
+      }
+    }
+    
+    return { errors, warnings, isValid: errors.length === 0 };
+  }
+}
+```
+
+### Duplicate Detection Logic
+```typescript
+class DuplicateDetector {
+  async findDuplicates(data: any[], mapping: Record<string, string>): Promise<DuplicateResult[]> {
+    const duplicates: DuplicateResult[] = [];
+    const seen = new Map<string, number>();
+    
+    for (let i = 0; i < data.length; i++) {
+      const row = data[i];
+      const key = this.generateUniqueKey(row, mapping);
+      
+      if (seen.has(key)) {
+        duplicates.push({
+          currentRow: i,
+          duplicateRow: seen.get(key)!,
+          key,
+          strategy: 'skip' // or 'overwrite', 'merge'
+        });
+      } else {
+        seen.set(key, i);
+      }
+    }
+    
+    return duplicates;
+  }
+  
+  private generateUniqueKey(row: any, mapping: Record<string, string>): string {
+    // Generate key based on contact + company or email
+    const contact = row[this.getExcelColumn(mapping, 'contact')] || '';
+    const company = row[this.getExcelColumn(mapping, 'company')] || '';
+    const phone = row[this.getExcelColumn(mapping, 'phone')] || '';
+    
+    return `${contact.trim()}_${company.trim()}_${phone.replace(/\D/g, '')}`.toLowerCase();
+  }
+}
+```
+
+## Middleware & Error Handling
+
+### File Upload Middleware
+```typescript
+const importFileUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 50 * 1024 * 1024, // 50MB
+    files: 1
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = [
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'text/csv'
+    ];
+    
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Tipo de arquivo não suportado. Use Excel (.xlsx, .xls) ou CSV.'));
+    }
+  }
+});
+```
+
+### Error Handler Middleware
+```typescript
+const importErrorHandler = (error: any, req: Request, res: Response, next: NextFunction) => {
+  if (error instanceof multer.MulterError) {
+    if (error.code === 'LIMIT_FILE_SIZE') {
+      return res.status(400).json({
+        message: 'Arquivo muito grande. Tamanho máximo: 50MB'
+      });
+    }
+  }
+  
+  if (error.message.includes('não suportado')) {
+    return res.status(400).json({
+      message: error.message
+    });
+  }
+  
+  next(error);
+};
+```
+
+### Progress Tracking System
+```typescript
+class ProgressTracker {
+  private sessions = new Map<string, ImportProgress>();
+  
+  updateProgress(sessionId: string, progress: Partial<ImportProgress>) {
+    const existing = this.sessions.get(sessionId) || this.createInitialProgress();
+    this.sessions.set(sessionId, { ...existing, ...progress });
+  }
+  
+  getProgress(sessionId: string): ImportProgress | null {
+    return this.sessions.get(sessionId) || null;
+  }
+  
+  private createInitialProgress(): ImportProgress {
+    return {
+      totalRows: 0,
+      processedRows: 0,
+      successfulRows: 0,
+      failedRows: 0,
+      currentStep: 'parsing',
+      errors: [],
+      startTime: new Date(),
+      estimatedCompletion: null
+    };
+  }
+}
+```
+
+## Testing Strategy
+
+### Unit Testing Components
+```typescript
+// Frontend Component Testing
+describe('ImportModal', () => {
+  test('should handle file upload step', async () => {
+    render(<ImportModal open={true} onOpenChange={jest.fn()} />);
+    
+    const fileInput = screen.getByTestId('file-upload-input');
+    const mockFile = new File(['test content'], 'test.xlsx', {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    });
+    
+    await userEvent.upload(fileInput, mockFile);
+    
+    expect(screen.getByText('Mapeamento de Colunas')).toBeInTheDocument();
+  });
+  
+  test('should validate required field mappings', () => {
+    // Test mapping validation logic
+  });
+});
+
+// Backend Service Testing
+describe('ImportService', () => {
+  test('should parse Excel file correctly', async () => {
+    const buffer = fs.readFileSync('test-files/sample.xlsx');
+    const result = await importService.parseExcelFile(buffer);
+    
+    expect(result.columns).toContain('Nome');
+    expect(result.data).toHaveLength(10);
+  });
+  
+  test('should validate data against schema', async () => {
+    const testData = [
+      { 'Nome': 'João Silva', 'Email': 'invalid-email', 'Telefone': '11999999999' }
+    ];
+    
+    const validation = await importService.validateData(testData, mockMapping);
+    
+    expect(validation.errors).toHaveLength(1);
+    expect(validation.errors[0].field).toBe('Email');
+  });
+});
+```
+
+### Integration Testing Scenarios
+```typescript
+describe('Import Integration', () => {
+  test('should complete full import workflow', async () => {
+    // 1. Upload file
+    const uploadResponse = await request(app)
+      .post('/api/import/upload')
+      .attach('file', 'test-files/opportunities.xlsx')
+      .expect(200);
+    
+    // 2. Map columns
+    const mappingResponse = await request(app)
+      .post('/api/import/validate-mapping')
+      .send({
+        fileId: uploadResponse.body.fileId,
+        mapping: { 'Nome': 'contact', 'Empresa': 'company' }
+      })
+      .expect(200);
+    
+    // 3. Execute import
+    const importResponse = await request(app)
+      .post('/api/import/execute')
+      .send({
+        fileId: uploadResponse.body.fileId,
+        mapping: mappingResponse.body.mapping
+      })
+      .expect(200);
+    
+    // 4. Check results
+    expect(importResponse.body.results.created).toBeGreaterThan(0);
+  });
+});
+```
+
+### Performance Testing Guidelines
+- **File Size Limits**: Test with files up to 50MB (10,000+ rows)
+- **Memory Usage**: Monitor memory consumption during large imports
+- **Processing Time**: Target <30 seconds for 1,000 rows
+- **Concurrent Imports**: Test multiple users importing simultaneously
+- **Database Performance**: Monitor query performance during bulk inserts
+
+### Error Recovery Testing
+- **Network Interruption**: Test import continuation after connection loss
+- **File Corruption**: Handle malformed Excel files gracefully
+- **Validation Failures**: Partial import with error reporting
+- **Duplicate Handling**: Various strategies for duplicate data
