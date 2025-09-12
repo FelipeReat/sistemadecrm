@@ -73,8 +73,8 @@ app.use((req, res, next) => {
   // ALWAYS serve the app on port 5000 in Replit
   // Replit requires port 5000 for webview applications
   // this serves both the API and the client.
-  const port = parseInt(process.env.PORT || "5000", 10);
-  log("Using fixed PORT:", port.toString());
+  const port = 5000; // Force port 5000 for Replit webview
+  log(`Using fixed PORT: ${port}`);
 
   // Use configurable host binding with safe default
   // Default to 0.0.0.0 for accessibility in cloud environments like Replit
