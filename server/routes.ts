@@ -13,7 +13,10 @@ import { rateLimiter } from "./rate-limiter";
 import * as crypto from "crypto";
 import * as z from "zod";
 import * as XLSX from 'xlsx';
+import multer from 'multer';
 import path from 'path';
+import { promises as fs } from 'fs';
+import { nanoid } from 'nanoid';
 
 // Mock DB and schema for demonstration purposes. Replace with your actual database logic.
 // Assuming 'db' and 'opportunities' are available and configured for your ORM (e.g., Drizzle ORM)
@@ -1024,6 +1027,656 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     } catch (error) {
       res.status(500).json({ message: "Erro ao criar exportação" });
+    }
+  });
+
+  // Import functionality
+  
+  // Setup multer for file uploads
+  const importFileUpload = multer({
+    storage: multer.memoryStorage(),
+    limits: {
+      fileSize: 50 * 1024 * 1024, // 50MB
+      files: 1
+    },
+    fileFilter: (req, file, cb) => {
+      const allowedTypes = [
+        'application/vnd.ms-excel',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'text/csv',
+        'application/csv'
+      ];
+      
+      if (allowedTypes.includes(file.mimetype) || file.originalname.endsWith('.csv')) {
+        cb(null, true);
+      } else {
+        cb(new Error('Tipo de arquivo não suportado. Use Excel (.xlsx, .xls) ou CSV'));
+      }
+    }
+  });
+
+  // In-memory storage for import sessions
+  const importSessions = new Map<string, any>();
+
+  // Field mapping configuration
+  const FIELD_MAPPINGS: Record<string, any> = {
+    contact: {
+      systemField: 'contact',
+      displayName: 'Nome do Contato',
+      required: true,
+      dataType: 'text',
+      validation: (value: any) => value && value.toString().length >= 2
+    },
+    company: {
+      systemField: 'company',
+      displayName: 'Nome da Empresa',
+      required: true,
+      dataType: 'text',
+      validation: (value: any) => value && value.toString().length >= 2
+    },
+    phone: {
+      systemField: 'phone',
+      displayName: 'Telefone',
+      required: true,
+      dataType: 'phone',
+      validation: (value: any) => {
+        if (!value) return false;
+        const cleanPhone = value.toString().replace(/\D/g, '');
+        return cleanPhone.length >= 10 && cleanPhone.length <= 11;
+      },
+      transform: (value: any) => {
+        if (!value) return '';
+        const cleaned = value.toString().replace(/\D/g, '');
+        if (cleaned.length === 11) {
+          return `+55 ${cleaned.substr(0, 2)} ${cleaned.substr(2, 5)}-${cleaned.substr(7, 4)}`;
+        } else if (cleaned.length === 10) {
+          return `+55 ${cleaned.substr(0, 2)} ${cleaned.substr(2, 4)}-${cleaned.substr(6, 4)}`;
+        }
+        return value;
+      }
+    },
+    cpf: {
+      systemField: 'cpf',
+      displayName: 'CPF',
+      required: false,
+      dataType: 'text',
+      validation: (value: any) => {
+        if (!value) return true;
+        const cpf = value.toString().replace(/\D/g, '');
+        return cpf.length === 11;
+      },
+      transform: (value: any) => value ? value.toString().replace(/\D/g, '') : null
+    },
+    cnpj: {
+      systemField: 'cnpj',
+      displayName: 'CNPJ',
+      required: false,
+      dataType: 'text',
+      validation: (value: any) => {
+        if (!value) return true;
+        const cnpj = value.toString().replace(/\D/g, '');
+        return cnpj.length >= 11;
+      },
+      transform: (value: any) => value ? value.toString().replace(/\D/g, '') : null
+    },
+    needCategory: {
+      systemField: 'needCategory',
+      displayName: 'Categoria da Necessidade',
+      required: true,
+      dataType: 'text',
+      validation: (value: any) => value && value.toString().length >= 2
+    },
+    clientNeeds: {
+      systemField: 'clientNeeds',
+      displayName: 'Necessidades do Cliente',
+      required: true,
+      dataType: 'text',
+      validation: (value: any) => value && value.toString().length >= 5
+    },
+    budget: {
+      systemField: 'budget',
+      displayName: 'Orçamento',
+      required: false,
+      dataType: 'number',
+      validation: (value: any) => !value || (parseFloat(value.toString().replace(/[^\d,.-]/g, '').replace(',', '.')) > 0),
+      transform: (value: any) => {
+        if (!value) return null;
+        const cleaned = value.toString().replace(/[R$\s]/g, '').replace(',', '.');
+        const parsed = parseFloat(cleaned);
+        return isNaN(parsed) ? null : parsed;
+      }
+    },
+    finalValue: {
+      systemField: 'finalValue',
+      displayName: 'Valor Final',
+      required: false,
+      dataType: 'number',
+      validation: (value: any) => !value || (parseFloat(value.toString().replace(/[^\d,.-]/g, '').replace(',', '.')) > 0),
+      transform: (value: any) => {
+        if (!value) return null;
+        const cleaned = value.toString().replace(/[R$\s]/g, '').replace(',', '.');
+        const parsed = parseFloat(cleaned);
+        return isNaN(parsed) ? null : parsed;
+      }
+    },
+    businessTemperature: {
+      systemField: 'businessTemperature',
+      displayName: 'Temperatura do Negócio',
+      required: false,
+      dataType: 'text',
+      validation: (value: any) => !value || ['frio', 'morno', 'quente'].includes(value.toString().toLowerCase()),
+      transform: (value: any) => value ? value.toString().toLowerCase() : null
+    },
+    salesperson: {
+      systemField: 'salesperson',
+      displayName: 'Vendedor',
+      required: false,
+      dataType: 'text',
+      validation: (value: any) => true
+    },
+    phase: {
+      systemField: 'phase',
+      displayName: 'Fase',
+      required: false,
+      dataType: 'text',
+      validation: (value: any) => true,
+      transform: (value: any) => {
+        if (!value) return 'prospeccao';
+        const phase = value.toString().toLowerCase();
+        const phaseMap: Record<string, string> = {
+          'em atendimento': 'em-atendimento',
+          'ganho': 'ganho',
+          'perdido': 'perdido',
+          'proposta': 'proposta',
+          'negociação': 'negociacao',
+          'negociacao': 'negociacao',
+          'prospecção': 'prospeccao',
+          'prospeccao': 'prospeccao',
+          'visita técnica': 'visita-tecnica',
+          'visita tecnica': 'visita-tecnica'
+        };
+        return phaseMap[phase] || 'prospeccao';
+      }
+    }
+  };
+
+  // Auto-detect field mapping from CSV headers
+  function autoDetectMapping(headers: string[]): Record<string, string> {
+    const mapping: Record<string, string> = {};
+    
+    headers.forEach(header => {
+      const lowerHeader = header.toLowerCase().trim();
+      
+      // Direct mappings
+      if (lowerHeader.includes('título') || lowerHeader.includes('titulo') || lowerHeader === 'contato') {
+        mapping[header] = 'contact';
+      } else if (lowerHeader.includes('empresa') || lowerHeader.includes('company')) {
+        mapping[header] = 'company';
+      } else if (lowerHeader.includes('telefone') || lowerHeader.includes('phone')) {
+        mapping[header] = 'phone';
+      } else if (lowerHeader === 'cpf') {
+        mapping[header] = 'cpf';
+      } else if (lowerHeader === 'cnpj') {
+        mapping[header] = 'cnpj';
+      } else if (lowerHeader.includes('categoria') && lowerHeader.includes('necessidade')) {
+        mapping[header] = 'needCategory';
+      } else if (lowerHeader.includes('necessidades') && lowerHeader.includes('cliente')) {
+        mapping[header] = 'clientNeeds';
+      } else if (lowerHeader.includes('orçamento') || lowerHeader.includes('orcamento') || lowerHeader.includes('budget')) {
+        mapping[header] = 'budget';
+      } else if (lowerHeader.includes('valor final') || lowerHeader.includes('final value')) {
+        mapping[header] = 'finalValue';
+      } else if (lowerHeader.includes('temperatura') && lowerHeader.includes('negócio')) {
+        mapping[header] = 'businessTemperature';
+      } else if (lowerHeader.includes('vendedor') || lowerHeader.includes('salesperson')) {
+        mapping[header] = 'salesperson';
+      } else if (lowerHeader.includes('fase atual') || lowerHeader.includes('phase')) {
+        mapping[header] = 'phase';
+      }
+    });
+    
+    return mapping;
+  }
+
+  // Parse Excel/CSV file
+  function parseExcelFile(buffer: Buffer, filename: string): any[] {
+    try {
+      const workbook = XLSX.read(buffer, { type: 'buffer' });
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      
+      // Convert to JSON with headers
+      const data = XLSX.utils.sheet_to_json(worksheet, { 
+        header: 1,
+        defval: '',
+        raw: false
+      });
+      
+      if (data.length === 0) {
+        throw new Error('Arquivo vazio');
+      }
+      
+      // Get headers and rows
+      const headers = data[0] as string[];
+      const rows = data.slice(1) as any[][];
+      
+      // Convert to objects
+      return rows.map(row => {
+        const obj: any = {};
+        headers.forEach((header, index) => {
+          obj[header] = row[index] || '';
+        });
+        return obj;
+      });
+    } catch (error) {
+      throw new Error(`Erro ao processar arquivo: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
+    }
+  }
+
+  // Validate data row
+  function validateRow(row: any, mapping: Record<string, string>, rowIndex: number): any[] {
+    const errors: any[] = [];
+    
+    for (const [excelColumn, systemField] of Object.entries(mapping)) {
+      const fieldConfig = FIELD_MAPPINGS[systemField as keyof typeof FIELD_MAPPINGS];
+      if (!fieldConfig) continue;
+      
+      const value = row[excelColumn];
+      
+      if (fieldConfig.required && (!value || value.toString().trim() === '')) {
+        errors.push({
+          row: rowIndex + 2, // +2 because Excel is 1-indexed and we skip header
+          column: excelColumn,
+          field: systemField,
+          value: value,
+          errorType: 'required',
+          message: `${fieldConfig.displayName} é obrigatório`,
+          severity: 'error'
+        });
+      }
+      
+      if (value && fieldConfig.validation && !fieldConfig.validation(value)) {
+        errors.push({
+          row: rowIndex + 2,
+          column: excelColumn,
+          field: systemField,
+          value: value,
+          errorType: 'format',
+          message: `Formato inválido para ${fieldConfig.displayName}`,
+          severity: 'error'
+        });
+      }
+    }
+    
+    return errors;
+  }
+
+  // Transform row data
+  function transformRow(row: any, mapping: Record<string, string>, createdBy: string): any {
+    const transformed: any = {
+      createdBy: createdBy,
+      // Set defaults for required fields
+      hasRegistration: false,
+      requiresVisit: false,
+      documents: [],
+      visitPhotos: []
+    };
+    
+    for (const [excelColumn, systemField] of Object.entries(mapping)) {
+      const fieldConfig = FIELD_MAPPINGS[systemField as keyof typeof FIELD_MAPPINGS];
+      if (!fieldConfig) continue;
+      
+      let value = row[excelColumn];
+      
+      if (fieldConfig.transform) {
+        value = fieldConfig.transform(value);
+      }
+      
+      // Handle null/empty values
+      if (value === null || value === undefined || value === '') {
+        if (fieldConfig.required) {
+          continue; // Skip, validation will catch this
+        } else {
+          value = null;
+        }
+      }
+      
+      transformed[systemField] = value;
+    }
+    
+    return transformed;
+  }
+
+  // File Upload Endpoint
+  app.post("/api/import/upload", isAuthenticated, importFileUpload.single('file'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "Nenhum arquivo enviado" });
+      }
+      
+      const fileId = nanoid();
+      const filename = req.file.originalname;
+      
+      // Parse the file
+      const data = parseExcelFile(req.file.buffer, filename);
+      
+      if (data.length === 0) {
+        return res.status(400).json({ message: "Arquivo vazio ou sem dados válidos" });
+      }
+      
+      // Get column headers
+      const columns = Object.keys(data[0]);
+      
+      // Auto-detect mapping
+      const autoMapping = autoDetectMapping(columns);
+      
+      // Store session data
+      const session = {
+        fileId,
+        filename,
+        fileSize: req.file.size,
+        data,
+        columns,
+        autoMapping,
+        totalRows: data.length,
+        createdAt: new Date(),
+        userId: req.session.userId
+      };
+      
+      importSessions.set(fileId, session);
+      
+      // Get preview (first 5 rows)
+      const preview = data.slice(0, 5);
+      
+      res.json({
+        fileId,
+        filename,
+        columns,
+        rowCount: data.length,
+        autoMapping,
+        preview
+      });
+    } catch (error: any) {
+      console.error('Upload error:', error);
+      res.status(400).json({ 
+        message: error.message || "Erro ao processar arquivo" 
+      });
+    }
+  });
+
+  // Column Mapping Validation
+  app.post("/api/import/validate-mapping", isAuthenticated, async (req, res) => {
+    try {
+      const { fileId, mapping } = req.body;
+      
+      const session = importSessions.get(fileId);
+      if (!session) {
+        return res.status(404).json({ message: "Sessão de importação não encontrada" });
+      }
+      
+      if (session.userId !== req.session.userId) {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+      
+      // Check required fields are mapped
+      const requiredFields = Object.entries(FIELD_MAPPINGS)
+        .filter(([_, config]) => config.required)
+        .map(([field, _]) => field);
+      
+      const mappedFields = Object.values(mapping);
+      const missingRequired = requiredFields.filter(field => !mappedFields.includes(field));
+      
+      const isValid = missingRequired.length === 0;
+      const warnings: string[] = [];
+      const errors: string[] = [];
+      
+      if (missingRequired.length > 0) {
+        errors.push(`Campos obrigatórios não mapeados: ${missingRequired.map(f => FIELD_MAPPINGS[f as keyof typeof FIELD_MAPPINGS].displayName).join(', ')}`);
+      }
+      
+      // Update session with mapping
+      session.mapping = mapping;
+      importSessions.set(fileId, session);
+      
+      res.json({
+        isValid,
+        requiredFieldsMapped: missingRequired.length === 0,
+        warnings,
+        errors,
+        missingRequired
+      });
+    } catch (error: any) {
+      console.error('Mapping validation error:', error);
+      res.status(500).json({ message: "Erro ao validar mapeamento" });
+    }
+  });
+
+  // Data Preview & Validation
+  app.post("/api/import/preview", isAuthenticated, async (req, res) => {
+    try {
+      const { fileId, mapping, options = {} } = req.body;
+      
+      const session = importSessions.get(fileId);
+      if (!session) {
+        return res.status(404).json({ message: "Sessão de importação não encontrada" });
+      }
+      
+      if (session.userId !== req.session.userId) {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+      
+      const data = session.data;
+      let validRows = 0;
+      let invalidRows = 0;
+      const errors: any[] = [];
+      
+      // Validate all rows
+      data.forEach((row: any, index: number) => {
+        const rowErrors = validateRow(row, mapping, index);
+        if (rowErrors.length > 0) {
+          invalidRows++;
+          errors.push(...rowErrors);
+        } else {
+          validRows++;
+        }
+      });
+      
+      // Get preview of first 10 processed records
+      const previewData = data.slice(0, 10).map((row: any, index: number) => {
+        const transformed = transformRow(row, mapping, req.session.userId!);
+        const rowErrors = validateRow(row, mapping, index);
+        return {
+          original: row,
+          transformed,
+          isValid: rowErrors.length === 0,
+          errors: rowErrors
+        };
+      });
+      
+      // Update session with validation results
+      session.mapping = mapping;
+      session.validationResults = {
+        totalRows: data.length,
+        validRows,
+        invalidRows,
+        errors
+      };
+      importSessions.set(fileId, session);
+      
+      res.json({
+        previewData,
+        validationSummary: {
+          totalRows: data.length,
+          validRows,
+          invalidRows
+        },
+        errors: errors.slice(0, 100) // Limit errors shown
+      });
+    } catch (error: any) {
+      console.error('Preview error:', error);
+      res.status(500).json({ message: "Erro ao gerar preview" });
+    }
+  });
+
+  // Import Execution
+  app.post("/api/import/execute", isAuthenticated, async (req, res) => {
+    try {
+      const { fileId, mapping, options = {} } = req.body;
+      
+      const session = importSessions.get(fileId);
+      if (!session) {
+        return res.status(404).json({ message: "Sessão de importação não encontrada" });
+      }
+      
+      if (session.userId !== req.session.userId) {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+      
+      const importId = nanoid();
+      const data = session.data;
+      
+      // Update session with import status
+      session.importId = importId;
+      session.status = 'processing';
+      session.progress = 0;
+      session.results = {
+        created: 0,
+        updated: 0,
+        skipped: 0,
+        failed: 0,
+        errors: []
+      };
+      
+      importSessions.set(fileId, session);
+      
+      // Start processing in background
+      setImmediate(async () => {
+        try {
+          const userId = req.session.userId!;
+          let created = 0;
+          let failed = 0;
+          const errors: any[] = [];
+          
+          for (let i = 0; i < data.length; i++) {
+            const row = data[i];
+            const progress = Math.round(((i + 1) / data.length) * 100);
+            
+            try {
+              // Validate row
+              const rowErrors = validateRow(row, mapping, i);
+              if (rowErrors.length > 0 && !options.skipInvalidRows) {
+                failed++;
+                errors.push(...rowErrors);
+                continue;
+              }
+              
+              // Transform row
+              const transformedData = transformRow(row, mapping, userId);
+              
+              // Validate with Zod schema
+              const validatedData = insertOpportunitySchema.parse(transformedData);
+              
+              // Insert into database
+              await storage.createOpportunity(validatedData);
+              created++;
+              
+            } catch (error: any) {
+              failed++;
+              errors.push({
+                row: i + 2,
+                message: error.message || 'Erro ao importar linha',
+                data: row
+              });
+            }
+            
+            // Update progress
+            const currentSession = importSessions.get(fileId);
+            if (currentSession) {
+              currentSession.progress = progress;
+              currentSession.results = {
+                created,
+                updated: 0,
+                skipped: 0,
+                failed,
+                errors
+              };
+              importSessions.set(fileId, currentSession);
+            }
+          }
+          
+          // Mark as completed
+          const finalSession = importSessions.get(fileId);
+          if (finalSession) {
+            finalSession.status = 'completed';
+            finalSession.completedAt = new Date();
+            importSessions.set(fileId, finalSession);
+          }
+          
+        } catch (error: any) {
+          console.error('Import execution error:', error);
+          const errorSession = importSessions.get(fileId);
+          if (errorSession) {
+            errorSession.status = 'failed';
+            errorSession.error = error.message;
+            importSessions.set(fileId, errorSession);
+          }
+        }
+      });
+      
+      res.json({
+        importId,
+        status: 'processing',
+        progress: 0
+      });
+      
+    } catch (error: any) {
+      console.error('Import start error:', error);
+      res.status(500).json({ message: "Erro ao iniciar importação" });
+    }
+  });
+
+  // Import Status Tracking
+  app.get("/api/import/status/:importId", isAuthenticated, async (req, res) => {
+    try {
+      const { importId } = req.params;
+      
+      // Find session by importId
+      let session = null;
+      const entries = Array.from(importSessions.entries());
+      for (const [fileId, sessionData] of entries) {
+        if (sessionData.importId === importId) {
+          session = sessionData;
+          break;
+        }
+      }
+      
+      if (!session) {
+        return res.status(404).json({ message: "Importação não encontrada" });
+      }
+      
+      if (session.userId !== req.session.userId) {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+      
+      res.json({
+        importId,
+        status: session.status || 'pending',
+        progress: session.progress || 0,
+        processedRows: session.results?.created + session.results?.failed || 0,
+        totalRows: session.totalRows,
+        results: session.results || {
+          created: 0,
+          updated: 0,
+          skipped: 0,
+          failed: 0,
+          errors: []
+        },
+        error: session.error
+      });
+      
+    } catch (error: any) {
+      console.error('Status check error:', error);
+      res.status(500).json({ message: "Erro ao verificar status da importação" });
     }
   });
 
