@@ -453,9 +453,9 @@ export function ImportModal({ isOpen, onClose, onImportComplete }: ImportModalPr
                 <CardHeader>
                   <CardTitle>Mapeamento de Colunas</CardTitle>
                   <CardDescription>
-                    Mapeie as colunas do seu arquivo para os campos do sistema.
-                    Campos obrigatórios estão marcados com <Badge variant="destructive" className="ml-1">*</Badge>
-                  </CardDescription>
+                  Mapeie as colunas do seu arquivo para os campos do sistema.
+                  Todos os campos são opcionais.
+                </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="grid gap-4">
@@ -480,7 +480,6 @@ export function ImportModal({ isOpen, onClose, onImportComplete }: ImportModalPr
                               {Object.entries(FIELD_MAPPINGS).map(([key, config]) => (
                                 <SelectItem key={key} value={key}>
                                   {config.displayName}
-                                  {config.required && <Badge variant="destructive" className="ml-1">*</Badge>}
                                 </SelectItem>
                               ))}
                             </SelectContent>
@@ -732,7 +731,7 @@ export function ImportModal({ isOpen, onClose, onImportComplete }: ImportModalPr
               Detalhes dos Erros de Validação
             </DialogTitle>
           </DialogHeader>
-          
+
           <ScrollArea className="flex-1 max-h-96">
             <div className="space-y-4">
               {selectedRowErrors.map((error, index) => (
@@ -770,7 +769,7 @@ export function ImportModal({ isOpen, onClose, onImportComplete }: ImportModalPr
                   </CardContent>
                 </Card>
               ))}
-              
+
               {selectedRowErrors.length === 0 && (
                 <div className="text-center py-8 text-muted-foreground">
                   Nenhum erro encontrado
@@ -778,7 +777,7 @@ export function ImportModal({ isOpen, onClose, onImportComplete }: ImportModalPr
               )}
             </div>
           </ScrollArea>
-          
+
           <div className="flex justify-end pt-4 border-t">
             <Button onClick={() => setShowErrorsModal(false)} data-testid="close-errors-modal">
               Fechar

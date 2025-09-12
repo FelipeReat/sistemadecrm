@@ -1032,7 +1032,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Import functionality
-  
+
   // Setup multer for file uploads
   const importFileUpload = multer({
     storage: multer.memoryStorage(),
@@ -1047,7 +1047,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         'text/csv',
         'application/csv'
       ];
-      
+
       if (allowedTypes.includes(file.mimetype) || file.originalname.endsWith('.csv')) {
         cb(null, true);
       } else {
@@ -1060,141 +1060,115 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const importSessions = new Map<string, any>();
 
   // Field mapping configuration
-  const FIELD_MAPPINGS: Record<string, any> = {
-    contact: {
-      systemField: 'contact',
-      displayName: 'Nome do Contato',
-      required: true,
-      dataType: 'text',
-      validation: (value: any) => value && value.toString().length >= 2
+  const FIELD_MAPPINGS = {
+    contact: { 
+      displayName: 'Nome do Contato', 
+      required: false,
+      transform: (value: any) => value?.toString().trim() || null
     },
-    company: {
-      systemField: 'company',
-      displayName: 'Nome da Empresa',
-      required: true,
-      dataType: 'text',
-      validation: (value: any) => value && value.toString().length >= 2
+    company: { 
+      displayName: 'Nome da Empresa', 
+      required: false,
+      transform: (value: any) => value?.toString().trim() || null
     },
-    phone: {
-      systemField: 'phone',
-      displayName: 'Telefone',
-      required: true,
-      dataType: 'phone',
-      validation: (value: any) => {
-        if (!value) return false;
-        const cleanPhone = value.toString().replace(/\D/g, '');
-        return cleanPhone.length >= 10 && cleanPhone.length <= 11;
-      },
+    phone: { 
+      displayName: 'Telefone', 
+      required: false,
       transform: (value: any) => {
-        if (!value) return '';
-        const cleaned = value.toString().replace(/\D/g, '');
-        if (cleaned.length === 11) {
-          return `+55 ${cleaned.substr(0, 2)} ${cleaned.substr(2, 5)}-${cleaned.substr(7, 4)}`;
-        } else if (cleaned.length === 10) {
-          return `+55 ${cleaned.substr(0, 2)} ${cleaned.substr(2, 4)}-${cleaned.substr(6, 4)}`;
-        }
-        return value;
+        const phone = value?.toString().replace(/\D/g, '') || '';
+        return phone || null;
+      },
+      validation: (value: any) => {
+        if (!value) return true; // Optional field
+        const phone = value?.toString().replace(/\D/g, '') || '';
+        return phone.length >= 10 && phone.length <= 11;
       }
     },
-    cpf: {
-      systemField: 'cpf',
-      displayName: 'CPF',
+    cpf: { 
+      displayName: 'CPF', 
       required: false,
-      dataType: 'text',
-      validation: (value: any) => {
-        if (!value) return true;
-        const cpf = value.toString().replace(/\D/g, '');
-        return cpf.length === 11;
-      },
-      transform: (value: any) => value ? value.toString().replace(/\D/g, '') : null
+      transform: (value: any) => {
+        const cpf = value?.toString().replace(/\D/g, '') || '';
+        return cpf || null;
+      }
     },
-    cnpj: {
-      systemField: 'cnpj',
-      displayName: 'CNPJ',
+    cnpj: { 
+      displayName: 'CNPJ', 
       required: false,
-      dataType: 'text',
-      validation: (value: any) => {
-        if (!value) return true;
-        const cnpj = value.toString().replace(/\D/g, '');
-        return cnpj.length >= 11;
-      },
-      transform: (value: any) => value ? value.toString().replace(/\D/g, '') : null
+      transform: (value: any) => {
+        const cnpj = value?.toString().replace(/\D/g, '') || '';
+        return cnpj || null;
+      }
     },
-    needCategory: {
-      systemField: 'needCategory',
-      displayName: 'Categoria da Necessidade',
-      required: true,
-      dataType: 'text',
-      validation: (value: any) => value && value.toString().length >= 2
-    },
-    clientNeeds: {
-      systemField: 'clientNeeds',
-      displayName: 'Necessidades do Cliente',
-      required: true,
-      dataType: 'text',
-      validation: (value: any) => value && value.toString().length >= 5
-    },
-    budget: {
-      systemField: 'budget',
-      displayName: 'Orçamento',
+    needCategory: { 
+      displayName: 'Categoria da Necessidade', 
       required: false,
-      dataType: 'number',
-      validation: (value: any) => !value || (parseFloat(value.toString().replace(/[^\d,.-]/g, '').replace(',', '.')) > 0),
+      transform: (value: any) => value?.toString().trim() || null
+    },
+    clientNeeds: { 
+      displayName: 'Necessidades do Cliente', 
+      required: false,
+      transform: (value: any) => value?.toString().trim() || null
+    },
+    budget: { 
+      displayName: 'Orçamento', 
+      required: false,
       transform: (value: any) => {
         if (!value) return null;
-        const cleaned = value.toString().replace(/[R$\s]/g, '').replace(',', '.');
-        const parsed = parseFloat(cleaned);
-        return isNaN(parsed) ? null : parsed;
+        const numValue = parseFloat(value.toString().replace(/[^\d,.-]/g, '').replace(',', '.'));
+        return isNaN(numValue) ? null : numValue;
       }
     },
-    finalValue: {
-      systemField: 'finalValue',
-      displayName: 'Valor Final',
+    finalValue: { 
+      displayName: 'Valor Final', 
       required: false,
-      dataType: 'number',
-      validation: (value: any) => !value || (parseFloat(value.toString().replace(/[^\d,.-]/g, '').replace(',', '.')) > 0),
       transform: (value: any) => {
         if (!value) return null;
-        const cleaned = value.toString().replace(/[R$\s]/g, '').replace(',', '.');
-        const parsed = parseFloat(cleaned);
-        return isNaN(parsed) ? null : parsed;
+        const numValue = parseFloat(value.toString().replace(/[^\d,.-]/g, '').replace(',', '.'));
+        return isNaN(numValue) ? null : numValue;
       }
     },
-    businessTemperature: {
-      systemField: 'businessTemperature',
-      displayName: 'Temperatura do Negócio',
+    businessTemperature: { 
+      displayName: 'Temperatura do Negócio', 
       required: false,
-      dataType: 'text',
-      validation: (value: any) => !value || ['frio', 'morno', 'quente'].includes(value.toString().toLowerCase()),
-      transform: (value: any) => value ? value.toString().toLowerCase() : null
+      transform: (value: any) => {
+        if (!value) return null;
+        const temp = value.toString().toLowerCase().trim();
+        const tempMap: Record<string, string> = {
+          'frio': 'frio',
+          'morno': 'morno', 
+          'quente': 'quente',
+          'cold': 'frio',
+          'warm': 'morno',
+          'hot': 'quente'
+        };
+        return tempMap[temp] || 'frio';
+      }
     },
-    salesperson: {
-      systemField: 'salesperson',
-      displayName: 'Vendedor',
+    salesperson: { 
+      displayName: 'Vendedor', 
       required: false,
-      dataType: 'text',
-      validation: (value: any) => true
+      transform: (value: any) => value?.toString().trim() || null
     },
-    phase: {
-      systemField: 'phase',
-      displayName: 'Fase',
+    phase: { 
+      displayName: 'Fase', 
       required: false,
-      dataType: 'text',
-      validation: (value: any) => true,
       transform: (value: any) => {
         if (!value) return 'prospeccao';
-        const phase = value.toString().toLowerCase();
+        const phase = value.toString().toLowerCase().trim();
         const phaseMap: Record<string, string> = {
-          'em atendimento': 'em-atendimento',
-          'ganho': 'ganho',
-          'perdido': 'perdido',
+          'prospecção': 'prospeccao',
+          'prospeccao': 'prospeccao',
+          'qualificação': 'qualificacao',
+          'qualificacao': 'qualificacao',
           'proposta': 'proposta',
           'negociação': 'negociacao',
           'negociacao': 'negociacao',
-          'prospecção': 'prospeccao',
-          'prospeccao': 'prospeccao',
+          'fechamento': 'fechamento',
+          'perdido': 'perdido',
+          'ganho': 'ganho',
           'visita técnica': 'visita-tecnica',
-          'visita tecnica': 'visita-tecnica'
+         'visita tecnica': 'visita-tecnica'
         };
         return phaseMap[phase] || 'prospeccao';
       }
@@ -1204,10 +1178,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Auto-detect field mapping from CSV headers
   function autoDetectMapping(headers: string[]): Record<string, string> {
     const mapping: Record<string, string> = {};
-    
+
     headers.forEach(header => {
       const lowerHeader = header.toLowerCase().trim();
-      
+
       // Direct mappings
       if (lowerHeader.includes('título') || lowerHeader.includes('titulo') || lowerHeader === 'contato') {
         mapping[header] = 'contact';
@@ -1235,7 +1209,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         mapping[header] = 'phase';
       }
     });
-    
+
     return mapping;
   }
 
@@ -1245,22 +1219,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const workbook = XLSX.read(buffer, { type: 'buffer' });
       const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
-      
+
       // Convert to JSON with headers
       const data = XLSX.utils.sheet_to_json(worksheet, { 
         header: 1,
         defval: '',
         raw: false
       });
-      
+
       if (data.length === 0) {
         throw new Error('Arquivo vazio');
       }
-      
+
       // Get headers and rows
       const headers = data[0] as string[];
       const rows = data.slice(1) as any[][];
-      
+
       // Convert to objects
       return rows.map(row => {
         const obj: any = {};
@@ -1277,13 +1251,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Validate data row
   function validateRow(row: any, mapping: Record<string, string>, rowIndex: number): any[] {
     const errors: any[] = [];
-    
+
     for (const [excelColumn, systemField] of Object.entries(mapping)) {
       const fieldConfig = FIELD_MAPPINGS[systemField as keyof typeof FIELD_MAPPINGS];
       if (!fieldConfig) continue;
-      
+
       const value = row[excelColumn];
-      
+
       if (fieldConfig.required && (!value || value.toString().trim() === '')) {
         errors.push({
           row: rowIndex + 2, // +2 because Excel is 1-indexed and we skip header
@@ -1295,7 +1269,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           severity: 'error'
         });
       }
-      
+
       if (value && fieldConfig.validation && !fieldConfig.validation(value)) {
         errors.push({
           row: rowIndex + 2,
@@ -1308,7 +1282,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
     }
-    
+
     return errors;
   }
 
@@ -1322,17 +1296,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       documents: [],
       visitPhotos: []
     };
-    
+
     for (const [excelColumn, systemField] of Object.entries(mapping)) {
       const fieldConfig = FIELD_MAPPINGS[systemField as keyof typeof FIELD_MAPPINGS];
       if (!fieldConfig) continue;
-      
+
       let value = row[excelColumn];
-      
+
       if (fieldConfig.transform) {
         value = fieldConfig.transform(value);
       }
-      
+
       // Handle null/empty values
       if (value === null || value === undefined || value === '') {
         if (fieldConfig.required) {
@@ -1341,10 +1315,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           value = null;
         }
       }
-      
+
       transformed[systemField] = value;
     }
-    
+
     return transformed;
   }
 
@@ -1354,23 +1328,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!req.file) {
         return res.status(400).json({ message: "Nenhum arquivo enviado" });
       }
-      
+
       const fileId = nanoid();
       const filename = req.file.originalname;
-      
+
       // Parse the file
       const data = parseExcelFile(req.file.buffer, filename);
-      
+
       if (data.length === 0) {
         return res.status(400).json({ message: "Arquivo vazio ou sem dados válidos" });
       }
-      
+
       // Get column headers
       const columns = Object.keys(data[0]);
-      
+
       // Auto-detect mapping
       const autoMapping = autoDetectMapping(columns);
-      
+
       // Store session data
       const session = {
         fileId,
@@ -1383,12 +1357,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         createdAt: new Date(),
         userId: req.session.userId
       };
-      
+
       importSessions.set(fileId, session);
-      
+
       // Get preview (first 5 rows)
       const preview = data.slice(0, 5);
-      
+
       res.json({
         fileId,
         filename,
@@ -1409,36 +1383,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/import/validate-mapping", isAuthenticated, async (req, res) => {
     try {
       const { fileId, mapping } = req.body;
-      
+
       const session = importSessions.get(fileId);
       if (!session) {
         return res.status(404).json({ message: "Sessão de importação não encontrada" });
       }
-      
+
       if (session.userId !== req.session.userId) {
         return res.status(403).json({ message: "Acesso negado" });
       }
-      
+
       // Check required fields are mapped
       const requiredFields = Object.entries(FIELD_MAPPINGS)
         .filter(([_, config]) => config.required)
         .map(([field, _]) => field);
-      
+
       const mappedFields = Object.values(mapping);
       const missingRequired = requiredFields.filter(field => !mappedFields.includes(field));
-      
+
       const isValid = missingRequired.length === 0;
       const warnings: string[] = [];
       const errors: string[] = [];
-      
+
       if (missingRequired.length > 0) {
         errors.push(`Campos obrigatórios não mapeados: ${missingRequired.map(f => FIELD_MAPPINGS[f as keyof typeof FIELD_MAPPINGS].displayName).join(', ')}`);
       }
-      
+
       // Update session with mapping
       session.mapping = mapping;
       importSessions.set(fileId, session);
-      
+
       res.json({
         isValid,
         requiredFieldsMapped: missingRequired.length === 0,
@@ -1456,21 +1430,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/import/preview", isAuthenticated, async (req, res) => {
     try {
       const { fileId, mapping, options = {} } = req.body;
-      
+
       const session = importSessions.get(fileId);
       if (!session) {
         return res.status(404).json({ message: "Sessão de importação não encontrada" });
       }
-      
+
       if (session.userId !== req.session.userId) {
         return res.status(403).json({ message: "Acesso negado" });
       }
-      
+
       const data = session.data;
       let validRows = 0;
       let invalidRows = 0;
       const errors: any[] = [];
-      
+
       // Validate all rows
       data.forEach((row: any, index: number) => {
         const rowErrors = validateRow(row, mapping, index);
@@ -1481,7 +1455,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           validRows++;
         }
       });
-      
+
       // Get preview of first 10 processed records
       const previewData = data.slice(0, 10).map((row: any, index: number) => {
         const transformed = transformRow(row, mapping, req.session.userId!);
@@ -1493,7 +1467,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           errors: rowErrors
         };
       });
-      
+
       // Update session with validation results
       session.mapping = mapping;
       session.validationResults = {
@@ -1503,7 +1477,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         errors
       };
       importSessions.set(fileId, session);
-      
+
       res.json({
         previewData,
         validationSummary: {
@@ -1523,19 +1497,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/import/execute", isAuthenticated, async (req, res) => {
     try {
       const { fileId, mapping, options = {} } = req.body;
-      
+
       const session = importSessions.get(fileId);
       if (!session) {
         return res.status(404).json({ message: "Sessão de importação não encontrada" });
       }
-      
+
       if (session.userId !== req.session.userId) {
         return res.status(403).json({ message: "Acesso negado" });
       }
-      
+
       const importId = nanoid();
       const data = session.data;
-      
+
       // Update session with import status
       session.importId = importId;
       session.status = 'processing';
@@ -1547,9 +1521,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         failed: 0,
         errors: []
       };
-      
+
       importSessions.set(fileId, session);
-      
+
       // Start processing in background
       setImmediate(async () => {
         try {
@@ -1557,11 +1531,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           let created = 0;
           let failed = 0;
           const errors: any[] = [];
-          
+
           for (let i = 0; i < data.length; i++) {
             const row = data[i];
             const progress = Math.round(((i + 1) / data.length) * 100);
-            
+
             try {
               // Validate row
               const rowErrors = validateRow(row, mapping, i);
@@ -1570,17 +1544,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 errors.push(...rowErrors);
                 continue;
               }
-              
+
               // Transform row
               const transformedData = transformRow(row, mapping, userId);
-              
+
               // Validate with Zod schema
               const validatedData = insertOpportunitySchema.parse(transformedData);
-              
+
               // Insert into database
               await storage.createOpportunity(validatedData);
               created++;
-              
+
             } catch (error: any) {
               failed++;
               errors.push({
@@ -1589,7 +1563,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 data: row
               });
             }
-            
+
             // Update progress
             const currentSession = importSessions.get(fileId);
             if (currentSession) {
@@ -1604,7 +1578,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               importSessions.set(fileId, currentSession);
             }
           }
-          
+
           // Mark as completed
           const finalSession = importSessions.get(fileId);
           if (finalSession) {
@@ -1612,7 +1586,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             finalSession.completedAt = new Date();
             importSessions.set(fileId, finalSession);
           }
-          
+
         } catch (error: any) {
           console.error('Import execution error:', error);
           const errorSession = importSessions.get(fileId);
@@ -1623,13 +1597,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
       });
-      
+
       res.json({
         importId,
         status: 'processing',
         progress: 0
       });
-      
+
     } catch (error: any) {
       console.error('Import start error:', error);
       res.status(500).json({ message: "Erro ao iniciar importação" });
@@ -1640,7 +1614,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/import/status/:importId", isAuthenticated, async (req, res) => {
     try {
       const { importId } = req.params;
-      
+
       // Find session by importId
       let session = null;
       const entries = Array.from(importSessions.entries());
@@ -1650,15 +1624,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           break;
         }
       }
-      
+
       if (!session) {
         return res.status(404).json({ message: "Importação não encontrada" });
       }
-      
+
       if (session.userId !== req.session.userId) {
         return res.status(403).json({ message: "Acesso negado" });
       }
-      
+
       res.json({
         importId,
         status: session.status || 'pending',
@@ -1674,7 +1648,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         },
         error: session.error
       });
-      
+
     } catch (error: any) {
       console.error('Status check error:', error);
       res.status(500).json({ message: "Erro ao verificar status da importação" });
