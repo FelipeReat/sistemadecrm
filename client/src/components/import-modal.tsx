@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from "react";
-import { X, Upload, FileSpreadsheet, Download, AlertCircle, CheckCircle, Clock, FileText, Play, BarChart3 } from "lucide-react";
+import { X, Upload, FileSpreadsheet, Download, AlertCircle, CheckCircle, Clock, FileText, Play, BarChart3, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
@@ -93,6 +93,8 @@ export function ImportModal({ isOpen, onClose, onImportComplete }: ImportModalPr
   const [previewData, setPreviewData] = useState<PreviewData | null>(null);
   const [importStatus, setImportStatus] = useState<ImportStatus | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [showErrorsModal, setShowErrorsModal] = useState(false);
+  const [selectedRowErrors, setSelectedRowErrors] = useState<any[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const { invalidateOpportunities } = useReportsSync();
@@ -105,6 +107,13 @@ export function ImportModal({ isOpen, onClose, onImportComplete }: ImportModalPr
     setPreviewData(null);
     setImportStatus(null);
     setIsLoading(false);
+    setShowErrorsModal(false);
+    setSelectedRowErrors([]);
+  }, []);
+
+  const handleShowErrors = useCallback((errors: any[]) => {
+    setSelectedRowErrors(errors);
+    setShowErrorsModal(true);
   }, []);
 
   const handleFileUpload = useCallback(async (file: File) => {
@@ -581,7 +590,13 @@ export function ImportModal({ isOpen, onClose, onImportComplete }: ImportModalPr
                             <TableCell>{item.transformed.needCategory || '-'}</TableCell>
                             <TableCell>
                               {!item.isValid && item.errors.length > 0 && (
-                                <Button variant="ghost" size="sm">
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm"
+                                  onClick={() => handleShowErrors(item.errors)}
+                                  data-testid={`view-errors-btn-${index}`}
+                                >
+                                  <Eye className="h-3 w-3 mr-1" />
                                   Ver Erros ({item.errors.length})
                                 </Button>
                               )}
@@ -707,6 +722,70 @@ export function ImportModal({ isOpen, onClose, onImportComplete }: ImportModalPr
           )}
         </div>
       </DialogContent>
+
+      {/* Modal de Erros */}
+      <Dialog open={showErrorsModal} onOpenChange={setShowErrorsModal}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-red-500" />
+              Detalhes dos Erros de Validação
+            </DialogTitle>
+          </DialogHeader>
+          
+          <ScrollArea className="flex-1 max-h-96">
+            <div className="space-y-4">
+              {selectedRowErrors.map((error, index) => (
+                <Card key={index} className="border-red-200 dark:border-red-800">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <AlertCircle className="h-4 w-4 text-red-500" />
+                      Linha {error.row}
+                      <Badge variant="destructive" className="ml-auto">
+                        {error.severity === 'error' ? 'Erro' : 'Aviso'}
+                      </Badge>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      <div>
+                        <strong>Campo:</strong> {error.field}
+                      </div>
+                      <div>
+                        <strong>Coluna:</strong> {error.column}
+                      </div>
+                      <div>
+                        <strong>Valor encontrado:</strong> 
+                        <code className="ml-2 px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded text-sm">
+                          {error.value || '(vazio)'}
+                        </code>
+                      </div>
+                      <div>
+                        <strong>Problema:</strong> {error.message}
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        <strong>Tipo de erro:</strong> {error.errorType === 'required' ? 'Campo obrigatório' : 'Formato inválido'}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+              
+              {selectedRowErrors.length === 0 && (
+                <div className="text-center py-8 text-muted-foreground">
+                  Nenhum erro encontrado
+                </div>
+              )}
+            </div>
+          </ScrollArea>
+          
+          <div className="flex justify-end pt-4 border-t">
+            <Button onClick={() => setShowErrorsModal(false)} data-testid="close-errors-modal">
+              Fechar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }
