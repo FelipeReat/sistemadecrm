@@ -299,7 +299,7 @@ export function ImportModal({ isOpen, onClose, onImportComplete }: ImportModalPr
           if (status.status === 'completed') {
             toast({
               title: "Importação concluída",
-              description: `${status.results.created} registros importados com sucesso`,
+              description: `${status.results?.created || 0} registros importados com sucesso`,
             });
             // Invalidate cache to refresh opportunities data
             invalidateOpportunities();
@@ -473,9 +473,6 @@ export function ImportModal({ isOpen, onClose, onImportComplete }: ImportModalPr
                               <SelectValue placeholder="Selecione um campo" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="__placeholder__">
-                                Selecione um campo
-                              </SelectItem>
                               <SelectItem value="unmapped">Não mapear</SelectItem>
                               {Object.entries(FIELD_MAPPINGS).map(([key, config]) => (
                                 <SelectItem key={key} value={key}>
@@ -658,25 +655,25 @@ export function ImportModal({ isOpen, onClose, onImportComplete }: ImportModalPr
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                       <div className="text-center p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
                         <div className="text-xl font-bold text-green-600 dark:text-green-400">
-                          {importStatus.results.created}
+                          {importStatus.results?.created || 0}
                         </div>
                         <div className="text-xs text-green-600 dark:text-green-400">Criados</div>
                       </div>
                       <div className="text-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                         <div className="text-xl font-bold text-blue-600 dark:text-blue-400">
-                          {importStatus.results.updated}
+                          {importStatus.results?.updated || 0}
                         </div>
                         <div className="text-xs text-blue-600 dark:text-blue-400">Atualizados</div>
                       </div>
                       <div className="text-center p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
                         <div className="text-xl font-bold text-yellow-600 dark:text-yellow-400">
-                          {importStatus.results.skipped}
+                          {importStatus.results?.skipped || 0}
                         </div>
                         <div className="text-xs text-yellow-600 dark:text-yellow-400">Ignorados</div>
                       </div>
                       <div className="text-center p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
                         <div className="text-xl font-bold text-red-600 dark:text-red-400">
-                          {importStatus.results.failed}
+                          {importStatus.results?.failed || 0}
                         </div>
                         <div className="text-xs text-red-600 dark:text-red-400">Falharam</div>
                       </div>
@@ -686,7 +683,7 @@ export function ImportModal({ isOpen, onClose, onImportComplete }: ImportModalPr
                       <Alert>
                         <CheckCircle className="h-4 w-4" />
                         <AlertDescription>
-                          Importação concluída com sucesso! {importStatus.results.created} registros foram importados.
+                          Importação concluída com sucesso! {importStatus.results?.created || 0} registros foram importados.
                         </AlertDescription>
                       </Alert>
                     )}
