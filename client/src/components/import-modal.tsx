@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
+import { useReportsSync } from "@/hooks/useReportsSync";
 import { cn } from "@/lib/utils";
 
 interface ImportModalProps {
@@ -94,6 +95,7 @@ export function ImportModal({ isOpen, onClose, onImportComplete }: ImportModalPr
   const [isLoading, setIsLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const { invalidateOpportunities } = useReportsSync();
 
   const resetState = useCallback(() => {
     setStep('upload');
@@ -275,6 +277,8 @@ export function ImportModal({ isOpen, onClose, onImportComplete }: ImportModalPr
               title: "Importação concluída",
               description: `${status.results.created} registros importados com sucesso`,
             });
+            // Invalidate cache to refresh opportunities data
+            invalidateOpportunities();
             onImportComplete?.();
           } else if (status.status === 'failed') {
             toast({
@@ -294,7 +298,7 @@ export function ImportModal({ isOpen, onClose, onImportComplete }: ImportModalPr
     };
 
     poll();
-  }, [toast, onImportComplete]);
+  }, [toast, onImportComplete, invalidateOpportunities]);
 
   const handleClose = useCallback(() => {
     resetState();
