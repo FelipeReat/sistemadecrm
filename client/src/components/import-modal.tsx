@@ -127,7 +127,7 @@ export function ImportModal({ isOpen, onClose, onImportComplete }: ImportModalPr
       setUploadData(data);
       setMapping(data.autoMapping);
       setStep('mapping');
-      
+
       toast({
         title: "Arquivo carregado com sucesso",
         description: `${data.rowCount} registros encontrados`,
@@ -265,7 +265,7 @@ export function ImportModal({ isOpen, onClose, onImportComplete }: ImportModalPr
       const data = await response.json();
       setImportStatus(data);
       setStep('progress');
-      
+
       // Poll for status updates
       pollImportStatus(data.importId);
     } catch (error: any) {
@@ -324,7 +324,7 @@ export function ImportModal({ isOpen, onClose, onImportComplete }: ImportModalPr
     const stepOrder: ImportStep[] = ['upload', 'mapping', 'preview', 'progress'];
     const currentIndex = stepOrder.indexOf(step);
     const stepIndex = stepOrder.indexOf(stepName);
-    
+
     if (stepIndex < currentIndex) return 'completed';
     if (stepIndex === currentIndex) return 'current';
     return 'pending';
@@ -444,7 +444,7 @@ export function ImportModal({ isOpen, onClose, onImportComplete }: ImportModalPr
                 <CardHeader>
                   <CardTitle>Mapeamento de Colunas</CardTitle>
                   <CardDescription>
-                    Mapeie as colunas do seu arquivo para os campos do sistema. 
+                    Mapeie as colunas do seu arquivo para os campos do sistema.
                     Campos obrigatórios estão marcados com <Badge variant="destructive" className="ml-1">*</Badge>
                   </CardDescription>
                 </CardHeader>
@@ -455,13 +455,18 @@ export function ImportModal({ isOpen, onClose, onImportComplete }: ImportModalPr
                         <div className="font-medium">{column}</div>
                         <div>
                           <Select
-                            value={mapping[column] || ""}
-                            onValueChange={(value) => setMapping(prev => ({ ...prev, [column]: value }))}
+                            value={mapping[column] || '__placeholder__'}
+                            onValueChange={(value) => {
+                              setMapping(prev => ({ ...prev, [column]: value === '__placeholder__' ? '' : value }));
+                            }}
                           >
                             <SelectTrigger data-testid={`mapping-select-${column}`}>
                               <SelectValue placeholder="Selecione um campo" />
                             </SelectTrigger>
                             <SelectContent>
+                              <SelectItem value="__placeholder__">
+                                Selecione um campo
+                              </SelectItem>
                               <SelectItem value="unmapped">Não mapear</SelectItem>
                               {Object.entries(FIELD_MAPPINGS).map(([key, config]) => (
                                 <SelectItem key={key} value={key}>
