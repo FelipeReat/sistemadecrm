@@ -272,6 +272,16 @@ export function ImportModal({ isOpen, onClose, onImportComplete }: ImportModalPr
       }
 
       const data = await response.json();
+      // Ensure results object is always defined
+      if (!data.results) {
+        data.results = {
+          created: 0,
+          updated: 0,
+          skipped: 0,
+          failed: 0,
+          errors: []
+        };
+      }
       setImportStatus(data);
       setStep('progress');
 
@@ -297,9 +307,10 @@ export function ImportModal({ isOpen, onClose, onImportComplete }: ImportModalPr
           setImportStatus(status);
 
           if (status.status === 'completed') {
+            const created = status.results?.created || 0;
             toast({
               title: "Importação concluída",
-              description: `${status.results?.created || 0} registros importados com sucesso`,
+              description: `${created} registros importados com sucesso`,
             });
             // Invalidate cache to refresh opportunities data
             invalidateOpportunities();
@@ -464,9 +475,9 @@ export function ImportModal({ isOpen, onClose, onImportComplete }: ImportModalPr
                         <div className="font-medium">{column}</div>
                         <div>
                           <Select
-                            value={mapping[column] || '__placeholder__'}
+                            value={mapping[column] || 'unmapped'}
                             onValueChange={(value) => {
-                              setMapping(prev => ({ ...prev, [column]: value === '__placeholder__' ? '' : value }));
+                              setMapping(prev => ({ ...prev, [column]: value }));
                             }}
                           >
                             <SelectTrigger data-testid={`mapping-select-${column}`}>
