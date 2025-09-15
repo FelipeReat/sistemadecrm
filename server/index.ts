@@ -59,7 +59,7 @@ app.use((req, res, next) => {
   // doesn't interfere with the other routes
   console.log("NODE_ENV:", process.env.NODE_ENV);
   // Detect production mode from NODE_ENV
-  const isProduction = process.env.NODE_ENV === 'production';
+  const isProduction = process.env.NODE_ENV === "production";
   console.log("Production mode detection, isProduction:", isProduction);
 
   if (!isProduction) {
@@ -73,8 +73,8 @@ app.use((req, res, next) => {
   // ALWAYS serve the app on port 5000 in Replit
   // Replit requires port 5000 for webview applications
   // this serves both the API and the client.
-  const port = 5000; // Force port 5000 for Replit webview
-  log(`Using fixed PORT: ${port}`);
+  const port = parseInt(process.env.PORT || "5000", 10);
+  log("Using fixed PORT:", port.toString());
 
   // Use configurable host binding with safe default
   // Default to 0.0.0.0 for accessibility in cloud environments like Replit
