@@ -112,14 +112,15 @@ export default function OpportunityCard({ opportunity, onViewDetails }: Opportun
       onDragStart={handleDragStart}
       data-testid={`opportunity-card-${opportunity.id}`}
     >
-      <div className="flex justify-between items-start mb-2">
-        <div className="flex items-center space-x-2 flex-1">
-          <h4 className="font-bold text-card-foreground" data-testid={`opportunity-contact-title-${opportunity.id}`}>
+      <div className="flex flex-col space-y-2 mb-2">
+        {/* Primeira linha - título com indicador de status */}
+        <div className="flex items-center space-x-2">
+          <h4 className="font-bold text-card-foreground flex-1 truncate" data-testid={`opportunity-contact-title-${opportunity.id}`}>
             {opportunity.contact}
           </h4>
           {/* Indicador de status da fase */}
           {!['ganho', 'perdido'].includes(opportunity.phase) && (
-            <div className="flex items-center" title={phaseValidation.isComplete ? 'Fase completa' : `Campos faltando: ${phaseValidation.missingFields?.join(', ')}`}>
+            <div className="flex items-center flex-shrink-0" title={phaseValidation.isComplete ? 'Fase completa' : `Campos faltando: ${phaseValidation.missingFields?.join(', ')}`}>
               {phaseValidation.isComplete ? (
                 <CheckCircle className="h-4 w-4 text-green-500" />
               ) : (
@@ -128,12 +129,16 @@ export default function OpportunityCard({ opportunity, onViewDetails }: Opportun
             </div>
           )}
         </div>
-        <div className="flex items-center space-x-2">
-          {getStatusBadge()}
+        
+        {/* Segunda linha - badge e botão */}
+        <div className="flex items-center justify-between">
+          <div className="flex-shrink-0">
+            {getStatusBadge()}
+          </div>
           <Button 
             variant="ghost" 
             size="sm" 
-            className="text-blue-500 hover:text-blue-600 text-xs font-medium h-auto p-1"
+            className="text-blue-500 hover:text-blue-600 text-xs font-medium h-auto px-2 py-1 flex-shrink-0"
             onClick={() => onViewDetails?.(opportunity)}
           >
             Ver detalhes
