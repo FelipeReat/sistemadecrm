@@ -1319,25 +1319,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       requiresVisit: false,
       documents: [],
       visitPhotos: [],
-      phase: 'prospeccao', // Default phase
+      phase: 'prospeccao', // Default phase (will be overridden if targetPhase is provided)
       businessTemperature: 'morno' // Default temperature
     };
 
-    // SEMPRE usar targetPhase se fornecido, independente do valor
-    if (targetPhase !== undefined && targetPhase !== null && targetPhase !== '') {
-      transformed.phase = targetPhase;
-      console.log(`🎯 Aplicando targetPhase: ${targetPhase} para linha ${row}`);
-    } else {
-      // Só usar fase do CSV se targetPhase não foi fornecido
-      const phaseFromMapping = mapping['phase'] ? row[mapping['phase']] : null;
-      const transformedPhase = phaseFromMapping ? FIELD_MAPPINGS.phase.transform(phaseFromMapping) : null;
-      
-      if (transformedPhase) {
-        transformed.phase = transformedPhase;
-      }
-      console.log(`📋 Usando fase do CSV ou padrão: ${transformed.phase}`);
-    }
-
+    // Process all field mappings first
     for (const [excelColumn, systemField] of Object.entries(mapping)) {
       const fieldConfig = FIELD_MAPPINGS[systemField as keyof typeof FIELD_MAPPINGS];
       if (!fieldConfig) continue;
@@ -1372,6 +1358,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Usar valor diretamente se não há transformação
         transformed[systemField] = value;
       }
+    }
+
+    // APLICAR targetPhase DEPOIS do processamento dos campos - ESTA É A CORREÇÃO PRINCIPAL
+    if (targetPhase !== undefined && targetPhase !== null && targetPhase !== '') {
+      transformed.phase = targetPhase;
+      console.log(`🎯 OVERRIDE: Aplicando targetPhase "${targetPhase}" APÓS processamento dos campos`);
+    } else {
+      console.log(`📋 Usando fase do CSV ou padrão: ${transformed.phase}`);
     }
     
     // Ensure phase is set if it wasn't from mapping or targetPhase
