@@ -1323,9 +1323,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       businessTemperature: 'morno' // Default temperature
     };
 
-    // SEMPRE usar targetPhase se fornecido, independente do que está no CSV
-    if (targetPhase) {
+    // SEMPRE usar targetPhase se fornecido, independente do valor
+    if (targetPhase !== undefined && targetPhase !== null && targetPhase !== '') {
       transformed.phase = targetPhase;
+      console.log(`🎯 Aplicando targetPhase: ${targetPhase} para linha ${row}`);
     } else {
       // Só usar fase do CSV se targetPhase não foi fornecido
       const phaseFromMapping = mapping['phase'] ? row[mapping['phase']] : null;
@@ -1334,6 +1335,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (transformedPhase) {
         transformed.phase = transformedPhase;
       }
+      console.log(`📋 Usando fase do CSV ou padrão: ${transformed.phase}`);
     }
 
     for (const [excelColumn, systemField] of Object.entries(mapping)) {
@@ -1535,6 +1537,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get preview of first 10 processed records
       const previewData = data.slice(0, 10).map((row: any, index: number) => {
         // Pass targetPhase to transformRow - SEMPRE usar a fase selecionada
+        console.log(`🔍 Preview - usando targetPhase: ${targetPhase} para linha ${index + 1}`);
         const transformed = transformRow(row, mapping, req.session.userId!, targetPhase); 
         const rowErrors = validateRow(row, mapping, index);
         return {
@@ -1643,9 +1646,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
               }
 
               // Transform row, SEMPRE usando targetPhase selecionado pelo usuário
+              console.log(`🚀 Antes da transformação - targetPhase recebido: "${targetPhase}" (tipo: ${typeof targetPhase})`);
               const transformedData = transformRow(row, mapping, userId, targetPhase);
 
-              console.log(`Processing row ${i + 1} - Fase aplicada: ${transformedData.phase} (targetPhase: ${targetPhase})`);
+              console.log(`✅ Processing row ${i + 1} - Fase aplicada: "${transformedData.phase}" (targetPhase solicitado: "${targetPhase}")`);
+              
+              // Verificar se a fase foi aplicada corretamente
+              if (targetPhase && transformedData.phase !== targetPhase) {
+                console.error(`❌ ERRO: Fase não foi aplicada corretamente! Esperado: "${targetPhase}", Aplicado: "${transformedData.phase}"`);
+              }
+              
               console.log(`Row ${i + 1} data:`, JSON.stringify(transformedData, null, 2));
 
               // Validate with Zod schema - com tratamento mais resiliente
