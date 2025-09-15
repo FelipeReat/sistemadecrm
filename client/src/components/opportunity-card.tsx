@@ -148,11 +148,6 @@ export default function OpportunityCard({ opportunity, onViewDetails }: Opportun
 
       <div className="space-y-1 text-sm text-muted-foreground">
         <div className="flex items-center">
-          <User className="h-3 w-3 text-muted-foreground mr-2" />
-          <span data-testid={`opportunity-contact-${opportunity.id}`}>{opportunity.contact}</span>
-        </div>
-
-        <div className="flex items-center">
           <Phone className="h-3 w-3 text-muted-foreground mr-2" />
           <span data-testid={`opportunity-phone-${opportunity.id}`}>{opportunity.phone}</span>
         </div>
@@ -243,8 +238,6 @@ export default function OpportunityCard({ opportunity, onViewDetails }: Opportun
             <span>{opportunity.negotiationInfo}</span>
           </div>
         )}
-
-        
 
         {opportunity.phase === "ganho" && (
           <div className="flex items-center">
