@@ -112,10 +112,10 @@ export default function OpportunityCard({ opportunity, onViewDetails }: Opportun
       onDragStart={handleDragStart}
       data-testid={`opportunity-card-${opportunity.id}`}
     >
-      <div className="flex flex-col space-y-2 mb-2">
-        {/* Primeira linha - título com indicador de status */}
-        <div className="flex items-center space-x-2">
-          <h4 className="font-bold text-card-foreground flex-1 truncate" data-testid={`opportunity-contact-title-${opportunity.id}`}>
+      {/* Cabeçalho do card - título com indicador e ações */}
+      <div className="flex items-start justify-between mb-3">
+        <div className="flex items-center space-x-2 flex-1 min-w-0">
+          <h4 className="font-bold text-card-foreground truncate" data-testid={`opportunity-contact-title-${opportunity.id}`}>
             {opportunity.contact}
           </h4>
           {/* Indicador de status da fase */}
@@ -129,22 +129,22 @@ export default function OpportunityCard({ opportunity, onViewDetails }: Opportun
             </div>
           )}
         </div>
-        
-        {/* Segunda linha - badge e botão */}
-        <div className="flex items-center justify-between">
-          <div className="flex-shrink-0">
-            {getStatusBadge()}
-          </div>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="text-blue-500 hover:text-blue-600 text-xs font-medium h-auto px-2 py-1 flex-shrink-0"
-            onClick={() => onViewDetails?.(opportunity)}
-          >
-            Ver detalhes
-          </Button>
-        </div>
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          className="text-blue-500 hover:text-blue-600 text-xs font-medium h-auto px-2 py-1 flex-shrink-0 ml-2"
+          onClick={() => onViewDetails?.(opportunity)}
+        >
+          Ver detalhes
+        </Button>
       </div>
+
+      {/* Badge de status */}
+      {getStatusBadge() && (
+        <div className="mb-3">
+          {getStatusBadge()}
+        </div>
+      )}
 
       <div className="space-y-1 text-sm text-muted-foreground">
         {opportunity.phone && (
