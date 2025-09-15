@@ -1066,23 +1066,25 @@ export default function OpportunityDetailsModal({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader className="relative">
-          <DialogTitle className="flex items-center space-x-2">
-            <FileText className="h-5 w-5 text-blue-600" />
-            <span>Detalhes da Oportunidade</span>
-          </DialogTitle>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={handleDelete}
-            disabled={isSubmitting || deleteOpportunityMutation.isPending}
-            className="absolute top-0 right-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-            data-testid="button-delete-opportunity"
-            title="Excluir oportunidade"
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
+        <DialogHeader>
+          <div className="flex items-center justify-between">
+            <DialogTitle className="flex items-center space-x-2">
+              <FileText className="h-5 w-5 text-blue-600" />
+              <span>Detalhes da Oportunidade</span>
+            </DialogTitle>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={handleDelete}
+              disabled={isSubmitting || deleteOpportunityMutation.isPending}
+              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+              data-testid="button-delete-opportunity"
+              title="Excluir oportunidade"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
           <DialogDescription>
             Empresa: {opportunity.company} • Fase: {opportunity.phase}
           </DialogDescription>
