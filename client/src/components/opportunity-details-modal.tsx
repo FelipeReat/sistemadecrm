@@ -247,11 +247,11 @@ export default function OpportunityDetailsModal({
 
   const handleDelete = () => {
     if (!opportunity) return;
-    
+
     const confirmed = window.confirm(
       `Tem certeza que deseja excluir a oportunidade da empresa "${opportunity.company}"? Esta ação não pode ser desfeita.`
     );
-    
+
     if (confirmed) {
       setIsSubmitting(true);
       deleteOpportunityMutation.mutate(opportunity.id);
@@ -414,21 +414,36 @@ export default function OpportunityDetailsModal({
                 />
               </div>
 
-              <DialogFooter className="flex justify-between">
+              <DialogFooter className="flex justify-between items-center">
                 <Button
                   type="button"
-                  variant="outline"
-                  onClick={() => onOpenChange(false)}
+                  variant="destructive"
+                  onClick={handleDelete}
+                  disabled={isSubmitting || deleteOpportunityMutation.isPending}
+                  data-testid="button-delete-opportunity"
+                  title="Excluir oportunidade"
+                  aria-label="Excluir oportunidade"
+                  className="text-red-600 bg-red-50 hover:bg-red-100 border-red-200 hover:border-red-300"
                 >
-                  Cancelar
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Excluir
                 </Button>
-                <Button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="bg-blue-600 hover:bg-blue-700"
-                >
-                  {isSubmitting ? "Salvando..." : "Salvar"}
-                </Button>
+                <div className="flex space-x-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => onOpenChange(false)}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    {isSubmitting ? "Salvando..." : "Salvar"}
+                  </Button>
+                </div>
               </DialogFooter>
             </form>
           </Form>
@@ -466,21 +481,36 @@ export default function OpportunityDetailsModal({
                 />
               </div>
 
-              <DialogFooter className="flex justify-between">
+              <DialogFooter className="flex justify-between items-center">
                 <Button
                   type="button"
-                  variant="outline"
-                  onClick={() => onOpenChange(false)}
+                  variant="destructive"
+                  onClick={handleDelete}
+                  disabled={isSubmitting || deleteOpportunityMutation.isPending}
+                  data-testid="button-delete-opportunity"
+                  title="Excluir oportunidade"
+                  aria-label="Excluir oportunidade"
+                  className="text-red-600 bg-red-50 hover:bg-red-100 border-red-200 hover:border-red-300"
                 >
-                  Cancelar
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Excluir
                 </Button>
-                <Button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="bg-blue-600 hover:bg-blue-700"
-                >
-                  {isSubmitting ? "Salvando..." : "Salvar"}
-                </Button>
+                <div className="flex space-x-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => onOpenChange(false)}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    {isSubmitting ? "Salvando..." : "Salvar"}
+                  </Button>
+                </div>
               </DialogFooter>
             </form>
           </Form>
@@ -594,21 +624,36 @@ export default function OpportunityDetailsModal({
                 />
               </div>
 
-              <DialogFooter className="flex justify-between">
+              <DialogFooter className="flex justify-between items-center">
                 <Button
                   type="button"
-                  variant="outline"
-                  onClick={() => onOpenChange(false)}
+                  variant="destructive"
+                  onClick={handleDelete}
+                  disabled={isSubmitting || deleteOpportunityMutation.isPending}
+                  data-testid="button-delete-opportunity"
+                  title="Excluir oportunidade"
+                  aria-label="Excluir oportunidade"
+                  className="text-red-600 bg-red-50 hover:bg-red-100 border-red-200 hover:border-red-300"
                 >
-                  Cancelar
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Excluir
                 </Button>
-                <Button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="bg-blue-600 hover:bg-blue-700"
-                >
-                  {isSubmitting ? "Salvando..." : "Salvar"}
-                </Button>
+                <div className="flex space-x-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => onOpenChange(false)}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    {isSubmitting ? "Salvando..." : "Salvar"}
+                  </Button>
+                </div>
               </DialogFooter>
             </form>
           </Form>
@@ -802,21 +847,36 @@ export default function OpportunityDetailsModal({
                 />
               </div>
 
-              <DialogFooter className="flex justify-between">
+              <DialogFooter className="flex justify-between items-center">
                 <Button
                   type="button"
-                  variant="outline"
-                  onClick={() => onOpenChange(false)}
+                  variant="destructive"
+                  onClick={handleDelete}
+                  disabled={isSubmitting || deleteOpportunityMutation.isPending}
+                  data-testid="button-delete-opportunity"
+                  title="Excluir oportunidade"
+                  aria-label="Excluir oportunidade"
+                  className="text-red-600 bg-red-50 hover:bg-red-100 border-red-200 hover:border-red-300"
                 >
-                  Cancelar
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Excluir
                 </Button>
-                <Button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="bg-blue-600 hover:bg-blue-700"
-                >
-                  {isSubmitting ? "Salvando..." : "Salvar"}
-                </Button>
+                <div className="flex space-x-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => onOpenChange(false)}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    {isSubmitting ? "Salvando..." : "Salvar"}
+                  </Button>
+                </div>
               </DialogFooter>
             </form>
           </Form>
@@ -953,21 +1013,36 @@ export default function OpportunityDetailsModal({
                 />
               </div>
 
-              <DialogFooter className="flex justify-between">
+              <DialogFooter className="flex justify-between items-center">
                 <Button
                   type="button"
-                  variant="outline"
-                  onClick={() => onOpenChange(false)}
+                  variant="destructive"
+                  onClick={handleDelete}
+                  disabled={isSubmitting || deleteOpportunityMutation.isPending}
+                  data-testid="button-delete-opportunity"
+                  title="Excluir oportunidade"
+                  aria-label="Excluir oportunidade"
+                  className="text-red-600 bg-red-50 hover:bg-red-100 border-red-200 hover:border-red-300"
                 >
-                  Cancelar
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Excluir
                 </Button>
-                <Button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="bg-blue-600 hover:bg-blue-700"
-                >
-                  {isSubmitting ? "Salvando..." : "Salvar"}
-                </Button>
+                <div className="flex space-x-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => onOpenChange(false)}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    {isSubmitting ? "Salvando..." : "Salvar"}
+                  </Button>
+                </div>
               </DialogFooter>
             </form>
           </Form>
