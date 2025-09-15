@@ -522,7 +522,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const wonOpportunities = opportunities.filter(o => o.phase === 'ganho').length;
       const lostOpportunitiesArray = opportunities.filter(o => o.phase === 'perdido');
       const lostOpportunities = lostOpportunitiesArray.length;
-      const activeOpportunities = opportunities.filter(o => !['ganho', 'perdido'].includes(o.phase)).length;
+      const activeOpportunities = opportunities.filter(o => 
+        !['ganho', 'perdido'].includes(o.phase)
+      ).length;
 
       // Receita total
       const totalRevenue = opportunities
@@ -1078,20 +1080,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (!value) return null;
         const phone = value.toString().replace(/\D/g, '') || '';
         if (phone.length === 0) return null;
-        
+
         // Add Brazil country code if not present and phone is valid
         if (!phone.startsWith('55') && phone.length >= 10 && phone.length <= 11) {
           return `55${phone}`;
         }
-        
+
         return phone;
       },
       validation: (value: any) => {
         if (!value) return true; // Optional field
         const phone = value.toString().replace(/\D/g, '') || '';
-        
+
         if (phone.length === 0) return true; // Empty is valid since optional
-        
+
         // Accept any reasonable phone format (flexible validation)
         return phone.length >= 8 && phone.length <= 15;
       }
@@ -1263,7 +1265,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Validate data row - muito mais permissivo
   function validateRow(row: any, mapping: Record<string, string>, rowIndex: number): any[] {
     const errors: any[] = [];
-    
+
     // Verificar apenas se há pelo menos um campo com dados úteis
     const hasAnyData = Object.entries(mapping).some(([excelColumn, systemField]) => {
       const value = row[excelColumn];
@@ -1309,7 +1311,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }
 
   // Transform row data - mais tolerante e com fallbacks
-  function transformRow(row: any, mapping: Record<string, string>, createdBy: string): any {
+  function transformRow(row: any, mapping: Record<string, string>, createdBy: string, targetPhase?: string): any {
     const transformed: any = {
       createdBy: createdBy,
       // Set defaults for required fields
@@ -1317,9 +1319,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       requiresVisit: false,
       documents: [],
       visitPhotos: [],
-      phase: 'prospeccao',
-      businessTemperature: 'morno'
+      phase: 'prospeccao', // Default phase
+      businessTemperature: 'morno' // Default temperature
     };
+
+    // Use targetPhase if provided and valid, otherwise use phase from mapped data
+    const phaseFromMapping = mapping['phase'] ? row[mapping['phase']] : null;
+    const transformedPhase = phaseFromMapping ? FIELD_MAPPINGS.phase.transform(phaseFromMapping) : null;
+
+    if (targetPhase && targetPhase !== 'prospeccao') { // Use targetPhase if provided and not default
+      transformed.phase = targetPhase;
+    } else if (transformedPhase) {
+      transformed.phase = transformedPhase;
+    }
 
     for (const [excelColumn, systemField] of Object.entries(mapping)) {
       const fieldConfig = FIELD_MAPPINGS[systemField as keyof typeof FIELD_MAPPINGS];
@@ -1355,6 +1367,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Usar valor diretamente se não há transformação
         transformed[systemField] = value;
       }
+    }
+    
+    // Ensure phase is set if it wasn't from mapping or targetPhase
+    if (!transformed.phase) {
+        transformed.phase = 'prospeccao';
     }
 
     // Garantir que temos pelo menos um identificador
@@ -1437,7 +1454,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Column Mapping Validation
   app.post("/api/import/validate-mapping", isAuthenticated, async (req, res) => {
     try {
-      const { fileId, mapping } = req.body;
+      const { fileId, mapping, targetPhase } = req.body; // Added targetPhase
 
       const session = importSessions.get(fileId);
       if (!session) {
@@ -1464,8 +1481,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         errors.push(`Campos obrigatórios não mapeados: ${missingRequired.map(f => FIELD_MAPPINGS[f as keyof typeof FIELD_MAPPINGS].displayName).join(', ')}`);
       }
 
-      // Update session with mapping
+      // Update session with mapping and targetPhase
       session.mapping = mapping;
+      session.targetPhase = targetPhase; // Store targetPhase in session
       importSessions.set(fileId, session);
 
       res.json({
@@ -1484,7 +1502,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Data Preview & Validation
   app.post("/api/import/preview", isAuthenticated, async (req, res) => {
     try {
-      const { fileId, mapping, options = {} } = req.body;
+      const { fileId, mapping, targetPhase } = req.body; // Added targetPhase
 
       const session = importSessions.get(fileId);
       if (!session) {
@@ -1513,7 +1531,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Get preview of first 10 processed records
       const previewData = data.slice(0, 10).map((row: any, index: number) => {
-        const transformed = transformRow(row, mapping, req.session.userId!);
+        // Pass targetPhase to transformRow
+        const transformed = transformRow(row, mapping, req.session.userId!, targetPhase); 
         const rowErrors = validateRow(row, mapping, index);
         return {
           original: row,
@@ -1523,8 +1542,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         };
       });
 
-      // Update session with validation results
+      // Update session with validation results, mapping, and targetPhase
       session.mapping = mapping;
+      session.targetPhase = targetPhase; // Store targetPhase in session
       session.validationResults = {
         totalRows: data.length,
         validRows,
@@ -1551,7 +1571,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Import Execution
   app.post("/api/import/execute", isAuthenticated, async (req, res) => {
     try {
-      const { fileId, mapping, options = {} } = req.body;
+      const { fileId, mapping, targetPhase } = req.body; // Added targetPhase
 
       const session = importSessions.get(fileId);
       if (!session) {
@@ -1589,6 +1609,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           console.log(`Starting import for user ${userId}, processing ${data.length} rows`);
           console.log(`Mapping:`, JSON.stringify(mapping, null, 2));
+          console.log(`Target Phase: ${targetPhase}`); // Log target phase
 
           for (let i = 0; i < data.length; i++) {
             const row = data[i];
@@ -1600,7 +1621,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               if (rowErrors.length > 0) {
                 failed++;
                 errors.push(...rowErrors);
-                
+
                 // Update progress even for failed rows
                 const currentSession = importSessions.get(fileId);
                 if (currentSession) {
@@ -1617,9 +1638,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 continue;
               }
 
-              // Transform row
-              const transformedData = transformRow(row, mapping, userId);
-              
+              // Transform row, passing targetPhase
+              const transformedData = transformRow(row, mapping, userId, targetPhase);
+
               console.log(`Processing row ${i + 1}:`, JSON.stringify(transformedData, null, 2));
 
               // Validate with Zod schema - com tratamento mais resiliente
@@ -1628,7 +1649,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 validatedData = insertOpportunitySchema.parse(transformedData);
               } catch (zodError: any) {
                 console.error(`Zod validation error for row ${i + 1}:`, zodError.errors);
-                
+
                 // Tentar uma segunda vez com dados mais básicos
                 try {
                   const basicData = {
@@ -1636,7 +1657,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                     // Garantir campos essenciais
                     contact: transformedData.contact || `Contato ${i + 1}`,
                     company: transformedData.company || `Empresa ${i + 1}`,
-                    phase: 'prospeccao',
+                    phase: targetPhase || 'prospeccao', // Use targetPhase or default
                     businessTemperature: 'morno',
                     hasRegistration: false,
                     requiresVisit: false,
@@ -1644,7 +1665,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                     visitPhotos: [],
                     createdBy: userId
                   };
-                  
+
                   validatedData = insertOpportunitySchema.parse(basicData);
                   console.log(`Row ${i + 1} validated with basic data fallback`);
                 } catch (secondError: any) {
