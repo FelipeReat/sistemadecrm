@@ -1,6 +1,12 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
@@ -69,10 +75,10 @@ export default function CustomReportsModal({ open, onOpenChange }: CustomReports
 
       const response = await fetch(`/api/reports/custom?${queryParams}`);
       if (!response.ok) throw new Error('Falha ao gerar relatório');
-      
+
       const data = await response.json();
       setReportData(data);
-      
+
       toast({
         title: "Relatório gerado com sucesso!",
         description: "Seus dados filtrados estão prontos.",
@@ -95,13 +101,13 @@ export default function CustomReportsModal({ open, onOpenChange }: CustomReports
 
   const exportData = () => {
     if (!reportData) return;
-    
+
     const csvContent = "data:text/csv;charset=utf-8," 
       + "Empresa,Contato,Fase,Vendedor,Temperatura,Valor\n"
       + reportData.opportunities?.map((opp: any) => 
           `"${opp.company}","${opp.contact}","${opp.phase}","${opp.salesperson || 'Não atribuído'}","${opp.businessTemperature || 'Não informado'}","${opp.budget || 0}"`
         ).join("\n");
-    
+
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
@@ -120,12 +126,22 @@ export default function CustomReportsModal({ open, onOpenChange }: CustomReports
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto" data-testid="custom-reports-modal">
-        <DialogHeader>
+      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader className="relative">
           <DialogTitle className="flex items-center gap-2">
             <Filter className="h-5 w-5" />
             Criar Relatório Personalizado
           </DialogTitle>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => onOpenChange(false)}
+            className="absolute top-0 right-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+            title="Fechar modal"
+          >
+            <X className="h-4 w-4" />
+          </Button>
           <DialogDescription>
             Crie relatórios customizados com base nos dados do seu sistema. 
             Escolha os filtros desejados e gere insights específicos para sua análise.
