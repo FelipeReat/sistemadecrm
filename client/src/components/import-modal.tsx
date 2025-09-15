@@ -314,12 +314,14 @@ export function ImportModal({ isOpen, onClose, onImportComplete }: ImportModalPr
         body: JSON.stringify({
           fileId: uploadData.fileId,
           mapping: filteredMapping,
-          targetPhase: selectedPhase,
+          targetPhase: selectedPhase, // Fase selecionada pelo usuário
           options: {
             skipInvalidRows: true,
           },
         }),
       });
+
+      console.log(`Enviando importação com fase selecionada: ${selectedPhase}`);
 
       if (!response.ok) {
         const error = await response.json();

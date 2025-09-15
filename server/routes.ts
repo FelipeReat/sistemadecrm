@@ -1323,14 +1323,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       businessTemperature: 'morno' // Default temperature
     };
 
-    // Use targetPhase if provided and valid, otherwise use phase from mapped data
-    const phaseFromMapping = mapping['phase'] ? row[mapping['phase']] : null;
-    const transformedPhase = phaseFromMapping ? FIELD_MAPPINGS.phase.transform(phaseFromMapping) : null;
-
-    if (targetPhase && targetPhase !== 'prospeccao') { // Use targetPhase if provided and not default
+    // SEMPRE usar targetPhase se fornecido, independente do que está no CSV
+    if (targetPhase) {
       transformed.phase = targetPhase;
-    } else if (transformedPhase) {
-      transformed.phase = transformedPhase;
+    } else {
+      // Só usar fase do CSV se targetPhase não foi fornecido
+      const phaseFromMapping = mapping['phase'] ? row[mapping['phase']] : null;
+      const transformedPhase = phaseFromMapping ? FIELD_MAPPINGS.phase.transform(phaseFromMapping) : null;
+      
+      if (transformedPhase) {
+        transformed.phase = transformedPhase;
+      }
     }
 
     for (const [excelColumn, systemField] of Object.entries(mapping)) {
@@ -1531,7 +1534,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Get preview of first 10 processed records
       const previewData = data.slice(0, 10).map((row: any, index: number) => {
-        // Pass targetPhase to transformRow
+        // Pass targetPhase to transformRow - SEMPRE usar a fase selecionada
         const transformed = transformRow(row, mapping, req.session.userId!, targetPhase); 
         const rowErrors = validateRow(row, mapping, index);
         return {
@@ -1610,6 +1613,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log(`Starting import for user ${userId}, processing ${data.length} rows`);
           console.log(`Mapping:`, JSON.stringify(mapping, null, 2));
           console.log(`Target Phase: ${targetPhase}`); // Log target phase
+          console.log(`Fase selecionada será aplicada a TODOS os registros: ${targetPhase}`);
 
           for (let i = 0; i < data.length; i++) {
             const row = data[i];
@@ -1638,10 +1642,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 continue;
               }
 
-              // Transform row, passing targetPhase
+              // Transform row, SEMPRE usando targetPhase selecionado pelo usuário
               const transformedData = transformRow(row, mapping, userId, targetPhase);
 
-              console.log(`Processing row ${i + 1}:`, JSON.stringify(transformedData, null, 2));
+              console.log(`Processing row ${i + 1} - Fase aplicada: ${transformedData.phase} (targetPhase: ${targetPhase})`);
+              console.log(`Row ${i + 1} data:`, JSON.stringify(transformedData, null, 2));
 
               // Validate with Zod schema - com tratamento mais resiliente
               let validatedData;
