@@ -31,7 +31,8 @@ import {
   Download,
   Upload,
   Trash2,
-  LogOut
+  LogOut,
+  X
 } from "lucide-react";
 
 interface SettingsModalProps {

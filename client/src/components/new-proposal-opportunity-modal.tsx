@@ -32,6 +32,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useReportsSync } from "@/hooks/useReportsSync";
 import { insertOpportunitySchema } from "@shared/schema";
 import { masks } from "@/lib/masks";
+import { X } from "lucide-react";
 
 interface NewProposalOpportunityModalProps {
   open: boolean;
@@ -142,8 +143,20 @@ export default function NewProposalOpportunityModal({ open, onOpenChange }: NewP
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto" data-testid="new-proposal-opportunity-modal">
-        <DialogHeader>
-          <DialogTitle>Nova Oportunidade - Fase de Proposta</DialogTitle>
+        <DialogHeader className="relative">
+          <DialogTitle className="flex items-center space-x-2">
+            <span>Nova Oportunidade - Fase de Proposta</span>
+          </DialogTitle>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => onOpenChange(false)}
+            className="absolute top-0 right-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+            title="Fechar modal"
+          >
+            <X className="h-4 w-4" />
+          </Button>
           <DialogDescription>
             Cadastre uma nova oportunidade diretamente na fase de proposta
           </DialogDescription>
