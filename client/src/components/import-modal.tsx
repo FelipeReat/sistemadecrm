@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from "react";
-import { X, Upload, FileSpreadsheet, Download, AlertCircle, CheckCircle, Clock, FileText, Play, BarChart3, Eye } from "lucide-react";
+import { X, Upload, FileSpreadsheet, Download, AlertCircle, CheckCircle, Clock, FileText, Play, BarChart3, Eye, Users, UserCheck, Wrench, FileCheck, Handshake, Trophy, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
@@ -85,6 +85,58 @@ const FIELD_MAPPINGS = {
   phase: { displayName: 'Fase', required: false },
 };
 
+const PHASES = [
+  { 
+    id: 'prospeccao', 
+    name: 'Prospecção', 
+    icon: Users, 
+    description: 'Novos leads e contatos iniciais',
+    color: 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800'
+  },
+  { 
+    id: 'em-atendimento', 
+    name: 'Em Atendimento', 
+    icon: UserCheck, 
+    description: 'Leads em processo de qualificação',
+    color: 'bg-yellow-50 dark:bg-yellow-900/20 text-yellow-600 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800'
+  },
+  { 
+    id: 'visita-tecnica', 
+    name: 'Visita Técnica', 
+    icon: Wrench, 
+    description: 'Avaliação técnica e levantamento',
+    color: 'bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 border-purple-200 dark:border-purple-800'
+  },
+  { 
+    id: 'proposta', 
+    name: 'Proposta', 
+    icon: FileCheck, 
+    description: 'Elaboração e envio de propostas',
+    color: 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 border-orange-200 dark:border-orange-800'
+  },
+  { 
+    id: 'negociacao', 
+    name: 'Negociação', 
+    icon: Handshake, 
+    description: 'Negociação final e ajustes',
+    color: 'bg-teal-50 dark:bg-teal-900/20 text-teal-600 dark:text-teal-400 border-teal-200 dark:border-teal-800'
+  },
+  { 
+    id: 'ganho', 
+    name: 'Ganho', 
+    icon: Trophy, 
+    description: 'Negócios fechados com sucesso',
+    color: 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 border-green-200 dark:border-green-800'
+  },
+  { 
+    id: 'perdido', 
+    name: 'Perdido', 
+    icon: XCircle, 
+    description: 'Negócios não concretizados',
+    color: 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800'
+  }
+];
+
 export function ImportModal({ isOpen, onClose, onImportComplete }: ImportModalProps) {
   const [step, setStep] = useState<ImportStep>('upload');
   const [uploadData, setUploadData] = useState<FileUploadData | null>(null);
@@ -95,6 +147,7 @@ export function ImportModal({ isOpen, onClose, onImportComplete }: ImportModalPr
   const [isLoading, setIsLoading] = useState(false);
   const [showErrorsModal, setShowErrorsModal] = useState(false);
   const [selectedRowErrors, setSelectedRowErrors] = useState<any[]>([]);
+  const [selectedPhase, setSelectedPhase] = useState<string>('prospeccao');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const { invalidateOpportunities } = useReportsSync();
@@ -109,6 +162,7 @@ export function ImportModal({ isOpen, onClose, onImportComplete }: ImportModalPr
     setIsLoading(false);
     setShowErrorsModal(false);
     setSelectedRowErrors([]);
+    setSelectedPhase('prospeccao');
   }, []);
 
   const handleShowErrors = useCallback((errors: any[]) => {
@@ -260,6 +314,7 @@ export function ImportModal({ isOpen, onClose, onImportComplete }: ImportModalPr
         body: JSON.stringify({
           fileId: uploadData.fileId,
           mapping: filteredMapping,
+          targetPhase: selectedPhase,
           options: {
             skipInvalidRows: true,
           },
@@ -443,6 +498,52 @@ export function ImportModal({ isOpen, onClose, onImportComplete }: ImportModalPr
                     className="hidden"
                     data-testid="file-input"
                   />
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Selecionar Fase de Destino</CardTitle>
+                  <CardDescription>
+                    Escolha a fase para onde os dados serão importados. Todos os cards importados serão criados na fase selecionada.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                    {PHASES.map((phase) => {
+                      const Icon = phase.icon;
+                      const isSelected = selectedPhase === phase.id;
+                      return (
+                        <Button
+                          key={phase.id}
+                          variant={isSelected ? "default" : "outline"}
+                          className={cn(
+                            "h-auto p-4 flex flex-col items-center gap-2 text-center",
+                            isSelected && phase.color,
+                            !isSelected && "hover:bg-muted/50"
+                          )}
+                          onClick={() => setSelectedPhase(phase.id)}
+                          data-testid={`phase-select-${phase.id}`}
+                        >
+                          <Icon className="h-6 w-6" />
+                          <div>
+                            <div className="font-medium text-sm">{phase.name}</div>
+                            <div className="text-xs opacity-80 mt-1">{phase.description}</div>
+                          </div>
+                        </Button>
+                      );
+                    })}
+                  </div>
+                  
+                  <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                    <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
+                      <AlertCircle className="h-4 w-4" />
+                      <span className="font-medium">Fase selecionada: {PHASES.find(p => p.id === selectedPhase)?.name}</span>
+                    </div>
+                    <p className="text-sm text-blue-600 dark:text-blue-400 mt-1">
+                      Todos os cards importados serão criados nesta fase, independente da fase especificada no arquivo CSV.
+                    </p>
+                  </div>
                 </CardContent>
               </Card>
 
