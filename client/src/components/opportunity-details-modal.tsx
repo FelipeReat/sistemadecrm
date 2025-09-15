@@ -1142,25 +1142,10 @@ export default function OpportunityDetailsModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <div className="flex items-center justify-between">
-            <DialogTitle className="flex items-center space-x-2">
-              <FileText className="h-5 w-5 text-blue-600" />
-              <span>Detalhes da Oportunidade</span>
-            </DialogTitle>
-            <Button
-              type="button"
-              variant="ghost"
-              size="default"
-              onClick={handleDelete}
-              disabled={isSubmitting || deleteOpportunityMutation.isPending}
-              className="text-red-600 hover:text-red-700 hover:bg-red-50 px-3"
-              data-testid="button-delete-opportunity"
-              title="Excluir oportunidade"
-              aria-label="Excluir oportunidade"
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </div>
+          <DialogTitle className="flex items-center space-x-2">
+            <FileText className="h-5 w-5 text-blue-600" />
+            <span>Detalhes da Oportunidade</span>
+          </DialogTitle>
           <DialogDescription>
             Empresa: {opportunity.company} • Fase: {opportunity.phase}
           </DialogDescription>
