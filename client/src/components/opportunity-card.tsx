@@ -147,10 +147,12 @@ export default function OpportunityCard({ opportunity, onViewDetails }: Opportun
       </div>
 
       <div className="space-y-1 text-sm text-muted-foreground">
-        <div className="flex items-center">
-          <Phone className="h-3 w-3 text-muted-foreground mr-2" />
-          <span data-testid={`opportunity-phone-${opportunity.id}`}>{opportunity.phone}</span>
-        </div>
+        {opportunity.phone && (
+          <div className="flex items-center">
+            <Phone className="h-3 w-3 text-muted-foreground mr-2" />
+            <span data-testid={`opportunity-phone-${opportunity.id}`}>{opportunity.phone}</span>
+          </div>
+        )}
 
         {opportunity.cnpj && (
           <div className="flex items-center">
@@ -164,7 +166,10 @@ export default function OpportunityCard({ opportunity, onViewDetails }: Opportun
             <User className="h-3 w-3 text-muted-foreground mr-2" />
             <span>Vendedor: {opportunity.salesperson}</span>
           </div>
-        )}
+        )}</div>
+
+      {/* Informações específicas da fase */}
+      <div className="space-y-1 text-sm text-muted-foreground">
 
         {opportunity.phase === "prospeccao" && opportunity.nextActivityDate && (
           <div className="flex items-center">
@@ -261,37 +266,38 @@ export default function OpportunityCard({ opportunity, onViewDetails }: Opportun
         )}
       </div>
 
-      <div className="mt-3">
-        <div className="flex flex-col text-xs text-muted-foreground">
+      {/* Seção de informações de tempo e status */}
+      <div className="mt-3 border-t pt-2">
+        <div className="flex flex-col text-xs text-muted-foreground space-y-1">
           <span data-testid={`opportunity-created-${opportunity.id}`}>
             Criado {formatDate(opportunity.createdAt)}
           </span>
           <span data-testid={`opportunity-phase-time-${opportunity.id}`} className="text-primary font-medium">
             Nesta fase {formatDate(opportunity.phaseUpdatedAt || opportunity.updatedAt)}
           </span>
-          
-          {/* Indicador de campos faltando */}
-          {!phaseValidation.isComplete && !['ganho', 'perdido'].includes(opportunity.phase) && (
-            <div className="mt-2 p-2 bg-orange-50 border border-orange-200 rounded text-orange-700">
-              <div className="flex items-center space-x-1">
-                <AlertCircle className="h-3 w-3" />
-                <span className="font-medium">Campos pendentes:</span>
-              </div>
-              <div className="text-xs mt-1">
-                {phaseValidation.missingFields?.join(', ')}
-              </div>
-            </div>
-          )}
-          
-          {phaseValidation.isComplete && !['ganho', 'perdido'].includes(opportunity.phase) && (
-            <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded text-green-700">
-              <div className="flex items-center space-x-1">
-                <CheckCircle className="h-3 w-3" />
-                <span className="text-xs font-medium">Fase completa - Pronto para avançar</span>
-              </div>
-            </div>
-          )}
         </div>
+        
+        {/* Indicador de campos faltando */}
+        {!phaseValidation.isComplete && !['ganho', 'perdido'].includes(opportunity.phase) && (
+          <div className="mt-2 p-2 bg-orange-50 border border-orange-200 rounded text-orange-700">
+            <div className="flex items-center space-x-1">
+              <AlertCircle className="h-3 w-3" />
+              <span className="font-medium">Campos pendentes:</span>
+            </div>
+            <div className="text-xs mt-1">
+              {phaseValidation.missingFields?.join(', ')}
+            </div>
+          </div>
+        )}
+        
+        {phaseValidation.isComplete && !['ganho', 'perdido'].includes(opportunity.phase) && (
+          <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded text-green-700">
+            <div className="flex items-center space-x-1">
+              <CheckCircle className="h-3 w-3" />
+              <span className="text-xs font-medium">Fase completa - Pronto para avançar</span>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
