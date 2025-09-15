@@ -1075,12 +1075,13 @@ export default function OpportunityDetailsModal({
             <Button
               type="button"
               variant="ghost"
-              size="sm"
+              size="default"
               onClick={handleDelete}
               disabled={isSubmitting || deleteOpportunityMutation.isPending}
-              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+              className="text-red-600 hover:text-red-700 hover:bg-red-50 px-3"
               data-testid="button-delete-opportunity"
               title="Excluir oportunidade"
+              aria-label="Excluir oportunidade"
             >
               <Trash2 className="h-4 w-4" />
             </Button>
