@@ -142,20 +142,10 @@ export default function NewOpportunityModal({ open, onOpenChange }: NewOpportuni
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto" data-testid="new-opportunity-modal">
-        <DialogHeader className="relative">
+        <DialogHeader>
           <DialogTitle className="flex items-center space-x-2">
             <span>Nova Oportunidade</span>
           </DialogTitle>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => onOpenChange(false)}
-            className="absolute top-0 right-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-            title="Fechar modal"
-          >
-            <X className="h-4 w-4" />
-          </Button>
           <DialogDescription>
             Cadastre uma nova oportunidade no sistema
           </DialogDescription>

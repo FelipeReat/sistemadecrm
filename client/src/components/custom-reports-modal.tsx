@@ -127,21 +127,11 @@ export default function CustomReportsModal({ open, onOpenChange }: CustomReports
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader className="relative">
+        <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Filter className="h-5 w-5" />
             Criar Relatório Personalizado
           </DialogTitle>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => onOpenChange(false)}
-            className="absolute top-0 right-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-            title="Fechar modal"
-          >
-            <X className="h-4 w-4" />
-          </Button>
           <DialogDescription>
             Crie relatórios customizados com base nos dados do seu sistema. 
             Escolha os filtros desejados e gere insights específicos para sua análise.

@@ -410,21 +410,11 @@ export function ImportModal({ isOpen, onClose, onImportComplete }: ImportModalPr
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden flex flex-col" data-testid="import-modal">
-        <DialogHeader className="relative">
+        <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileSpreadsheet className="h-6 w-6" />
             Importar Dados CSV/Excel
           </DialogTitle>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => handleClose()}
-            className="absolute top-0 right-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-            title="Fechar modal"
-          >
-            <X className="h-4 w-4" />
-          </Button>
         </DialogHeader>
 
         {/* Progress Steps */}
@@ -846,21 +836,11 @@ export function ImportModal({ isOpen, onClose, onImportComplete }: ImportModalPr
       {/* Modal de Erros */}
       <Dialog open={showErrorsModal} onOpenChange={setShowErrorsModal}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
-          <DialogHeader className="relative">
+          <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <AlertCircle className="h-5 w-5 text-red-500" />
               Detalhes dos Erros de Validação
             </DialogTitle>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowErrorsModal(false)}
-              className="absolute top-0 right-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-              title="Fechar modal"
-            >
-              <X className="h-4 w-4" />
-            </Button>
           </DialogHeader>
 
           <ScrollArea className="flex-1 max-h-96">
