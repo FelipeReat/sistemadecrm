@@ -258,6 +258,19 @@ export default function OpportunityCard({ opportunity, onViewDetails }: Opportun
           </div>
         )}
 
+        {opportunity.phase === "perdido" && opportunity.lossObservation && (
+          <div className="flex items-center">
+            <FileText className="h-3 w-3 text-muted-foreground mr-2" />
+            <span 
+              className="line-clamp-2 break-words" 
+              title={opportunity.lossObservation}
+              data-testid={`opportunity-loss-observation-${opportunity.id}`}
+            >
+              Observação: {opportunity.lossObservation}
+            </span>
+          </div>
+        )}
+
         {opportunity.phase === "perdido" && (
           <div className="flex items-center">
             <Calendar className="h-3 w-3 text-muted-foreground mr-2" />
