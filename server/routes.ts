@@ -1048,16 +1048,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const uploadPath = path.join(process.cwd(), 'uploads', 'documents');
         
         // Create directory if it doesn't exist
-        if (!fs.existsSync(uploadPath)) {
-          fs.mkdirSync(uploadPath, { recursive: true });
+        try {
+          if (!fs.existsSync(uploadPath)) {
+            fs.mkdirSync(uploadPath, { recursive: true });
+          }
+          cb(null, uploadPath);
+        } catch (error) {
+          console.error('Error creating upload directory:', error);
+          cb(error as Error, uploadPath);
         }
-        cb(null, uploadPath);
       },
       filename: (req, file, cb) => {
-        // Generate unique filename: timestamp_originalname
-        const timestamp = Date.now();
-        const originalName = file.originalname.replace(/\s+/g, '_'); // Replace spaces with underscores
-        cb(null, `${timestamp}_${originalName}`);
+        try {
+          // Generate unique filename: timestamp_originalname
+          const timestamp = Date.now();
+          const originalName = file.originalname.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9._-]/g, ''); // Replace spaces and special chars
+          cb(null, `${timestamp}_${originalName}`);
+        } catch (error) {
+          console.error('Error generating filename:', error);
+          cb(error as Error, file.originalname);
+        }
       }
     }),
     limits: {
@@ -1065,48 +1075,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
       files: 1
     },
     fileFilter: (req, file, cb) => {
-      const allowedTypes = [
-        'application/pdf',
-        'application/msword',
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        'image/jpeg',
-        'image/jpg', 
-        'image/png',
-        'image/gif',
-        'text/plain'
-      ];
+      try {
+        const allowedTypes = [
+          'application/pdf',
+          'application/msword',
+          'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+          'image/jpeg',
+          'image/jpg', 
+          'image/png',
+          'image/gif',
+          'text/plain'
+        ];
 
-      if (allowedTypes.includes(file.mimetype)) {
-        cb(null, true);
-      } else {
-        cb(new Error('Tipo de arquivo não suportado. Use PDF, DOC, DOCX, JPG, PNG, GIF ou TXT'));
+        console.log('File upload attempt:', {
+          originalname: file.originalname,
+          mimetype: file.mimetype,
+          size: file.size
+        });
+
+        if (allowedTypes.includes(file.mimetype)) {
+          cb(null, true);
+        } else {
+          cb(new Error('Tipo de arquivo não suportado. Use PDF, DOC, DOCX, JPG, PNG, GIF ou TXT'));
+        }
+      } catch (error) {
+        console.error('Error in file filter:', error);
+        cb(error as Error, false);
       }
     }
   });
 
   // Document upload endpoint
-  app.post("/api/documents/upload", isAuthenticated, documentUpload.single('document'), async (req, res) => {
-    try {
-      if (!req.file) {
-        return res.status(400).json({ message: "Nenhum arquivo enviado" });
+  app.post("/api/documents/upload", isAuthenticated, (req, res) => {
+    documentUpload.single('document')(req, res, async (err) => {
+      try {
+        if (err) {
+          console.error('Multer error:', err);
+          return res.status(400).json({ message: err.message || "Erro no upload do arquivo" });
+        }
+
+        if (!req.file) {
+          return res.status(400).json({ message: "Nenhum arquivo enviado" });
+        }
+
+        const uploadedFile = {
+          id: `doc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          name: req.file.originalname,
+          filename: req.file.filename,
+          size: req.file.size,
+          type: req.file.mimetype,
+          url: `/uploads/documents/${req.file.filename}`,
+          uploadedAt: new Date().toISOString(),
+          uploadedBy: req.session.user!.id
+        };
+
+        res.status(201).json(uploadedFile);
+      } catch (error: any) {
+        console.error('Document upload error:', error);
+        res.status(500).json({ message: "Erro ao fazer upload do documento" });
       }
-
-      const uploadedFile = {
-        id: `doc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        name: req.file.originalname,
-        filename: req.file.filename,
-        size: req.file.size,
-        type: req.file.mimetype,
-        url: `/uploads/documents/${req.file.filename}`,
-        uploadedAt: new Date().toISOString(),
-        uploadedBy: req.session.user!.id
-      };
-
-      res.status(201).json(uploadedFile);
-    } catch (error: any) {
-      console.error('Document upload error:', error);
-      res.status(500).json({ message: "Erro ao fazer upload do documento" });
-    }
+    });
   });
 
   // Serve uploaded documents 
