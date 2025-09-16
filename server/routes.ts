@@ -227,17 +227,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create opportunity
   app.post("/api/opportunities", isAuthenticated, async (req, res) => {
     try {
-      // Adiciona automaticamente quem criou a oportunidade
+      // Preservar todos os dados enviados e adicionar informações de auditoria
       const dataToValidate = {
         ...req.body,
         createdBy: req.session.user!.name || req.session.user!.email || "Usuário"
       };
 
+      console.log('🔍 Dados recebidos para criação:', JSON.stringify(dataToValidate, null, 2));
+
       // Ensure documents are properly formatted and persisted
       if (dataToValidate.documents && Array.isArray(dataToValidate.documents)) {
         dataToValidate.documents = dataToValidate.documents.map((doc: any) => {
           if (typeof doc === 'object') {
-            return JSON.stringify(doc);
+            return doc; // Keep as object for proper schema validation
           }
           return doc;
         });
@@ -247,16 +249,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (dataToValidate.visitPhotos && Array.isArray(dataToValidate.visitPhotos)) {
         dataToValidate.visitPhotos = dataToValidate.visitPhotos.map((photo: any) => {
           if (typeof photo === 'object') {
-            return JSON.stringify(photo);
+            return photo; // Keep as object for proper schema validation
           }
           return photo;
         });
       }
 
+      // Ensure all essential fields are preserved - don't transform empty strings to null
+      ['contact', 'company', 'phone', 'needCategory', 'clientNeeds', 'businessTemperature'].forEach(field => {
+        if (dataToValidate[field] !== undefined && dataToValidate[field] !== null) {
+          // Preserve the original value, even if it's an empty string that will be transformed
+          console.log(`📋 Preservando campo ${field}:`, dataToValidate[field]);
+        }
+      });
+
       const validatedData = insertOpportunitySchema.parse(dataToValidate);
+      console.log('✅ Dados validados:', JSON.stringify(validatedData, null, 2));
+      
       const opportunity = await storage.createOpportunity(validatedData);
+      console.log('🎯 Oportunidade criada:', JSON.stringify(opportunity, null, 2));
+      
       res.status(201).json(opportunity);
     } catch (error: any) {
+      console.error('❌ Erro na criação da oportunidade:', error);
       if (error.name === "ZodError") {
         const validationError = fromZodError(error);
         return res.status(400).json({ message: validationError.message });

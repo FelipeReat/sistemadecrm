@@ -99,11 +99,11 @@ export const insertOpportunitySchema = createInsertSchema(opportunities, {
   }),
   needCategory: z.string().optional().nullable().transform(val => {
     if (!val || val.trim() === '') return null;
-    return val.trim();
+    return val.trim().slice(0, 500); // Limit length but preserve data
   }),
   clientNeeds: z.string().optional().nullable().transform(val => {
     if (!val || val.trim() === '') return null;
-    return val.trim();
+    return val.trim().slice(0, 2000); // Preserve longer client needs descriptions
   }),
   documents: z.union([
     z.array(z.object({

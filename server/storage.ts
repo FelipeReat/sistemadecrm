@@ -114,39 +114,68 @@ export class MemStorage implements IStorage {
   async createOpportunity(insertOpportunity: InsertOpportunity): Promise<Opportunity> {
     const id = randomUUID();
     const now = new Date();
+    
+    // Preserve all essential information passed in the insert data
     const opportunity: Opportunity = { 
-      ...insertOpportunity,
+      id,
+      createdAt: now,
+      updatedAt: now,
+      phaseUpdatedAt: now,
+      // Core contact information - always preserve these
+      contact: insertOpportunity.contact || "Não informado",
+      company: insertOpportunity.company || "Não informado",
+      phone: insertOpportunity.phone || null,
       cpf: insertOpportunity.cpf || null,
       cnpj: insertOpportunity.cnpj || null,
+      
+      // Business details - preserve all provided data
       hasRegistration: insertOpportunity.hasRegistration || false,
       proposalOrigin: insertOpportunity.proposalOrigin || null,
-      businessTemperature: insertOpportunity.businessTemperature || null,
-      documents: insertOpportunity.documents ? insertOpportunity.documents.map(doc => JSON.stringify(doc)) : null,
+      businessTemperature: insertOpportunity.businessTemperature || 'morno',
+      needCategory: insertOpportunity.needCategory || null,
+      clientNeeds: insertOpportunity.clientNeeds || null,
+      
+      // Documents - preserve properly formatted
+      documents: insertOpportunity.documents ? 
+        insertOpportunity.documents.map(doc => 
+          typeof doc === 'string' ? doc : JSON.stringify(doc)
+        ) : null,
+      
+      // Phase and workflow
+      phase: insertOpportunity.phase || 'prospeccao',
+      createdBy: insertOpportunity.createdBy || 'system',
+      
+      // Prospection phase data
       opportunityNumber: insertOpportunity.opportunityNumber || null,
       salesperson: insertOpportunity.salesperson || null,
       requiresVisit: insertOpportunity.requiresVisit || false,
       statement: insertOpportunity.statement || null,
+      
+      // Visit technical data
       visitSchedule: insertOpportunity.visitSchedule || null,
       visitDate: insertOpportunity.visitDate || null,
-      visitPhotos: insertOpportunity.visitPhotos ? insertOpportunity.visitPhotos.map(photo => JSON.stringify(photo)) : null,
+      visitPhotos: insertOpportunity.visitPhotos ? 
+        insertOpportunity.visitPhotos.map(photo => 
+          typeof photo === 'string' ? photo : JSON.stringify(photo)
+        ) : null,
+      
+      // Proposal data
       discount: insertOpportunity.discount || null,
       discountDescription: insertOpportunity.discountDescription || null,
       validityDate: insertOpportunity.validityDate ? new Date(insertOpportunity.validityDate) : null,
       budgetNumber: insertOpportunity.budgetNumber || null,
       budget: insertOpportunity.budget || null,
+      
+      // Negotiation data
       status: insertOpportunity.status || null,
       finalValue: insertOpportunity.finalValue || null,
       negotiationInfo: insertOpportunity.negotiationInfo || null,
       contract: insertOpportunity.contract || null,
       invoiceNumber: insertOpportunity.invoiceNumber || null,
       lossReason: insertOpportunity.lossReason || null,
-      phase: insertOpportunity.phase || 'prospeccao',
-      createdBy: insertOpportunity.createdBy || 'system',
-      id,
-      createdAt: now,
-      updatedAt: now,
-      phaseUpdatedAt: now
+      lossObservation: insertOpportunity.lossObservation || null,
     };
+    
     this.opportunities.set(id, opportunity);
     return opportunity;
   }
