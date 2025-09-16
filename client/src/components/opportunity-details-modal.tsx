@@ -1601,9 +1601,9 @@ export default function OpportunityDetailsModal({
             </div>
 
             {/* Formulário específico da fase */}
-            {renderPhaseForm()}
-          </div>
-        </DialogContent>
-      </Dialog>
-    );
+          {renderPhaseForm()}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
   }
