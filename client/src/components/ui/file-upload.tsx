@@ -44,23 +44,25 @@ export function FileUpload({
 
     if (multiple) {
       const currentFiles = [...value];
-      // Ensure the uploaded file has the correct format for the schema
-        const formattedFile = {
-          ...uploadedFile,
-          url: uploadedFile.url || `/uploads/documents/${uploadedFile.filename}`,
-          size: uploadedFile.size || 0,
-          type: uploadedFile.type || 'application/octet-stream'
-        };
-        onFilesChange([...currentFiles, formattedFile]);
+      // Ensure each uploaded file has the correct format for the schema
+      const formattedFiles = uploadedFiles.map(uploadedFile => ({
+        ...uploadedFile,
+        url: uploadedFile.url || `/uploads/documents/${uploadedFile.filename}`,
+        size: uploadedFile.size || 0,
+        type: uploadedFile.type || 'application/octet-stream'
+      }));
+      onFilesChange([...currentFiles, ...formattedFiles]);
     } else {
       // Ensure the uploaded file has the correct format for the schema
+      if (uploadedFiles.length > 0) {
         const formattedFile = {
-          ...uploadedFiles[0], // Assuming uploadMultipleFiles returns an array even for single file
+          ...uploadedFiles[0],
           url: uploadedFiles[0].url || `/uploads/documents/${uploadedFiles[0].filename}`,
           size: uploadedFiles[0].size || 0,
           type: uploadedFiles[0].type || 'application/octet-stream'
         };
         onFilesChange([formattedFile]);
+      }
     }
   };
 
