@@ -39,16 +39,8 @@ const canMoveOpportunity = (opportunity: Opportunity, targetPhase: string): { ca
     'ganho'
   ];
 
-  // Perdido pode ser acessado de qualquer fase, mas precisa validar os campos obrigatórios
+  // Perdido pode ser acessado de qualquer fase - os campos serão preenchidos após a movimentação
   if (targetPhase === 'perdido') {
-    const tempOpportunity = { ...opportunity, phase: 'perdido' as const };
-    const isTargetPhaseComplete = validatePhaseCompletion(tempOpportunity);
-    if (!isTargetPhaseComplete.isComplete) {
-      return {
-        canMove: false,
-        message: `Complete os campos obrigatórios para marcar como perdido: ${isTargetPhaseComplete.missingFields?.join(', ')}`
-      };
-    }
     return { canMove: true };
   }
 
@@ -134,8 +126,8 @@ const validatePhaseCompletion = (opportunity: Opportunity): { isComplete: boolea
       break;
 
     case 'perdido':
-      if (!opportunity.lossReason) missingFields.push('Motivo da perda');
-      if (!opportunity.lossObservation) missingFields.push('Observação da perda');
+      // Campos da fase perdido são opcionais até serem preenchidos pelo usuário no modal
+      // Não validamos aqui para permitir que o card seja movido primeiro
       break;
   }
 

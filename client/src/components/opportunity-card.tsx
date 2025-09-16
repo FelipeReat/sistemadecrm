@@ -9,41 +9,41 @@ import { formatters } from "@/lib/formatters";
 // Função para validar se uma fase está completa
 const validatePhaseCompletion = (opportunity: Opportunity): { isComplete: boolean; missingFields?: string[] } => {
   const missingFields: string[] = [];
-  
+
   switch (opportunity.phase) {
     case 'prospeccao':
       if (!opportunity.opportunityNumber) missingFields.push('Número da oportunidade');
       if (!opportunity.salesperson) missingFields.push('Vendedor');
       break;
-      
+
     case 'em-atendimento':
       if (!opportunity.salesperson) missingFields.push('Vendedor');
       // Temperatura do negócio só é obrigatória se já foi preenchida anteriormente
       // ou se estamos editando especificamente esta fase
       break;
-      
+
     case 'visita-tecnica':
       if (!opportunity.visitSchedule) missingFields.push('Data de agendamento da visita');
       if (!opportunity.visitDate) missingFields.push('Data de realização da visita');
       break;
-      
+
     case 'proposta':
       if (!opportunity.budgetNumber) missingFields.push('Número da proposta');
       if (!opportunity.budget) missingFields.push('Valor da proposta');
       if (!opportunity.validityDate) missingFields.push('Data de validade');
       break;
-      
+
     case 'negociacao':
       if (!opportunity.finalValue) missingFields.push('Valor final');
       if (!opportunity.negotiationInfo) missingFields.push('Informações da negociação');
       break;
-      
+
     case 'ganho':
     case 'perdido':
       // Fases finais sempre consideradas completas
       break;
   }
-  
+
   return {
     isComplete: missingFields.length === 0,
     missingFields: missingFields.length > 0 ? missingFields : undefined
@@ -57,7 +57,7 @@ interface OpportunityCardProps {
 
 export default function OpportunityCard({ opportunity, onViewDetails }: OpportunityCardProps) {
   const phaseValidation = validatePhaseCompletion(opportunity);
-  
+
   const handleDragStart = (e: React.DragEvent) => {
     // Passar tanto o ID quanto o objeto completo da oportunidade para validação
     const dragData = {
@@ -289,7 +289,7 @@ export default function OpportunityCard({ opportunity, onViewDetails }: Opportun
             Nesta fase {formatDate(opportunity.phaseUpdatedAt || opportunity.updatedAt)}
           </span>
         </div>
-        
+
         {/* Indicador de campos faltando */}
         {!phaseValidation.isComplete && !['ganho', 'perdido'].includes(opportunity.phase) && (
           <div className="mt-2 p-2 bg-orange-50 border border-orange-200 rounded text-orange-700">
@@ -302,7 +302,7 @@ export default function OpportunityCard({ opportunity, onViewDetails }: Opportun
             </div>
           </div>
         )}
-        
+
         {phaseValidation.isComplete && !['ganho', 'perdido'].includes(opportunity.phase) && (
           <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded text-green-700">
             <div className="flex items-center space-x-1">
