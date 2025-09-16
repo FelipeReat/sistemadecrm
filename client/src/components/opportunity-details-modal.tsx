@@ -1269,15 +1269,131 @@ export default function OpportunityDetailsModal({
         </DialogHeader>
 
         <div className="py-4">
-          {/* Informações básicas */}
-          <div className="grid grid-cols-2 gap-4 mb-4">
-            <div>
-              <Label>Empresa</Label>
-              <Input value={opportunity.company} disabled className="bg-gray-50" />
-            </div>
-            <div>
-              <Label>Contato</Label>
-              <Input value={opportunity.contact} disabled className="bg-gray-50" />
+          {/* Informações Essenciais - Sempre Visíveis */}
+          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <h3 className="text-lg font-semibold text-blue-900 mb-4 flex items-center">
+              <FileText className="h-5 w-5 mr-2" />
+              Informações Essenciais
+            </h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Linha 1 */}
+              <div>
+                <Label className="text-sm font-medium text-gray-700">Empresa</Label>
+                <Input value={opportunity.company || "Não informado"} disabled className="bg-white border-gray-200" />
+              </div>
+              <div>
+                <Label className="text-sm font-medium text-gray-700">Contato</Label>
+                <Input value={opportunity.contact || "Não informado"} disabled className="bg-white border-gray-200" />
+              </div>
+
+              {/* Linha 2 */}
+              <div>
+                <Label className="text-sm font-medium text-gray-700">Telefone</Label>
+                <Input value={opportunity.phone || "Não informado"} disabled className="bg-white border-gray-200" />
+              </div>
+              <div>
+                <Label className="text-sm font-medium text-gray-700">Temperatura do Negócio</Label>
+                <Input 
+                  value={opportunity.businessTemperature ? 
+                    opportunity.businessTemperature.charAt(0).toUpperCase() + opportunity.businessTemperature.slice(1) : 
+                    "Não informado"
+                  } 
+                  disabled 
+                  className="bg-white border-gray-200" 
+                />
+              </div>
+
+              {/* Linha 3 */}
+              {opportunity.cpf && (
+                <div>
+                  <Label className="text-sm font-medium text-gray-700">CPF</Label>
+                  <Input value={opportunity.cpf} disabled className="bg-white border-gray-200" />
+                </div>
+              )}
+              {opportunity.cnpj && (
+                <div>
+                  <Label className="text-sm font-medium text-gray-700">CNPJ</Label>
+                  <Input value={opportunity.cnpj} disabled className="bg-white border-gray-200" />
+                </div>
+              )}
+
+              {/* Linha 4 */}
+              <div className="md:col-span-2">
+                <Label className="text-sm font-medium text-gray-700">Categoria de Necessidade</Label>
+                <Input value={opportunity.needCategory || "Não informado"} disabled className="bg-white border-gray-200" />
+              </div>
+
+              {/* Linha 5 */}
+              <div className="md:col-span-2">
+                <Label className="text-sm font-medium text-gray-700">Necessidades do Cliente</Label>
+                <Textarea 
+                  value={opportunity.clientNeeds || "Não informado"} 
+                  disabled 
+                  className="bg-white border-gray-200 min-h-[80px]" 
+                />
+              </div>
+
+              {/* Linha 6 - Origem da Proposta */}
+              {opportunity.proposalOrigin && (
+                <div>
+                  <Label className="text-sm font-medium text-gray-700">Origem da Proposta</Label>
+                  <Input value={opportunity.proposalOrigin} disabled className="bg-white border-gray-200" />
+                </div>
+              )}
+
+              {/* Linha 7 - Documentos */}
+              {opportunity.documents && opportunity.documents.length > 0 && (
+                <div className="md:col-span-2">
+                  <Label className="text-sm font-medium text-gray-700">Documentos Anexados</Label>
+                  <div className="mt-2 space-y-2">
+                    {opportunity.documents.map((doc, index) => {
+                      let parsedDoc;
+                      try {
+                        parsedDoc = typeof doc === 'string' ? JSON.parse(doc) : doc;
+                      } catch {
+                        parsedDoc = { name: doc, url: doc };
+                      }
+                      
+                      return (
+                        <div key={index} className="flex items-center justify-between bg-white border border-gray-200 rounded p-2">
+                          <span className="text-sm text-gray-700">{parsedDoc.name || `Documento ${index + 1}`}</span>
+                          {parsedDoc.url && (
+                            <a 
+                              href={parsedDoc.url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:text-blue-800 text-sm underline"
+                            >
+                              Ver arquivo
+                            </a>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Linha 8 - Informações de Auditoria */}
+              <div>
+                <Label className="text-sm font-medium text-gray-700">Criado por</Label>
+                <Input value={opportunity.createdBy || "Sistema"} disabled className="bg-white border-gray-200" />
+              </div>
+              <div>
+                <Label className="text-sm font-medium text-gray-700">Data de Criação</Label>
+                <Input 
+                  value={new Date(opportunity.createdAt).toLocaleDateString("pt-BR", {
+                    day: "2-digit",
+                    month: "2-digit", 
+                    year: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit"
+                  })} 
+                  disabled 
+                  className="bg-white border-gray-200" 
+                />
+              </div>
             </div>
           </div>
 

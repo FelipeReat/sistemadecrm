@@ -161,6 +161,37 @@ export default function OpportunityCard({ opportunity, onViewDetails }: Opportun
           </div>
         )}
 
+        {opportunity.businessTemperature && (
+          <div className="flex items-center">
+            <span className="h-3 w-3 text-muted-foreground mr-2">🌡️</span>
+            <span className={`font-medium ${
+              opportunity.businessTemperature === 'quente' ? 'text-red-600' :
+              opportunity.businessTemperature === 'morno' ? 'text-yellow-600' :
+              'text-blue-600'
+            }`}>
+              {opportunity.businessTemperature.charAt(0).toUpperCase() + opportunity.businessTemperature.slice(1)}
+            </span>
+          </div>
+        )}
+
+        {opportunity.needCategory && (
+          <div className="flex items-center">
+            <FileText className="h-3 w-3 text-muted-foreground mr-2" />
+            <span className="truncate" title={opportunity.needCategory}>
+              {opportunity.needCategory}
+            </span>
+          </div>
+        )}
+
+        {opportunity.documents && opportunity.documents.length > 0 && (
+          <div className="flex items-center">
+            <FileText className="h-3 w-3 text-muted-foreground mr-2" />
+            <span className="text-blue-600 font-medium">
+              {opportunity.documents.length} documento(s)
+            </span>
+          </div>
+        )}
+
         {opportunity.salesperson && (
           <div className="flex items-center">
             <User className="h-3 w-3 text-muted-foreground mr-2" />

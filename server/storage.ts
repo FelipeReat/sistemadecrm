@@ -184,27 +184,116 @@ export class MemStorage implements IStorage {
     const existing = this.opportunities.get(id);
     if (!existing) return undefined;
     
-    // Preserve essential data that should never be lost
+    // Preserve ALL essential data that should never be lost during phase transitions
     const preservedData: Partial<Opportunity> = {};
     
-    // Always preserve documents unless explicitly being updated
+    // Core information - ALWAYS preserve unless explicitly being updated
+    if (!updates.hasOwnProperty('contact') && existing.contact) {
+      preservedData.contact = existing.contact;
+    }
+    if (!updates.hasOwnProperty('company') && existing.company) {
+      preservedData.company = existing.company;
+    }
+    if (!updates.hasOwnProperty('phone') && existing.phone) {
+      preservedData.phone = existing.phone;
+    }
+    if (!updates.hasOwnProperty('cpf') && existing.cpf) {
+      preservedData.cpf = existing.cpf;
+    }
+    if (!updates.hasOwnProperty('cnpj') && existing.cnpj) {
+      preservedData.cnpj = existing.cnpj;
+    }
+    
+    // Business information - ALWAYS preserve unless explicitly being updated
+    if (!updates.hasOwnProperty('businessTemperature') && existing.businessTemperature) {
+      preservedData.businessTemperature = existing.businessTemperature;
+    }
+    if (!updates.hasOwnProperty('needCategory') && existing.needCategory) {
+      preservedData.needCategory = existing.needCategory;
+    }
+    if (!updates.hasOwnProperty('clientNeeds') && existing.clientNeeds) {
+      preservedData.clientNeeds = existing.clientNeeds;
+    }
+    if (!updates.hasOwnProperty('proposalOrigin') && existing.proposalOrigin) {
+      preservedData.proposalOrigin = existing.proposalOrigin;
+    }
+    if (!updates.hasOwnProperty('hasRegistration') && existing.hasRegistration !== undefined) {
+      preservedData.hasRegistration = existing.hasRegistration;
+    }
+    
+    // Documents and files - ALWAYS preserve unless explicitly being updated
     if (!updates.hasOwnProperty('documents') && existing.documents) {
       preservedData.documents = existing.documents;
     }
-    
-    // Always preserve visitPhotos unless explicitly being updated  
     if (!updates.hasOwnProperty('visitPhotos') && existing.visitPhotos) {
       preservedData.visitPhotos = existing.visitPhotos;
     }
     
-    // Always preserve createdBy
+    // Audit information - ALWAYS preserve
     if (existing.createdBy) {
       preservedData.createdBy = existing.createdBy;
     }
-    
-    // Always preserve createdAt
     if (existing.createdAt) {
       preservedData.createdAt = existing.createdAt;
+    }
+    
+    // Phase-specific data - preserve unless being updated
+    if (!updates.hasOwnProperty('opportunityNumber') && existing.opportunityNumber) {
+      preservedData.opportunityNumber = existing.opportunityNumber;
+    }
+    if (!updates.hasOwnProperty('salesperson') && existing.salesperson) {
+      preservedData.salesperson = existing.salesperson;
+    }
+    if (!updates.hasOwnProperty('requiresVisit') && existing.requiresVisit !== undefined) {
+      preservedData.requiresVisit = existing.requiresVisit;
+    }
+    if (!updates.hasOwnProperty('statement') && existing.statement) {
+      preservedData.statement = existing.statement;
+    }
+    if (!updates.hasOwnProperty('visitSchedule') && existing.visitSchedule) {
+      preservedData.visitSchedule = existing.visitSchedule;
+    }
+    if (!updates.hasOwnProperty('visitDate') && existing.visitDate) {
+      preservedData.visitDate = existing.visitDate;
+    }
+    if (!updates.hasOwnProperty('visitDescription') && existing.visitDescription) {
+      preservedData.visitDescription = existing.visitDescription;
+    }
+    if (!updates.hasOwnProperty('budget') && existing.budget) {
+      preservedData.budget = existing.budget;
+    }
+    if (!updates.hasOwnProperty('budgetNumber') && existing.budgetNumber) {
+      preservedData.budgetNumber = existing.budgetNumber;
+    }
+    if (!updates.hasOwnProperty('validityDate') && existing.validityDate) {
+      preservedData.validityDate = existing.validityDate;
+    }
+    if (!updates.hasOwnProperty('discount') && existing.discount) {
+      preservedData.discount = existing.discount;
+    }
+    if (!updates.hasOwnProperty('discountDescription') && existing.discountDescription) {
+      preservedData.discountDescription = existing.discountDescription;
+    }
+    if (!updates.hasOwnProperty('finalValue') && existing.finalValue) {
+      preservedData.finalValue = existing.finalValue;
+    }
+    if (!updates.hasOwnProperty('negotiationInfo') && existing.negotiationInfo) {
+      preservedData.negotiationInfo = existing.negotiationInfo;
+    }
+    if (!updates.hasOwnProperty('status') && existing.status) {
+      preservedData.status = existing.status;
+    }
+    if (!updates.hasOwnProperty('contract') && existing.contract) {
+      preservedData.contract = existing.contract;
+    }
+    if (!updates.hasOwnProperty('invoiceNumber') && existing.invoiceNumber) {
+      preservedData.invoiceNumber = existing.invoiceNumber;
+    }
+    if (!updates.hasOwnProperty('lossReason') && existing.lossReason) {
+      preservedData.lossReason = existing.lossReason;
+    }
+    if (!updates.hasOwnProperty('lossObservation') && existing.lossObservation) {
+      preservedData.lossObservation = existing.lossObservation;
     }
     
     const updated: Opportunity = {
