@@ -20,6 +20,7 @@ import SettingsModal from "@/components/settings-modal";
 import { ImportModal } from "@/components/import-modal";
 import { PHASES } from "@shared/schema";
 import type { Opportunity, User } from "@shared/schema";
+import { useAuth } from "@/hooks/useAuth";
 import {
   DndContext,
   DragEndEvent,
@@ -37,6 +38,7 @@ import {
 
 export default function CrmDashboard() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const [isNewOpportunityModalOpen, setIsNewOpportunityModalOpen] = useState(false);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
@@ -295,14 +297,16 @@ export default function CrmDashboard() {
                 <Plus className="mr-2 h-4 w-4" />
                 Nova Oportunidade
               </Button>
-              <Button
-                variant="outline"
-                onClick={() => setIsImportModalOpen(true)}
-                data-testid="button-import-data"
-              >
-                <Upload className="mr-2 h-4 w-4" />
-                Importar Dados
-              </Button>
+              {user && ['admin', 'gerente'].includes(user.role) && (
+                <Button
+                  variant="outline"
+                  onClick={() => setIsImportModalOpen(true)}
+                  data-testid="button-import-data"
+                >
+                  <Upload className="mr-2 h-4 w-4" />
+                  Importar Dados
+                </Button>
+              )}
               <Button
                 variant="outline"
                 onClick={() => setIsSettingsModalOpen(true)}
