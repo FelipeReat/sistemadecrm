@@ -180,7 +180,7 @@ export default function OpportunityDetailsModal({
         budgetNumber: opportunity.budgetNumber || opportunity.opportunityNumber || "",
         budget: opportunity.budget || "",
       });
-      
+
       perdidoForm.reset({
         lossReason: opportunity.lossReason || "",
         lossObservation: opportunity.lossObservation || "",
@@ -331,7 +331,7 @@ export default function OpportunityDetailsModal({
       if (opportunity.documents && !cleanedData.documents) {
         cleanedData.documents = opportunity.documents;
       }
-      
+
       if (opportunity.visitPhotos && !cleanedData.visitPhotos) {
         cleanedData.visitPhotos = opportunity.visitPhotos;
       }
@@ -1275,7 +1275,7 @@ export default function OpportunityDetailsModal({
               <FileText className="h-4 w-4 mr-2" />
               Informações Essenciais
             </h3>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
               <div>
                 <span className="font-medium text-gray-700">Empresa:</span>
@@ -1337,7 +1337,7 @@ export default function OpportunityDetailsModal({
                         // If parsing fails, treat as legacy format
                         parsedDoc = { name: `Documento ${index + 1}`, url: doc };
                       }
-                      
+
                       return (
                         <div key={index} className="flex items-center space-x-2">
                           <FileText className="h-4 w-4 text-gray-500" />
@@ -1362,7 +1362,7 @@ export default function OpportunityDetailsModal({
                 </div>
               )}</div>
             </div>
-            
+
             {opportunity.clientNeeds && (
               <div className="mt-3 pt-3 border-t border-gray-200">
                 <span className="font-medium text-gray-700">Necessidades:</span>
@@ -1377,7 +1377,7 @@ export default function OpportunityDetailsModal({
               <Calendar className="h-5 w-5 mr-2" />
               Histórico de Fases Anteriores
             </h3>
-            
+
             <div className="space-y-4">
               {/* Prospecção */}
               {(opportunity.opportunityNumber || opportunity.salesperson || opportunity.requiresVisit !== undefined) && (
@@ -1453,7 +1453,7 @@ export default function OpportunityDetailsModal({
                               // If parsing fails, treat as legacy format
                               parsedPhoto = { name: `Foto ${index + 1}`, url: photo };
                             }
-                            
+
                             return (
                               <div key={index} className="flex items-center space-x-2">
                                 <Image className="h-4 w-4 text-gray-500" />
@@ -1478,131 +1478,132 @@ export default function OpportunityDetailsModal({
                       </div>
                     )}</div>
                   </div>
-                </div>
-              )}
+                )}
 
-              {/* Proposta */}
-              {(opportunity.budgetNumber || opportunity.budget || opportunity.validityDate || opportunity.discount) && (
-                <div className="border-l-4 border-pink-400 pl-4">
-                  <h4 className="font-semibold text-pink-700 mb-2">📄 Proposta</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                    {opportunity.budgetNumber && (
-                      <div>
-                        <span className="font-medium text-gray-700">Número do orçamento:</span>
-                        <span className="ml-2 text-gray-900">{opportunity.budgetNumber}</span>
+                {/* Proposta */}
+                {(opportunity.budgetNumber || opportunity.budget || opportunity.validityDate || opportunity.discount) && (
+                  <>
+                    <div className="border-l-4 border-pink-400 pl-4">
+                      <h4 className="font-semibold text-pink-700 mb-2">📄 Proposta</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                        {opportunity.budgetNumber && (
+                          <div>
+                            <span className="font-medium text-gray-700">Número do orçamento:</span>
+                            <span className="ml-2 text-gray-900">{opportunity.budgetNumber}</span>
+                          </div>
+                        )}
+                        {opportunity.budget && (
+                          <div>
+                            <span className="font-medium text-gray-700">Valor do orçamento:</span>
+                            <span className="ml-2 text-gray-900 font-medium text-green-600">
+                              R$ {parseFloat(opportunity.budget.toString()).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                            </span>
+                          </div>
+                        )}
+                        {opportunity.validityDate && (
+                          <div>
+                            <span className="font-medium text-gray-700">Data de validade:</span>
+                            <span className="ml-2 text-gray-900">
+                              {new Date(opportunity.validityDate).toLocaleDateString('pt-BR')}
+                            </span>
+                          </div>
+                        )}
+                        {opportunity.discount && (
+                          <div>
+                            <span className="font-medium text-gray-700">Desconto:</span>
+                            <span className="ml-2 text-gray-900">{opportunity.discount}%</span>
+                          </div>
+                        )}
+                        {opportunity.discountDescription && (
+                          <div className="md:col-span-2">
+                            <span className="font-medium text-gray-700">Descrição do desconto:</span>
+                            <p className="mt-1 text-gray-900 bg-white p-2 rounded border">{opportunity.discountDescription}</p>
+                          </div>
+                        )}
                       </div>
-                    )}
-                    {opportunity.budget && (
-                      <div>
-                        <span className="font-medium text-gray-700">Valor do orçamento:</span>
-                        <span className="ml-2 text-gray-900 font-medium text-green-600">
-                          R$ {parseFloat(opportunity.budget.toString()).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                        </span>
-                      </div>
-                    )}
-                    {opportunity.validityDate && (
-                      <div>
-                        <span className="font-medium text-gray-700">Data de validade:</span>
-                        <span className="ml-2 text-gray-900">
-                          {new Date(opportunity.validityDate).toLocaleDateString('pt-BR')}
-                        </span>
-                      </div>
-                    )}
-                    {opportunity.discount && (
-                      <div>
-                        <span className="font-medium text-gray-700">Desconto:</span>
-                        <span className="ml-2 text-gray-900">{opportunity.discount}%</span>
-                      </div>
-                    )}
-                    {opportunity.discountDescription && (
-                      <div className="md:col-span-2">
-                        <span className="font-medium text-gray-700">Descrição do desconto:</span>
-                        <p className="mt-1 text-gray-900 bg-white p-2 rounded border">{opportunity.discountDescription}</p>
-                      </div>
-                    )}
+                    </div>
+                  </>
+                )}
+
+                {/* Negociação */}
+                {(opportunity.status || opportunity.finalValue || opportunity.negotiationInfo || opportunity.contract || opportunity.invoiceNumber) && (
+                  <div className="border-l-4 border-blue-500 pl-4">
+                    <h4 className="font-semibold text-blue-700 mb-2">🤝 Negociação</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                      {opportunity.status && (
+                        <div>
+                          <span className="font-medium text-gray-700">Status:</span>
+                          <span className="ml-2 text-gray-900">{opportunity.status}</span>
+                        </div>
+                      )}
+                      {opportunity.finalValue && (
+                        <div>
+                          <span className="font-medium text-gray-700">Valor final:</span>
+                          <span className="ml-2 text-gray-900 font-medium text-green-600">
+                            R$ {parseFloat(opportunity.finalValue.toString()).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                      )}
+                      {opportunity.contract && (
+                        <div>
+                          <span className="font-medium text-gray-700">Contrato:</span>
+                          <span className="ml-2 text-gray-900">{opportunity.contract}</span>
+                        </div>
+                      )}
+                      {opportunity.invoiceNumber && (
+                        <div>
+                          <span className="font-medium text-gray-700">Número da danfe:</span>
+                          <span className="ml-2 text-gray-900">{opportunity.invoiceNumber}</span>
+                        </div>
+                      )}
+                      {opportunity.negotiationInfo && (
+                        <div className="md:col-span-2">
+                          <span className="font-medium text-gray-700">Informações da negociação:</span>
+                          <p className="mt-1 text-gray-900 bg-white p-2 rounded border">{opportunity.negotiationInfo}</p>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
-              {/* Negociação */}
-              {(opportunity.status || opportunity.finalValue || opportunity.negotiationInfo || opportunity.contract || opportunity.invoiceNumber) && (
-                <div className="border-l-4 border-blue-500 pl-4">
-                  <h4 className="font-semibold text-blue-700 mb-2">🤝 Negociação</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                    {opportunity.status && (
-                      <div>
-                        <span className="font-medium text-gray-700">Status:</span>
-                        <span className="ml-2 text-gray-900">{opportunity.status}</span>
-                      </div>
-                    )}
-                    {opportunity.finalValue && (
-                      <div>
-                        <span className="font-medium text-gray-700">Valor final:</span>
-                        <span className="ml-2 text-gray-900 font-medium text-green-600">
-                          R$ {parseFloat(opportunity.finalValue.toString()).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                        </span>
-                      </div>
-                    )}
-                    {opportunity.contract && (
-                      <div>
-                        <span className="font-medium text-gray-700">Contrato:</span>
-                        <span className="ml-2 text-gray-900">{opportunity.contract}</span>
-                      </div>
-                    )}
-                    {opportunity.invoiceNumber && (
-                      <div>
-                        <span className="font-medium text-gray-700">Número da danfe:</span>
-                        <span className="ml-2 text-gray-900">{opportunity.invoiceNumber}</span>
-                      </div>
-                    )}
-                    {opportunity.negotiationInfo && (
-                      <div className="md:col-span-2">
-                        <span className="font-medium text-gray-700">Informações da negociação:</span>
-                        <p className="mt-1 text-gray-900 bg-white p-2 rounded border">{opportunity.negotiationInfo}</p>
-                      </div>
-                    )}
+                {/* Perdido */}
+                {(opportunity.lossReason || opportunity.lossObservation) && (
+                  <div className="border-l-4 border-red-400 pl-4">
+                    <h4 className="font-semibold text-red-700 mb-2">❌ Oportunidade Perdida</h4>
+                    <div className="space-y-2 text-sm">
+                      {opportunity.lossReason && (
+                        <div>
+                          <span className="font-medium text-gray-700">Motivo da perda:</span>
+                          <span className="ml-2 text-gray-900">{opportunity.lossReason}</span>
+                        </div>
+                      )}
+                      {opportunity.lossObservation && (
+                        <div>
+                          <span className="font-medium text-gray-700">Observação detalhada:</span>
+                          <p className="mt-1 text-gray-900 bg-white p-2 rounded border">{opportunity.lossObservation}</p>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
-              {/* Perdido */}
-              {(opportunity.lossReason || opportunity.lossObservation) && (
-                <div className="border-l-4 border-red-400 pl-4">
-                  <h4 className="font-semibold text-red-700 mb-2">❌ Oportunidade Perdida</h4>
-                  <div className="space-y-2 text-sm">
-                    {opportunity.lossReason && (
-                      <div>
-                        <span className="font-medium text-gray-700">Motivo da perda:</span>
-                        <span className="ml-2 text-gray-900">{opportunity.lossReason}</span>
-                      </div>
-                    )}
-                    {opportunity.lossObservation && (
-                      <div>
-                        <span className="font-medium text-gray-700">Observação detalhada:</span>
-                        <p className="mt-1 text-gray-900 bg-white p-2 rounded border">{opportunity.lossObservation}</p>
-                      </div>
-                    )}
+                {/* Mensagem se não houver histórico */}
+                {!opportunity.opportunityNumber && !opportunity.salesperson && !opportunity.statement && 
+                 !opportunity.visitSchedule && !opportunity.visitDate && !opportunity.budgetNumber && 
+                 !opportunity.budget && !opportunity.status && !opportunity.finalValue && 
+                 !opportunity.lossReason && (
+                  <div className="text-center py-4 text-gray-500">
+                    <p>Nenhum dado de fases anteriores encontrado.</p>
+                    <p className="text-sm">As informações aparecerão aqui conforme o card avança pelas fases.</p>
                   </div>
-                </div>
-              )}
-
-              {/* Mensagem se não houver histórico */}
-              {!opportunity.opportunityNumber && !opportunity.salesperson && !opportunity.statement && 
-               !opportunity.visitSchedule && !opportunity.visitDate && !opportunity.budgetNumber && 
-               !opportunity.budget && !opportunity.status && !opportunity.finalValue && 
-               !opportunity.lossReason && (
-                <div className="text-center py-4 text-gray-500">
-                  <p>Nenhum dado de fases anteriores encontrado.</p>
-                  <p className="text-sm">As informações aparecerão aqui conforme o card avança pelas fases.</p>
-                </div>
-              )}
+                )}
+              </div>
             </div>
-          </div>
 
-          {/* Formulário específico da fase */}
-          {renderPhaseForm()}
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-}
+            {/* Formulário específico da fase */}
+            {renderPhaseForm()}
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
