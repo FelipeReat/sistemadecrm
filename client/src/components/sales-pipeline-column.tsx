@@ -81,13 +81,15 @@ const canMoveOpportunity = (opportunity: Opportunity, targetPhase: string): { ca
     };
   }
 
-  // Validar se os campos obrigatórios da fase atual estão preenchidos
-  const isCurrentPhaseComplete = validatePhaseCompletion(opportunity);
-  if (!isCurrentPhaseComplete.isComplete) {
-    return {
-      canMove: false,
-      message: `Complete os campos obrigatórios da fase atual: ${isCurrentPhaseComplete.missingFields?.join(', ')}`
-    };
+  // Validar se os campos obrigatórios da fase atual estão preenchidos (exceto se for para perdido)
+  if (targetPhase !== 'perdido') {
+    const isCurrentPhaseComplete = validatePhaseCompletion(opportunity);
+    if (!isCurrentPhaseComplete.isComplete) {
+      return {
+        canMove: false,
+        message: `Complete os campos obrigatórios da fase atual: ${isCurrentPhaseComplete.missingFields?.join(', ')}`
+      };
+    }
   }
 
   return { canMove: true };
@@ -126,8 +128,8 @@ const validatePhaseCompletion = (opportunity: Opportunity): { isComplete: boolea
       break;
 
     case 'perdido':
-      // Campos da fase perdido são opcionais até serem preenchidos pelo usuário no modal
-      // Não validamos aqui para permitir que o card seja movido primeiro
+      // Campos da fase perdido não são obrigatórios para movimentação
+      // Eles serão preenchidos opcionalmente após a oportunidade estar na fase
       break;
   }
 

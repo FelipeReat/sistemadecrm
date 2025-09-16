@@ -40,7 +40,7 @@ const validatePhaseCompletion = (opportunity: Opportunity): { isComplete: boolea
 
     case 'ganho':
     case 'perdido':
-      // Fases finais sempre consideradas completas
+      // Fases finais sempre consideradas completas para movimentação
       break;
   }
 
