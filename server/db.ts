@@ -14,9 +14,13 @@ function createDatabase() {
     throw new Error("DATABASE_URL must be set");
   }
 
+  // Add SSL configuration for managed PostgreSQL databases (like Neon, Supabase, etc.)
+  const ssl = !/localhost|127\.0\.0\.1/.test(databaseUrl) ? 'require' : false;
+  
   const sql = postgres(databaseUrl, {
     max: 10, // Pool de 10 conexões
-    connect_timeout: 30
+    connect_timeout: 30,
+    ssl: ssl
   });
   
   return {
