@@ -39,8 +39,16 @@ const canMoveOpportunity = (opportunity: Opportunity, targetPhase: string): { ca
     'ganho'
   ];
 
-  // Perdido pode ser acessado de qualquer fase
+  // Perdido pode ser acessado de qualquer fase, mas precisa validar os campos obrigatórios
   if (targetPhase === 'perdido') {
+    const tempOpportunity = { ...opportunity, phase: 'perdido' as const };
+    const isTargetPhaseComplete = validatePhaseCompletion(tempOpportunity);
+    if (!isTargetPhaseComplete.isComplete) {
+      return {
+        canMove: false,
+        message: `Complete os campos obrigatórios para marcar como perdido: ${isTargetPhaseComplete.missingFields?.join(', ')}`
+      };
+    }
     return { canMove: true };
   }
 
@@ -123,6 +131,11 @@ const validatePhaseCompletion = (opportunity: Opportunity): { isComplete: boolea
     case 'negociacao':
       if (!opportunity.finalValue) missingFields.push('Valor final');
       if (!opportunity.negotiationInfo) missingFields.push('Informações da negociação');
+      break;
+
+    case 'perdido':
+      if (!opportunity.lossReason) missingFields.push('Motivo da perda');
+      if (!opportunity.lossObservation) missingFields.push('Observação da perda');
       break;
   }
 

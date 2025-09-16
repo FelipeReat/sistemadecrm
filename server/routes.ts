@@ -288,7 +288,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       res.json(opportunity);
-    } catch (error) {
+    } catch (error: any) {
+      // If it's a validation error from storage layer, return 400 with the message
+      if (error.message && error.message.includes('Complete os campos obrigatórios')) {
+        return res.status(400).json({ message: error.message });
+      }
       res.status(500).json({ message: "Erro ao mover oportunidade" });
     }
   });

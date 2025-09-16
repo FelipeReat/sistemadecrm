@@ -161,6 +161,18 @@ export class MemStorage implements IStorage {
       phaseUpdatedAt: updates.phase !== existing.phase ? new Date() : existing.phaseUpdatedAt,
       updatedAt: new Date()
     } as Opportunity;
+    
+    // Validate that if phase is being set to "perdido", required fields are present
+    if (updated.phase === "perdido") {
+      const missingFields: string[] = [];
+      if (!updated.lossReason) missingFields.push('Motivo da perda');
+      if (!updated.lossObservation) missingFields.push('Observação da perda');
+      
+      if (missingFields.length > 0) {
+        throw new Error(`Complete os campos obrigatórios para marcar como perdido: ${missingFields.join(', ')}`);
+      }
+    }
+    
     this.opportunities.set(id, updated);
     return updated;
   }
