@@ -43,6 +43,7 @@ export const opportunities = pgTable("opportunities", {
   contract: text("contract"),
   invoiceNumber: text("invoice_number"),
   lossReason: text("loss_reason"),
+  lossObservation: text("loss_observation"), // Observação detalhada para fase perdida
 
   // Controle de fase
   phase: text("phase").notNull().default("prospeccao"),
@@ -208,6 +209,10 @@ export const insertOpportunitySchema = createInsertSchema(opportunities, {
   lossReason: z.string().optional().nullable().transform(val => {
     if (!val || val.trim() === '') return null;
     return val.trim().slice(0, 500); // Trunca se muito longo
+  }),
+  lossObservation: z.string().optional().nullable().transform(val => {
+    if (!val || val.trim() === '') return null;
+    return val.trim().slice(0, 1000); // Observação detalhada para fase perdida
   }),
 
   // Controle de fase
