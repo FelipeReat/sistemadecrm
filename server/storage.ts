@@ -184,125 +184,79 @@ export class MemStorage implements IStorage {
     const existing = this.opportunities.get(id);
     if (!existing) return undefined;
     
-    // Preserve ALL essential data that should never be lost during phase transitions
+    // ESTRATÉGIA DE PRESERVAÇÃO TOTAL - nunca perder dados de fases anteriores
     const preservedData: Partial<Opportunity> = {};
     
-    // Core information - ALWAYS preserve unless explicitly being updated
-    if (!updates.hasOwnProperty('contact') && existing.contact) {
-      preservedData.contact = existing.contact;
-    }
-    if (!updates.hasOwnProperty('company') && existing.company) {
-      preservedData.company = existing.company;
-    }
-    if (!updates.hasOwnProperty('phone') && existing.phone) {
-      preservedData.phone = existing.phone;
-    }
-    if (!updates.hasOwnProperty('cpf') && existing.cpf) {
-      preservedData.cpf = existing.cpf;
-    }
-    if (!updates.hasOwnProperty('cnpj') && existing.cnpj) {
-      preservedData.cnpj = existing.cnpj;
-    }
+    // Lista de todos os campos que devem ser preservados se já existirem
+    const fieldsToPreserve = [
+      'contact', 'company', 'phone', 'cpf', 'cnpj', 'hasRegistration',
+      'proposalOrigin', 'businessTemperature', 'needCategory', 'clientNeeds',
+      'documents', 'visitPhotos', 'createdBy', 'createdAt',
+      'opportunityNumber', 'salesperson', 'requiresVisit', 'statement',
+      'visitSchedule', 'visitDate', 'visitDescription', 'visitRealization',
+      'budget', 'budgetNumber', 'validityDate', 'discount', 'discountDescription',
+      'finalValue', 'negotiationInfo', 'status', 'contract', 'invoiceNumber',
+      'lossReason', 'lossObservation', 'nextActivityDate'
+    ];
     
-    // Business information - ALWAYS preserve unless explicitly being updated
-    if (!updates.hasOwnProperty('businessTemperature') && existing.businessTemperature) {
-      preservedData.businessTemperature = existing.businessTemperature;
-    }
-    if (!updates.hasOwnProperty('needCategory') && existing.needCategory) {
-      preservedData.needCategory = existing.needCategory;
-    }
-    if (!updates.hasOwnProperty('clientNeeds') && existing.clientNeeds) {
-      preservedData.clientNeeds = existing.clientNeeds;
-    }
-    if (!updates.hasOwnProperty('proposalOrigin') && existing.proposalOrigin) {
-      preservedData.proposalOrigin = existing.proposalOrigin;
-    }
-    if (!updates.hasOwnProperty('hasRegistration') && existing.hasRegistration !== undefined) {
-      preservedData.hasRegistration = existing.hasRegistration;
-    }
+    // Preservar todos os campos que já existem e não estão sendo explicitamente atualizados
+    fieldsToPreserve.forEach(field => {
+      const fieldKey = field as keyof Opportunity;
+      if (!updates.hasOwnProperty(field) && existing[fieldKey] !== null && existing[fieldKey] !== undefined) {
+        // Para campos de array, preservar se não estiver vazio
+        if (Array.isArray(existing[fieldKey])) {
+          if ((existing[fieldKey] as any[]).length > 0) {
+            (preservedData as any)[field] = existing[fieldKey];
+          }
+        } else {
+          // Para outros campos, preservar se tiver valor
+          if (existing[fieldKey] !== '' && existing[fieldKey] !== null && existing[fieldKey] !== undefined) {
+            (preservedData as any)[field] = existing[fieldKey];
+          }
+        }
+      }
+    });
     
-    // Documents and files - ALWAYS preserve unless explicitly being updated
-    if (!updates.hasOwnProperty('documents') && existing.documents) {
-      preservedData.documents = existing.documents;
-    }
-    if (!updates.hasOwnProperty('visitPhotos') && existing.visitPhotos) {
-      preservedData.visitPhotos = existing.visitPhotos;
-    }
+    // Lógica especial para campos críticos que nunca devem ser perdidos
+    const criticalFields = ['contact', 'company', 'businessTemperature', 'needCategory', 'clientNeeds', 'documents'];
+    criticalFields.forEach(field => {
+      const fieldKey = field as keyof Opportunity;
+      if (existing[fieldKey] && (!updates.hasOwnProperty(field) || !updates[field as keyof typeof updates])) {
+        (preservedData as any)[field] = existing[fieldKey];
+      }
+    });
     
-    // Audit information - ALWAYS preserve
-    if (existing.createdBy) {
-      preservedData.createdBy = existing.createdBy;
-    }
-    if (existing.createdAt) {
-      preservedData.createdAt = existing.createdAt;
-    }
+    // Preservar dados específicos por fase que devem permanecer visíveis
+    const phaseSpecificData: Record<string, string[]> = {
+      'prospeccao': ['opportunityNumber', 'salesperson', 'requiresVisit'],
+      'em-atendimento': ['statement'],
+      'visita-tecnica': ['visitSchedule', 'visitDate', 'visitDescription', 'visitRealization', 'visitPhotos'],
+      'proposta': ['budget', 'budgetNumber', 'validityDate', 'discount', 'discountDescription'],
+      'negociacao': ['finalValue', 'negotiationInfo', 'status', 'contract', 'invoiceNumber'],
+      'perdido': ['lossReason', 'lossObservation']
+    };
     
-    // Phase-specific data - preserve unless being updated
-    if (!updates.hasOwnProperty('opportunityNumber') && existing.opportunityNumber) {
-      preservedData.opportunityNumber = existing.opportunityNumber;
-    }
-    if (!updates.hasOwnProperty('salesperson') && existing.salesperson) {
-      preservedData.salesperson = existing.salesperson;
-    }
-    if (!updates.hasOwnProperty('requiresVisit') && existing.requiresVisit !== undefined) {
-      preservedData.requiresVisit = existing.requiresVisit;
-    }
-    if (!updates.hasOwnProperty('statement') && existing.statement) {
-      preservedData.statement = existing.statement;
-    }
-    if (!updates.hasOwnProperty('visitSchedule') && existing.visitSchedule) {
-      preservedData.visitSchedule = existing.visitSchedule;
-    }
-    if (!updates.hasOwnProperty('visitDate') && existing.visitDate) {
-      preservedData.visitDate = existing.visitDate;
-    }
-    if (!updates.hasOwnProperty('visitDescription') && existing.visitDescription) {
-      preservedData.visitDescription = existing.visitDescription;
-    }
-    if (!updates.hasOwnProperty('budget') && existing.budget) {
-      preservedData.budget = existing.budget;
-    }
-    if (!updates.hasOwnProperty('budgetNumber') && existing.budgetNumber) {
-      preservedData.budgetNumber = existing.budgetNumber;
-    }
-    if (!updates.hasOwnProperty('validityDate') && existing.validityDate) {
-      preservedData.validityDate = existing.validityDate;
-    }
-    if (!updates.hasOwnProperty('discount') && existing.discount) {
-      preservedData.discount = existing.discount;
-    }
-    if (!updates.hasOwnProperty('discountDescription') && existing.discountDescription) {
-      preservedData.discountDescription = existing.discountDescription;
-    }
-    if (!updates.hasOwnProperty('finalValue') && existing.finalValue) {
-      preservedData.finalValue = existing.finalValue;
-    }
-    if (!updates.hasOwnProperty('negotiationInfo') && existing.negotiationInfo) {
-      preservedData.negotiationInfo = existing.negotiationInfo;
-    }
-    if (!updates.hasOwnProperty('status') && existing.status) {
-      preservedData.status = existing.status;
-    }
-    if (!updates.hasOwnProperty('contract') && existing.contract) {
-      preservedData.contract = existing.contract;
-    }
-    if (!updates.hasOwnProperty('invoiceNumber') && existing.invoiceNumber) {
-      preservedData.invoiceNumber = existing.invoiceNumber;
-    }
-    if (!updates.hasOwnProperty('lossReason') && existing.lossReason) {
-      preservedData.lossReason = existing.lossReason;
-    }
-    if (!updates.hasOwnProperty('lossObservation') && existing.lossObservation) {
-      preservedData.lossObservation = existing.lossObservation;
-    }
+    // Preservar dados de todas as fases anteriores
+    Object.values(phaseSpecificData).flat().forEach(field => {
+      const fieldKey = field as keyof Opportunity;
+      if (existing[fieldKey] && !updates.hasOwnProperty(field)) {
+        (preservedData as any)[field] = existing[fieldKey];
+      }
+    });
     
     const updated: Opportunity = {
       ...existing,
-      ...preservedData, // Apply preserved data first
-      ...updates, // Then apply updates
+      ...preservedData, // Aplicar dados preservados primeiro
+      ...updates, // Depois aplicar atualizações
       phaseUpdatedAt: updates.phase !== existing.phase ? new Date() : existing.phaseUpdatedAt,
       updatedAt: new Date()
     } as Opportunity;
+    
+    // Log para debug das preservações
+    console.log(`📝 Atualizando oportunidade ${id}:`);
+    console.log(`- Fase: ${existing.phase} → ${updated.phase || existing.phase}`);
+    console.log(`- Dados preservados: ${Object.keys(preservedData).length} campos`);
+    console.log(`- Dados atualizados: ${Object.keys(updates).length} campos`);
     
     this.opportunities.set(id, updated);
     return updated;

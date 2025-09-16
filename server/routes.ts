@@ -265,10 +265,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const validatedData = insertOpportunitySchema.parse(dataToValidate);
       console.log('✅ Dados validados:', JSON.stringify(validatedData, null, 2));
-      
+
       const opportunity = await storage.createOpportunity(validatedData);
       console.log('🎯 Oportunidade criada:', JSON.stringify(opportunity, null, 2));
-      
+
       res.status(201).json(opportunity);
     } catch (error: any) {
       console.error('❌ Erro na criação da oportunidade:', error);
@@ -283,7 +283,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch("/api/opportunities/:id", isAuthenticated, async (req, res) => {
     try {
       const { id } = req.params;
-      
+
       // Busca a oportunidade existente para verificar permissões e preservar dados
       const existingOpportunity = await storage.getOpportunity(id);
       if (!existingOpportunity) {
@@ -347,19 +347,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch("/api/opportunities/:id/move/:phase", isAuthenticated, async (req, res) => {
     try {
       const { id, phase } = req.params;
-      const opportunity = await storage.moveOpportunityToPhase(id, phase);
 
-      if (!opportunity) {
+      // Buscar a oportunidade atual para preservar todos os dados
+      const currentOpportunity = await storage.getOpportunity(id);
+      if (!currentOpportunity) {
         return res.status(404).json({ message: "Oportunidade não encontrada" });
       }
 
+      console.log(`🔄 Movendo oportunidade ${id} da fase "${currentOpportunity.phase}" para "${phase}"`);
+      console.log(`📊 Dados atuais preservados: ${Object.keys(currentOpportunity).filter(key => 
+        currentOpportunity[key as keyof typeof currentOpportunity] !== null && 
+        currentOpportunity[key as keyof typeof currentOpportunity] !== undefined &&
+        currentOpportunity[key as keyof typeof currentOpportunity] !== ''
+      ).length} campos com dados`);
+
+      // Mover para a nova fase preservando todos os dados existentes
+      const opportunity = await storage.moveOpportunityToPhase(id, phase);
+
+      if (!opportunity) {
+        return res.status(404).json({ message: "Erro ao mover oportunidade" });
+      }
+
+      console.log(`✅ Oportunidade movida com sucesso. Dados preservados na nova fase.`);
       res.json(opportunity);
     } catch (error: any) {
       // If it's a validation error from storage layer, return 400 with the message
       if (error.message && error.message.includes('Complete os campos obrigatórios')) {
         return res.status(400).json({ message: error.message });
       }
-      res.status(500).json({ message: "Erro ao mover oportunidade" });
+      console.error("Erro ao mover oportunidade:", error);
+      res.status(500).json({ message: "Erro interno do servidor" });
     }
   });
 
@@ -1104,13 +1121,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Document upload functionality
-  
+
   // Setup multer for document uploads
   const documentUpload = multer({
     storage: multer.diskStorage({
       destination: (req, file, cb) => {
         const uploadPath = path.join(process.cwd(), 'uploads', 'documents');
-        
+
         // Create directory if it doesn't exist
         try {
           if (!fsSync.existsSync(uploadPath)) {
@@ -1205,18 +1222,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/uploads/documents/:filename", isAuthenticated, (req, res) => {
     const filename = req.params.filename;
     const filepath = path.join(process.cwd(), 'uploads', 'documents', filename);
-    
+
     // Security check - ensure filename doesn't contain path traversal (but allow dots in filenames)
     if (filename.includes('../') || filename.includes('..\\') || filename.includes('/') || filename.includes('\\')) {
       return res.status(400).json({ message: "Nome de arquivo inválido" });
     }
-    
+
     // Check if file exists
     if (!fsSync.existsSync(filepath)) {
       console.error('File not found:', filepath);
       return res.status(404).json({ message: "Arquivo não encontrado" });
     }
-    
+
     res.sendFile(filepath, (err) => {
       if (err) {
         console.error('Error serving file:', err);
@@ -1559,7 +1576,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } else {
       console.log(`📋 Usando fase do CSV ou padrão: ${transformed.phase}`);
     }
-    
+
     // Ensure phase is set if it wasn't from mapping or targetPhase
     if (!transformed.phase) {
         transformed.phase = 'prospeccao';
@@ -1836,12 +1853,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
               const transformedData = transformRow(row, mapping, userId, targetPhase);
 
               console.log(`✅ Processing row ${i + 1} - Fase aplicada: "${transformedData.phase}" (targetPhase solicitado: "${targetPhase}")`);
-              
+
               // Verificar se a fase foi aplicada corretamente
               if (targetPhase && transformedData.phase !== targetPhase) {
                 console.error(`❌ ERRO: Fase não foi aplicada corretamente! Esperado: "${targetPhase}", Aplicado: "${transformedData.phase}"`);
               }
-              
+
               console.log(`Row ${i + 1} data:`, JSON.stringify(transformedData, null, 2));
 
               // Validate with Zod schema - com tratamento mais resiliente
