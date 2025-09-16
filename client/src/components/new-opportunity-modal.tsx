@@ -113,7 +113,7 @@ export default function NewOpportunityModal({ open, onOpenChange }: NewOpportuni
     mutationFn: (data: FormData) => apiRequest("POST", "/api/opportunities", {
       ...data,
       phase: "prospeccao",
-      documents: uploadedDocuments.map(doc => doc.url)
+      documents: uploadedDocuments
     }),
     onSuccess: () => {
       invalidateAllData(); // Sincroniza dashboard e relatórios

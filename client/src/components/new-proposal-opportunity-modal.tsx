@@ -89,6 +89,7 @@ const NEED_CATEGORIES = [
 
 export default function NewProposalOpportunityModal({ open, onOpenChange }: NewProposalOpportunityModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [uploadedDocuments, setUploadedDocuments] = useState<UploadedFile[]>([]);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { invalidateAllData } = useReportsSync();
@@ -113,7 +114,7 @@ export default function NewProposalOpportunityModal({ open, onOpenChange }: NewP
     mutationFn: (data: FormData) => apiRequest("POST", "/api/opportunities", {
       ...data,
       phase: "proposta",
-      documents: []
+      documents: uploadedDocuments
     }),
     onSuccess: () => {
       invalidateAllData();
@@ -122,6 +123,7 @@ export default function NewProposalOpportunityModal({ open, onOpenChange }: NewP
         description: "Nova oportunidade criada na fase de proposta!",
       });
       form.reset();
+      setUploadedDocuments([]);
       onOpenChange(false);
     },
     onError: () => {
@@ -393,7 +395,8 @@ export default function NewProposalOpportunityModal({ open, onOpenChange }: NewP
                 <i className="fas fa-file-upload mr-1"></i>Documentos
               </Label>
               <FileUpload
-                onFilesChange={() => {}}
+                onFilesChange={setUploadedDocuments}
+                value={uploadedDocuments}
                 multiple
                 accept="image/*,.pdf,.doc,.docx"
                 data-testid="input-documents"
