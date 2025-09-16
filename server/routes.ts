@@ -232,6 +232,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...req.body,
         createdBy: req.session.user!.name || req.session.user!.email || "Usuário"
       };
+
+      // Ensure documents are properly formatted and persisted
+      if (dataToValidate.documents && Array.isArray(dataToValidate.documents)) {
+        dataToValidate.documents = dataToValidate.documents.map((doc: any) => {
+          if (typeof doc === 'object') {
+            return JSON.stringify(doc);
+          }
+          return doc;
+        });
+      }
+
+      // Ensure visitPhotos are properly formatted and persisted
+      if (dataToValidate.visitPhotos && Array.isArray(dataToValidate.visitPhotos)) {
+        dataToValidate.visitPhotos = dataToValidate.visitPhotos.map((photo: any) => {
+          if (typeof photo === 'object') {
+            return JSON.stringify(photo);
+          }
+          return photo;
+        });
+      }
+
       const validatedData = insertOpportunitySchema.parse(dataToValidate);
       const opportunity = await storage.createOpportunity(validatedData);
       res.status(201).json(opportunity);
@@ -247,9 +268,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch("/api/opportunities/:id", isAuthenticated, async (req, res) => {
     try {
       const { id } = req.params;
-      const validatedData = insertOpportunitySchema.partial().parse(req.body);
-
-      // Busca a oportunidade existente para verificar permissões
+      
+      // Busca a oportunidade existente para verificar permissões e preservar dados
       const existingOpportunity = await storage.getOpportunity(id);
       if (!existingOpportunity) {
         return res.status(404).json({ message: "Oportunidade não encontrada" });
@@ -267,6 +287,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      // Preserve existing documents and visitPhotos if not being updated
+      const updateData = { ...req.body };
+
+      // Ensure documents are properly formatted and preserved
+      if (updateData.documents && Array.isArray(updateData.documents)) {
+        updateData.documents = updateData.documents.map((doc: any) => {
+          if (typeof doc === 'object') {
+            return JSON.stringify(doc);
+          }
+          return doc;
+        });
+      } else if (!updateData.hasOwnProperty('documents')) {
+        // If documents are not in the update, preserve existing ones
+        updateData.documents = existingOpportunity.documents;
+      }
+
+      // Ensure visitPhotos are properly formatted and preserved
+      if (updateData.visitPhotos && Array.isArray(updateData.visitPhotos)) {
+        updateData.visitPhotos = updateData.visitPhotos.map((photo: any) => {
+          if (typeof photo === 'object') {
+            return JSON.stringify(photo);
+          }
+          return photo;
+        });
+      } else if (!updateData.hasOwnProperty('visitPhotos')) {
+        // If visitPhotos are not in the update, preserve existing ones
+        updateData.visitPhotos = existingOpportunity.visitPhotos;
+      }
+
+      const validatedData = insertOpportunitySchema.partial().parse(updateData);
       const opportunity = await storage.updateOpportunity(id, validatedData);
       res.json(opportunity);
     } catch (error: any) {

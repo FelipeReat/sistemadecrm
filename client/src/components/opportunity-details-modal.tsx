@@ -327,9 +327,17 @@ export default function OpportunityDetailsModal({
         }
       });
 
-      // Remove campos de arquivo dos dados antes de enviar
+      // Preserve existing documents and photos when updating
+      if (opportunity.documents && !cleanedData.documents) {
+        cleanedData.documents = opportunity.documents;
+      }
+      
+      if (opportunity.visitPhotos && !cleanedData.visitPhotos) {
+        cleanedData.visitPhotos = opportunity.visitPhotos;
+      }
+
+      // Remove apenas o campo budgetFile que é específico do form
       delete cleanedData.budgetFile;
-      delete cleanedData.visitPhotos;
 
       // Apenas atualiza os dados da oportunidade
       await updateOpportunityMutation.mutateAsync({ ...cleanedData, id: opportunity.id });

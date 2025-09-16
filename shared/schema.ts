@@ -105,13 +105,16 @@ export const insertOpportunitySchema = createInsertSchema(opportunities, {
     if (!val || val.trim() === '') return null;
     return val.trim();
   }),
-  documents: z.array(z.object({
-    id: z.string(),
-    name: z.string().max(255, "Nome do arquivo muito longo"),
-    size: z.number().max(50 * 1024 * 1024, "Arquivo muito grande (máximo 50MB)"),
-    type: z.string(),
-    url: z.string().min(1, "URL é obrigatória")
-  })).optional().default([]).refine((docs) => docs.length <= 10, "Máximo 10 documentos permitidos"),
+  documents: z.union([
+    z.array(z.object({
+      id: z.string(),
+      name: z.string().max(255, "Nome do arquivo muito longo"),
+      size: z.number().max(50 * 1024 * 1024, "Arquivo muito grande (máximo 50MB)"),
+      type: z.string(),
+      url: z.string().min(1, "URL é obrigatória")
+    })),
+    z.array(z.string()) // Allow string array for JSON serialized documents
+  ]).optional().default([]).refine((docs) => docs && docs.length <= 10, "Máximo 10 documentos permitidos"),
 
   // Fase 2: Prospecção
   opportunityNumber: z.string().optional().nullable().transform(val => {
@@ -137,7 +140,16 @@ export const insertOpportunitySchema = createInsertSchema(opportunities, {
     if (!val || val.trim() === '') return null;
     return val.trim();
   }),
-  visitPhotos: z.array(z.any()).optional().default([]),
+  visitPhotos: z.union([
+    z.array(z.object({
+      id: z.string(),
+      name: z.string(),
+      size: z.number(),
+      type: z.string(),
+      url: z.string()
+    })),
+    z.array(z.string()) // Allow string array for JSON serialized photos
+  ]).optional().default([]),
 
   // Fase 5: Proposta
   discount: z.any().optional().nullable().transform(val => {

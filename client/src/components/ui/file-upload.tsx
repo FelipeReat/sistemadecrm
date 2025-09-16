@@ -40,29 +40,36 @@ export function FileUpload({
       // Toast warning about file limit
     }
 
-    const uploadedFiles = await uploadMultipleFiles(filesToUpload as unknown as FileList);
+    try {
+      const uploadedFiles = await uploadMultipleFiles(filesToUpload as unknown as FileList);
 
-    if (multiple) {
-      const currentFiles = [...value];
-      // Ensure each uploaded file has the correct format for the schema
-      const formattedFiles = uploadedFiles.map(uploadedFile => ({
-        ...uploadedFile,
-        url: uploadedFile.url || `/uploads/documents/${uploadedFile.filename}`,
-        size: uploadedFile.size || 0,
-        type: uploadedFile.type || 'application/octet-stream'
-      }));
-      onFilesChange([...currentFiles, ...formattedFiles]);
-    } else {
-      // Ensure the uploaded file has the correct format for the schema
-      if (uploadedFiles.length > 0) {
-        const formattedFile = {
-          ...uploadedFiles[0],
-          url: uploadedFiles[0].url || `/uploads/documents/${uploadedFiles[0].filename}`,
-          size: uploadedFiles[0].size || 0,
-          type: uploadedFiles[0].type || 'application/octet-stream'
-        };
-        onFilesChange([formattedFile]);
+      if (multiple) {
+        const currentFiles = [...value];
+        // Ensure each uploaded file has the correct format for the schema
+        const formattedFiles = uploadedFiles.map(uploadedFile => ({
+          id: uploadedFile.id,
+          name: uploadedFile.name,
+          size: uploadedFile.size || 0,
+          type: uploadedFile.type || 'application/octet-stream',
+          url: uploadedFile.url || `/uploads/documents/${uploadedFile.filename || uploadedFile.name}`
+        }));
+        onFilesChange?.([...currentFiles, ...formattedFiles]);
+      } else {
+        // Ensure the uploaded file has the correct format for the schema
+        if (uploadedFiles.length > 0) {
+          const uploadedFile = uploadedFiles[0];
+          const formattedFile = {
+            id: uploadedFile.id,
+            name: uploadedFile.name,
+            size: uploadedFile.size || 0,
+            type: uploadedFile.type || 'application/octet-stream',
+            url: uploadedFile.url || `/uploads/documents/${uploadedFile.filename || uploadedFile.name}`
+          };
+          onFilesChange?.([formattedFile]);
+        }
       }
+    } catch (error) {
+      console.error('Error uploading files:', error);
     }
   };
 

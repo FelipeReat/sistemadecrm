@@ -155,15 +155,36 @@ export class MemStorage implements IStorage {
     const existing = this.opportunities.get(id);
     if (!existing) return undefined;
     
+    // Preserve essential data that should never be lost
+    const preservedData: Partial<Opportunity> = {};
+    
+    // Always preserve documents unless explicitly being updated
+    if (!updates.hasOwnProperty('documents') && existing.documents) {
+      preservedData.documents = existing.documents;
+    }
+    
+    // Always preserve visitPhotos unless explicitly being updated  
+    if (!updates.hasOwnProperty('visitPhotos') && existing.visitPhotos) {
+      preservedData.visitPhotos = existing.visitPhotos;
+    }
+    
+    // Always preserve createdBy
+    if (existing.createdBy) {
+      preservedData.createdBy = existing.createdBy;
+    }
+    
+    // Always preserve createdAt
+    if (existing.createdAt) {
+      preservedData.createdAt = existing.createdAt;
+    }
+    
     const updated: Opportunity = {
       ...existing,
-      ...updates,
+      ...preservedData, // Apply preserved data first
+      ...updates, // Then apply updates
       phaseUpdatedAt: updates.phase !== existing.phase ? new Date() : existing.phaseUpdatedAt,
       updatedAt: new Date()
     } as Opportunity;
-    
-    // Removida validação de campos obrigatórios para fase perdido
-    // Os campos lossReason e lossObservation podem ser preenchidos posteriormente
     
     this.opportunities.set(id, updated);
     return updated;
