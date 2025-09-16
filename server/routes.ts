@@ -1037,6 +1037,97 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Document upload functionality
+  
+  // Setup multer for document uploads
+  const documentUpload = multer({
+    storage: multer.diskStorage({
+      destination: (req, file, cb) => {
+        const fs = require('fs');
+        const path = require('path');
+        const uploadPath = path.join(process.cwd(), 'uploads', 'documents');
+        
+        // Create directory if it doesn't exist
+        if (!fs.existsSync(uploadPath)) {
+          fs.mkdirSync(uploadPath, { recursive: true });
+        }
+        cb(null, uploadPath);
+      },
+      filename: (req, file, cb) => {
+        // Generate unique filename: timestamp_originalname
+        const timestamp = Date.now();
+        const originalName = file.originalname.replace(/\s+/g, '_'); // Replace spaces with underscores
+        cb(null, `${timestamp}_${originalName}`);
+      }
+    }),
+    limits: {
+      fileSize: 10 * 1024 * 1024, // 10MB limit for documents
+      files: 1
+    },
+    fileFilter: (req, file, cb) => {
+      const allowedTypes = [
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'image/jpeg',
+        'image/jpg', 
+        'image/png',
+        'image/gif',
+        'text/plain'
+      ];
+
+      if (allowedTypes.includes(file.mimetype)) {
+        cb(null, true);
+      } else {
+        cb(new Error('Tipo de arquivo não suportado. Use PDF, DOC, DOCX, JPG, PNG, GIF ou TXT'));
+      }
+    }
+  });
+
+  // Document upload endpoint
+  app.post("/api/documents/upload", isAuthenticated, documentUpload.single('document'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "Nenhum arquivo enviado" });
+      }
+
+      const uploadedFile = {
+        id: `doc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        name: req.file.originalname,
+        filename: req.file.filename,
+        size: req.file.size,
+        type: req.file.mimetype,
+        url: `/uploads/documents/${req.file.filename}`,
+        uploadedAt: new Date().toISOString(),
+        uploadedBy: req.session.user!.id
+      };
+
+      res.status(201).json(uploadedFile);
+    } catch (error: any) {
+      console.error('Document upload error:', error);
+      res.status(500).json({ message: "Erro ao fazer upload do documento" });
+    }
+  });
+
+  // Serve uploaded documents 
+  app.get("/uploads/documents/:filename", isAuthenticated, (req, res) => {
+    const path = require('path');
+    const filename = req.params.filename;
+    const filepath = path.join(process.cwd(), 'uploads', 'documents', filename);
+    
+    // Security check - ensure filename doesn't contain path traversal
+    if (filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
+      return res.status(400).json({ message: "Nome de arquivo inválido" });
+    }
+    
+    res.sendFile(filepath, (err) => {
+      if (err) {
+        console.error('Error serving file:', err);
+        res.status(404).json({ message: "Arquivo não encontrado" });
+      }
+    });
+  });
+
   // Import functionality
 
   // Setup multer for file uploads

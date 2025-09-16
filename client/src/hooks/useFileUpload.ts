@@ -18,16 +18,21 @@ export function useFileUpload() {
     setUploading(true);
     
     try {
-      // Simular upload - em produção seria para um serviço real
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const uploadedFile: UploadedFile = {
-        id: Math.random().toString(36).substr(2, 9),
-        name: file.name,
-        size: file.size,
-        type: file.type,
-        url: URL.createObjectURL(file) // Em produção seria a URL real do arquivo
-      };
+      const formData = new FormData();
+      formData.append('document', file);
+
+      const response = await fetch('/api/documents/upload', {
+        method: 'POST',
+        body: formData,
+        credentials: 'same-origin', // Include session cookies
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Erro no servidor' }));
+        throw new Error(errorData.message || 'Erro ao fazer upload');
+      }
+
+      const uploadedFile: UploadedFile = await response.json();
 
       toast({
         title: "Sucesso",
@@ -35,10 +40,11 @@ export function useFileUpload() {
       });
 
       return uploadedFile;
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Upload error:', error);
       toast({
         title: "Erro",
-        description: "Erro ao fazer upload do arquivo.",
+        description: error.message || "Erro ao fazer upload do arquivo.",
         variant: "destructive",
       });
       return null;

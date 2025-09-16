@@ -27,6 +27,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { CloudUpload, Calendar, User, FileText, Phone, Building, Target, DollarSign, CheckCircle2, X } from "lucide-react";
 import { FileUpload } from "@/components/ui/file-upload";
+import { UploadedFile } from "@/hooks/useFileUpload";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useReportsSync } from "@/hooks/useReportsSync";
@@ -87,6 +88,7 @@ const NEED_CATEGORIES = [
 
 export default function NewOpportunityModal({ open, onOpenChange }: NewOpportunityModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [uploadedDocuments, setUploadedDocuments] = useState<UploadedFile[]>([]);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { invalidateAllData } = useReportsSync();
@@ -111,7 +113,7 @@ export default function NewOpportunityModal({ open, onOpenChange }: NewOpportuni
     mutationFn: (data: FormData) => apiRequest("POST", "/api/opportunities", {
       ...data,
       phase: "prospeccao",
-      documents: []
+      documents: uploadedDocuments.map(doc => doc.url)
     }),
     onSuccess: () => {
       invalidateAllData(); // Sincroniza dashboard e relatórios
@@ -120,6 +122,7 @@ export default function NewOpportunityModal({ open, onOpenChange }: NewOpportuni
         description: "Nova oportunidade criada com sucesso!",
       });
       form.reset();
+      setUploadedDocuments([]);
       onOpenChange(false);
     },
     onError: () => {
@@ -391,7 +394,8 @@ export default function NewOpportunityModal({ open, onOpenChange }: NewOpportuni
                 <i className="fas fa-file-upload mr-1"></i>Documentos
               </Label>
               <FileUpload
-                onFilesChange={() => {}}
+                onFilesChange={setUploadedDocuments}
+                value={uploadedDocuments}
                 multiple
                 accept="image/*,.pdf,.doc,.docx"
                 data-testid="input-documents"
