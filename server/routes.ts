@@ -1206,9 +1206,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const filename = req.params.filename;
     const filepath = path.join(process.cwd(), 'uploads', 'documents', filename);
     
-    // Security check - ensure filename doesn't contain path traversal
-    if (filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
+    // Security check - ensure filename doesn't contain path traversal (but allow dots in filenames)
+    if (filename.includes('../') || filename.includes('..\\') || filename.includes('/') || filename.includes('\\')) {
       return res.status(400).json({ message: "Nome de arquivo inválido" });
+    }
+    
+    // Check if file exists
+    if (!fsSync.existsSync(filepath)) {
+      console.error('File not found:', filepath);
+      return res.status(404).json({ message: "Arquivo não encontrado" });
     }
     
     res.sendFile(filepath, (err) => {

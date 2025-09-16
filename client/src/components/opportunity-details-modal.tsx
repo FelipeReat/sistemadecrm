@@ -1350,22 +1350,41 @@ export default function OpportunityDetailsModal({
                     {opportunity.documents.map((doc, index) => {
                       let parsedDoc;
                       try {
+                        // Handle both JSON string and object formats
                         parsedDoc = typeof doc === 'string' ? JSON.parse(doc) : doc;
                       } catch {
-                        parsedDoc = { name: doc, url: doc };
+                        // If parsing fails, treat as simple string
+                        parsedDoc = { 
+                          name: typeof doc === 'string' ? doc : `Documento ${index + 1}`, 
+                          url: typeof doc === 'string' ? doc : null 
+                        };
+                      }
+                      
+                      // Ensure URL is properly formatted
+                      let fileUrl = parsedDoc.url;
+                      if (fileUrl && !fileUrl.startsWith('http') && !fileUrl.startsWith('/')) {
+                        fileUrl = `/uploads/documents/${fileUrl}`;
                       }
                       
                       return (
                         <div key={index} className="flex items-center justify-between bg-white border border-gray-200 rounded p-2">
-                          <span className="text-sm text-gray-700">{parsedDoc.name || `Documento ${index + 1}`}</span>
-                          {parsedDoc.url && (
+                          <div className="flex items-center space-x-2">
+                            <FileText className="h-4 w-4 text-gray-400" />
+                            <span className="text-sm text-gray-700">{parsedDoc.name || `Documento ${index + 1}`}</span>
+                          </div>
+                          {fileUrl && (
                             <a 
-                              href={parsedDoc.url} 
+                              href={fileUrl} 
                               target="_blank" 
                               rel="noopener noreferrer"
-                              className="text-blue-600 hover:text-blue-800 text-sm underline"
+                              className="text-blue-600 hover:text-blue-800 text-sm underline flex items-center space-x-1"
+                              onClick={(e) => {
+                                // Log for debugging
+                                console.log('Tentando abrir arquivo:', fileUrl);
+                                console.log('Documento completo:', parsedDoc);
+                              }}
                             >
-                              Ver arquivo
+                              <span>Ver arquivo</span>
                             </a>
                           )}
                         </div>
