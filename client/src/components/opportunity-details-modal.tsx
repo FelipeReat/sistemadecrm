@@ -1325,9 +1325,9 @@ export default function OpportunityDetailsModal({
                 </div>
               )}
               {opportunity.documents && opportunity.documents.length > 0 && (
-                <div>
-                  <span className="font-medium text-gray-700">Documentos:</span>
-                  <div className="ml-2 space-y-1">
+                <div className="md:col-span-3">
+                  <span className="font-medium text-gray-700">Documentos ({opportunity.documents.length}):</span>
+                  <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2">
                     {opportunity.documents.map((doc, index) => {
                       // Parse document if it's a JSON string
                       let parsedDoc;
@@ -1339,22 +1339,24 @@ export default function OpportunityDetailsModal({
                       }
 
                       return (
-                        <div key={index} className="flex items-center space-x-2">
-                          <FileText className="h-4 w-4 text-gray-500" />
-                          <a
-                            href={parsedDoc.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 hover:text-blue-800 hover:underline text-sm"
-                            title={`Abrir ${parsedDoc.name}`}
-                          >
-                            {parsedDoc.name || `Documento ${index + 1}`}
-                          </a>
-                          {parsedDoc.size && (
-                            <span className="text-xs text-gray-500">
-                              ({(parsedDoc.size / 1024 / 1024).toFixed(2)} MB)
-                            </span>
-                          )}
+                        <div key={index} className="flex items-center space-x-2 p-2 bg-gray-50 rounded border">
+                          <FileText className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <a
+                              href={parsedDoc.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:text-blue-800 hover:underline text-sm block truncate"
+                              title={`Abrir ${parsedDoc.name}`}
+                            >
+                              {parsedDoc.name || `Documento ${index + 1}`}
+                            </a>
+                            {parsedDoc.size && (
+                              <span className="text-xs text-gray-500">
+                                ({(parsedDoc.size / 1024 / 1024).toFixed(2)} MB)
+                              </span>
+                            )}
+                          </div>
                         </div>
                       );
                     })}
