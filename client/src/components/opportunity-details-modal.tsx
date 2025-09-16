@@ -1270,150 +1270,74 @@ export default function OpportunityDetailsModal({
 
         <div className="py-4">
           {/* Informações Essenciais - Sempre Visíveis */}
-          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <h3 className="text-lg font-semibold text-blue-900 mb-4 flex items-center">
-              <FileText className="h-5 w-5 mr-2" />
+          <div className="mb-6 p-3 bg-gray-50 border border-gray-200 rounded-lg">
+            <h3 className="text-base font-semibold text-gray-900 mb-3 flex items-center">
+              <FileText className="h-4 w-4 mr-2" />
               Informações Essenciais
             </h3>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Linha 1 */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
               <div>
-                <Label className="text-sm font-medium text-gray-700">Empresa</Label>
-                <Input value={opportunity.company || "Não informado"} disabled className="bg-white border-gray-200" />
+                <span className="font-medium text-gray-700">Empresa:</span>
+                <span className="ml-2 text-gray-900">{opportunity.company || "Não informado"}</span>
               </div>
               <div>
-                <Label className="text-sm font-medium text-gray-700">Contato</Label>
-                <Input value={opportunity.contact || "Não informado"} disabled className="bg-white border-gray-200" />
-              </div>
-
-              {/* Linha 2 */}
-              <div>
-                <Label className="text-sm font-medium text-gray-700">Telefone</Label>
-                <Input value={opportunity.phone || "Não informado"} disabled className="bg-white border-gray-200" />
+                <span className="font-medium text-gray-700">Contato:</span>
+                <span className="ml-2 text-gray-900">{opportunity.contact || "Não informado"}</span>
               </div>
               <div>
-                <Label className="text-sm font-medium text-gray-700">Temperatura do Negócio</Label>
-                <Input 
-                  value={opportunity.businessTemperature ? 
+                <span className="font-medium text-gray-700">Telefone:</span>
+                <span className="ml-2 text-gray-900">{opportunity.phone || "Não informado"}</span>
+              </div>
+              <div>
+                <span className="font-medium text-gray-700">Temperatura:</span>
+                <span className={`ml-2 font-medium ${
+                  opportunity.businessTemperature === 'quente' ? 'text-red-600' :
+                  opportunity.businessTemperature === 'morno' ? 'text-yellow-600' :
+                  opportunity.businessTemperature === 'frio' ? 'text-blue-600' : 'text-gray-900'
+                }`}>
+                  {opportunity.businessTemperature ? 
                     opportunity.businessTemperature.charAt(0).toUpperCase() + opportunity.businessTemperature.slice(1) : 
                     "Não informado"
-                  } 
-                  disabled 
-                  className="bg-white border-gray-200" 
-                />
+                  }
+                </span>
               </div>
-
-              {/* Linha 3 */}
+              <div>
+                <span className="font-medium text-gray-700">Categoria:</span>
+                <span className="ml-2 text-gray-900">{opportunity.needCategory || "Não informado"}</span>
+              </div>
               {opportunity.cpf && (
                 <div>
-                  <Label className="text-sm font-medium text-gray-700">CPF</Label>
-                  <Input value={opportunity.cpf} disabled className="bg-white border-gray-200" />
+                  <span className="font-medium text-gray-700">CPF:</span>
+                  <span className="ml-2 text-gray-900">{opportunity.cpf}</span>
                 </div>
               )}
               {opportunity.cnpj && (
                 <div>
-                  <Label className="text-sm font-medium text-gray-700">CNPJ</Label>
-                  <Input value={opportunity.cnpj} disabled className="bg-white border-gray-200" />
+                  <span className="font-medium text-gray-700">CNPJ:</span>
+                  <span className="ml-2 text-gray-900">{opportunity.cnpj}</span>
                 </div>
               )}
-
-              {/* Linha 4 */}
-              <div className="md:col-span-2">
-                <Label className="text-sm font-medium text-gray-700">Categoria de Necessidade</Label>
-                <Input value={opportunity.needCategory || "Não informado"} disabled className="bg-white border-gray-200" />
-              </div>
-
-              {/* Linha 5 */}
-              <div className="md:col-span-2">
-                <Label className="text-sm font-medium text-gray-700">Necessidades do Cliente</Label>
-                <Textarea 
-                  value={opportunity.clientNeeds || "Não informado"} 
-                  disabled 
-                  className="bg-white border-gray-200 min-h-[80px]" 
-                />
-              </div>
-
-              {/* Linha 6 - Origem da Proposta */}
               {opportunity.proposalOrigin && (
                 <div>
-                  <Label className="text-sm font-medium text-gray-700">Origem da Proposta</Label>
-                  <Input value={opportunity.proposalOrigin} disabled className="bg-white border-gray-200" />
+                  <span className="font-medium text-gray-700">Origem:</span>
+                  <span className="ml-2 text-gray-900">{opportunity.proposalOrigin}</span>
                 </div>
               )}
-
-              {/* Linha 7 - Documentos */}
               {opportunity.documents && opportunity.documents.length > 0 && (
-                <div className="md:col-span-2">
-                  <Label className="text-sm font-medium text-gray-700">Documentos Anexados</Label>
-                  <div className="mt-2 space-y-2">
-                    {opportunity.documents.map((doc, index) => {
-                      let parsedDoc;
-                      try {
-                        // Handle both JSON string and object formats
-                        parsedDoc = typeof doc === 'string' ? JSON.parse(doc) : doc;
-                      } catch {
-                        // If parsing fails, treat as simple string
-                        parsedDoc = { 
-                          name: typeof doc === 'string' ? doc : `Documento ${index + 1}`, 
-                          url: typeof doc === 'string' ? doc : null 
-                        };
-                      }
-                      
-                      // Ensure URL is properly formatted
-                      let fileUrl = parsedDoc.url;
-                      if (fileUrl && !fileUrl.startsWith('http') && !fileUrl.startsWith('/')) {
-                        fileUrl = `/uploads/documents/${fileUrl}`;
-                      }
-                      
-                      return (
-                        <div key={index} className="flex items-center justify-between bg-white border border-gray-200 rounded p-2">
-                          <div className="flex items-center space-x-2">
-                            <FileText className="h-4 w-4 text-gray-400" />
-                            <span className="text-sm text-gray-700">{parsedDoc.name || `Documento ${index + 1}`}</span>
-                          </div>
-                          {fileUrl && (
-                            <a 
-                              href={fileUrl} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              className="text-blue-600 hover:text-blue-800 text-sm underline flex items-center space-x-1"
-                              onClick={(e) => {
-                                // Log for debugging
-                                console.log('Tentando abrir arquivo:', fileUrl);
-                                console.log('Documento completo:', parsedDoc);
-                              }}
-                            >
-                              <span>Ver arquivo</span>
-                            </a>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
+                <div>
+                  <span className="font-medium text-gray-700">Documentos:</span>
+                  <span className="ml-2 text-blue-600">{opportunity.documents.length} arquivo(s)</span>
                 </div>
               )}
-
-              {/* Linha 8 - Informações de Auditoria */}
-              <div>
-                <Label className="text-sm font-medium text-gray-700">Criado por</Label>
-                <Input value={opportunity.createdBy || "Sistema"} disabled className="bg-white border-gray-200" />
-              </div>
-              <div>
-                <Label className="text-sm font-medium text-gray-700">Data de Criação</Label>
-                <Input 
-                  value={new Date(opportunity.createdAt).toLocaleDateString("pt-BR", {
-                    day: "2-digit",
-                    month: "2-digit", 
-                    year: "numeric",
-                    hour: "2-digit",
-                    minute: "2-digit"
-                  })} 
-                  disabled 
-                  className="bg-white border-gray-200" 
-                />
-              </div>
             </div>
+            
+            {opportunity.clientNeeds && (
+              <div className="mt-3 pt-3 border-t border-gray-200">
+                <span className="font-medium text-gray-700">Necessidades:</span>
+                <p className="mt-1 text-gray-900 text-sm">{opportunity.clientNeeds}</p>
+              </div>
+            )}
           </div>
 
           {/* Histórico de Fases - Sempre Visível */}
