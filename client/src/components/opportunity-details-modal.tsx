@@ -25,7 +25,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Button } from "@/components/ui/button";
-import { Calendar, FileText, Handshake, MapPin, DollarSign, Upload, User, X, Trash2, TriangleAlert } from "lucide-react";
+import { Calendar, FileText, Handshake, MapPin, DollarSign, Upload, User, X, Trash2, TriangleAlert, Image } from "lucide-react";
 import { FileUpload } from "@/components/ui/file-upload";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -1327,9 +1327,40 @@ export default function OpportunityDetailsModal({
               {opportunity.documents && opportunity.documents.length > 0 && (
                 <div>
                   <span className="font-medium text-gray-700">Documentos:</span>
-                  <span className="ml-2 text-blue-600">{opportunity.documents.length} arquivo(s)</span>
+                  <div className="ml-2 space-y-1">
+                    {opportunity.documents.map((doc, index) => {
+                      // Parse document if it's a JSON string
+                      let parsedDoc;
+                      try {
+                        parsedDoc = typeof doc === 'string' ? JSON.parse(doc) : doc;
+                      } catch {
+                        // If parsing fails, treat as legacy format
+                        parsedDoc = { name: `Documento ${index + 1}`, url: doc };
+                      }
+                      
+                      return (
+                        <div key={index} className="flex items-center space-x-2">
+                          <FileText className="h-4 w-4 text-gray-500" />
+                          <a
+                            href={parsedDoc.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:text-blue-800 hover:underline text-sm"
+                            title={`Abrir ${parsedDoc.name}`}
+                          >
+                            {parsedDoc.name || `Documento ${index + 1}`}
+                          </a>
+                          {parsedDoc.size && (
+                            <span className="text-xs text-gray-500">
+                              ({(parsedDoc.size / 1024 / 1024).toFixed(2)} MB)
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
-              )}
+              )}</div>
             </div>
             
             {opportunity.clientNeeds && (
@@ -1412,9 +1443,40 @@ export default function OpportunityDetailsModal({
                     {opportunity.visitPhotos && opportunity.visitPhotos.length > 0 && (
                       <div className="md:col-span-2">
                         <span className="font-medium text-gray-700">Fotos da visita:</span>
-                        <span className="ml-2 text-blue-600">{opportunity.visitPhotos.length} foto(s) anexada(s)</span>
+                        <div className="ml-2 space-y-1">
+                          {opportunity.visitPhotos.map((photo, index) => {
+                            // Parse photo if it's a JSON string
+                            let parsedPhoto;
+                            try {
+                              parsedPhoto = typeof photo === 'string' ? JSON.parse(photo) : photo;
+                            } catch {
+                              // If parsing fails, treat as legacy format
+                              parsedPhoto = { name: `Foto ${index + 1}`, url: photo };
+                            }
+                            
+                            return (
+                              <div key={index} className="flex items-center space-x-2">
+                                <Image className="h-4 w-4 text-gray-500" />
+                                <a
+                                  href={parsedPhoto.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-blue-600 hover:text-blue-800 hover:underline text-sm"
+                                  title={`Visualizar ${parsedPhoto.name}`}
+                                >
+                                  {parsedPhoto.name || `Foto ${index + 1}`}
+                                </a>
+                                {parsedPhoto.size && (
+                                  <span className="text-xs text-gray-500">
+                                    ({(parsedPhoto.size / 1024 / 1024).toFixed(2)} MB)
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
-                    )}
+                    )}</div>
                   </div>
                 </div>
               )}
