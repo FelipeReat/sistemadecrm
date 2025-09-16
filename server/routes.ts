@@ -16,6 +16,7 @@ import * as XLSX from 'xlsx';
 import multer from 'multer';
 import path from 'path';
 import { promises as fs } from 'fs';
+import * as fsSync from 'fs';
 import { nanoid } from 'nanoid';
 
 // Mock DB and schema for demonstration purposes. Replace with your actual database logic.
@@ -1043,14 +1044,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const documentUpload = multer({
     storage: multer.diskStorage({
       destination: (req, file, cb) => {
-        const fs = require('fs');
-        const path = require('path');
         const uploadPath = path.join(process.cwd(), 'uploads', 'documents');
         
         // Create directory if it doesn't exist
         try {
-          if (!fs.existsSync(uploadPath)) {
-            fs.mkdirSync(uploadPath, { recursive: true });
+          if (!fsSync.existsSync(uploadPath)) {
+            fsSync.mkdirSync(uploadPath, { recursive: true });
           }
           cb(null, uploadPath);
         } catch (error) {
@@ -1139,7 +1138,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Serve uploaded documents 
   app.get("/uploads/documents/:filename", isAuthenticated, (req, res) => {
-    const path = require('path');
     const filename = req.params.filename;
     const filepath = path.join(process.cwd(), 'uploads', 'documents', filename);
     
