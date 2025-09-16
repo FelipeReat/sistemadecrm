@@ -1,4 +1,3 @@
-
 import { useState, useRef } from 'react';
 import { CloudUpload, X, FileText, Image } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -42,11 +41,26 @@ export function FileUpload({
     }
 
     const uploadedFiles = await uploadMultipleFiles(filesToUpload as unknown as FileList);
-    
+
     if (multiple) {
-      onFilesChange?.([...value, ...uploadedFiles]);
+      const currentFiles = [...value];
+      // Ensure the uploaded file has the correct format for the schema
+        const formattedFile = {
+          ...uploadedFile,
+          url: uploadedFile.url || `/uploads/documents/${uploadedFile.filename}`,
+          size: uploadedFile.size || 0,
+          type: uploadedFile.type || 'application/octet-stream'
+        };
+        onFilesChange([...currentFiles, formattedFile]);
     } else {
-      onFilesChange?.(uploadedFiles);
+      // Ensure the uploaded file has the correct format for the schema
+        const formattedFile = {
+          ...uploadedFiles[0], // Assuming uploadMultipleFiles returns an array even for single file
+          url: uploadedFiles[0].url || `/uploads/documents/${uploadedFiles[0].filename}`,
+          size: uploadedFiles[0].size || 0,
+          type: uploadedFiles[0].type || 'application/octet-stream'
+        };
+        onFilesChange([formattedFile]);
     }
   };
 

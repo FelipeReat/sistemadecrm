@@ -110,7 +110,7 @@ export const insertOpportunitySchema = createInsertSchema(opportunities, {
     name: z.string().max(255, "Nome do arquivo muito longo"),
     size: z.number().max(50 * 1024 * 1024, "Arquivo muito grande (máximo 50MB)"),
     type: z.string(),
-    url: z.string().url("URL inválida")
+    url: z.string().min(1, "URL é obrigatória")
   })).optional().default([]).refine((docs) => docs.length <= 10, "Máximo 10 documentos permitidos"),
 
   // Fase 2: Prospecção

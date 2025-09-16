@@ -33,6 +33,17 @@ export function useFileUpload() {
       }
 
       const uploadedFile: UploadedFile = await response.json();
+      
+      // Ensure all required fields are present
+      if (!uploadedFile.url) {
+        uploadedFile.url = `/uploads/documents/${uploadedFile.filename || uploadedFile.name}`;
+      }
+      if (!uploadedFile.size) {
+        uploadedFile.size = file.size;
+      }
+      if (!uploadedFile.type) {
+        uploadedFile.type = file.type;
+      }
 
       toast({
         title: "Sucesso",
