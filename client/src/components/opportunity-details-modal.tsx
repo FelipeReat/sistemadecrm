@@ -25,7 +25,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Button } from "@/components/ui/button";
-import { Calendar, FileText, Handshake, MapPin, DollarSign, Upload, User, X, Trash2 } from "lucide-react";
+import { Calendar, FileText, Handshake, MapPin, DollarSign, Upload, User, X, Trash2, TriangleAlert } from "lucide-react";
 import { FileUpload } from "@/components/ui/file-upload";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -80,11 +80,18 @@ const negociacaoSchema = z.object({
   lossReason: z.string().optional(),
 });
 
+// Schema para o formulário de perdido
+const perdidoSchema = z.object({
+  lossReason: z.string().trim().min(1, "Motivo da perda é obrigatório"),
+  lossObservation: z.string().trim().min(1, "Observação é obrigatória"),
+});
+
 type ProspeccaoFormData = z.infer<typeof prospeccaoSchema>;
 type EmAtendimentoFormData = z.infer<typeof emAtendimentoSchema>;
 type VisitaTecnicaFormData = z.infer<typeof visitaTecnicaSchema>;
 type PropostaFormData = z.infer<typeof propostaSchema>;
 type NegociacaoFormData = z.infer<typeof negociacaoSchema>;
+type PerdidoFormData = z.infer<typeof perdidoSchema>;
 
 export default function OpportunityDetailsModal({
   opportunity,
@@ -155,6 +162,14 @@ export default function OpportunityDetailsModal({
     },
   });
 
+  const perdidoForm = useForm<PerdidoFormData>({
+    resolver: zodResolver(perdidoSchema),
+    defaultValues: {
+      lossReason: opportunity?.lossReason || "",
+      lossObservation: opportunity?.lossObservation || "",
+    },
+  });
+
   // Atualizar valores dos formulários quando a oportunidade mudar
   useEffect(() => {
     if (opportunity) {
@@ -165,8 +180,13 @@ export default function OpportunityDetailsModal({
         budgetNumber: opportunity.budgetNumber || opportunity.opportunityNumber || "",
         budget: opportunity.budget || "",
       });
+      
+      perdidoForm.reset({
+        lossReason: opportunity.lossReason || "",
+        lossObservation: opportunity.lossObservation || "",
+      });
     }
-  }, [opportunity, propostaForm]);
+  }, [opportunity, propostaForm, perdidoForm]);
 
   const updateOpportunityMutation = useMutation({
     mutationFn: (data: any & { id: string }) =>
@@ -1125,6 +1145,95 @@ export default function OpportunityDetailsModal({
               </Button>
             </div>
           </div>
+        );
+
+      case "perdido":
+        return (
+          <Form {...perdidoForm}>
+            <form onSubmit={perdidoForm.handleSubmit(handleSubmit)} className="space-y-4">
+              <div className="space-y-4 border-t pt-4">
+                <h4 className="font-semibold text-gray-900 flex items-center">
+                  <TriangleAlert className="h-4 w-4 mr-2 text-red-600" />
+                  Informações da Oportunidade Perdida
+                </h4>
+
+                <FormField
+                  control={perdidoForm.control}
+                  name="lossReason"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center">
+                        <TriangleAlert className="h-4 w-4 mr-2" />
+                        * Motivo da perda
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Ex: Preço alto, prazo inadequado, concorrência..."
+                          {...field}
+                          data-testid="input-loss-reason"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={perdidoForm.control}
+                  name="lossObservation"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center">
+                        <FileText className="h-4 w-4 mr-2" />
+                        * Observação detalhada
+                      </FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Descreva detalhadamente o que aconteceu, contexto da perda, feedback do cliente, lições aprendidas..."
+                          className="min-h-[120px]"
+                          {...field}
+                          data-testid="textarea-loss-observation"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <DialogFooter className="flex justify-between items-center">
+                <Button
+                  type="button"
+                  variant="destructive"
+                  onClick={handleDelete}
+                  disabled={isSubmitting || deleteOpportunityMutation.isPending}
+                  data-testid="button-delete-opportunity"
+                  title="Excluir oportunidade"
+                  aria-label="Excluir oportunidade"
+                  className="text-red-600 bg-red-50 hover:bg-red-100 border-red-200 hover:border-red-300"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Excluir
+                </Button>
+                <div className="flex space-x-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => onOpenChange(false)}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="bg-red-600 hover:bg-red-700"
+                  >
+                    {isSubmitting ? "Salvando..." : "Salvar Observação"}
+                  </Button>
+                </div>
+              </DialogFooter>
+            </form>
+          </Form>
         );
 
       default:
