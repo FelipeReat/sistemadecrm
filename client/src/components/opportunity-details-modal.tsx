@@ -1179,80 +1179,14 @@ export default function OpportunityDetailsModal({
 
       case "ganho":
         return (
-          <div className="space-y-4 border-t pt-4">
-            <h4 className="font-semibold text-gray-900 flex items-center">
-              <Handshake className="h-4 w-4 mr-2" />
-              Informações da Negociação (Oportunidade Ganha)
-            </h4>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Status da negociação</Label>
-                <Input
-                  value={opportunity?.status || ""}
-                  disabled
-                  className="bg-gray-50 mt-1"
-                />
-              </div>
-
-              <div>
-                <Label className="text-sm font-medium text-gray-700 flex items-center">
-                  <DollarSign className="h-4 w-4 mr-2" />
-                  Valor final negociado
-                </Label>
-                <Input
-                  value={opportunity?.finalValue ? new Intl.NumberFormat("pt-BR", {
-                    style: "currency",
-                    currency: "BRL",
-                  }).format(parseFloat(opportunity.finalValue.toString())) : ""}
-                  disabled
-                  className="bg-gray-50 mt-1"
-                />
-              </div>
-            </div>
-
-            {opportunity?.negotiationInfo && (
-              <div>
-                <Label className="text-sm font-medium text-gray-700">Informações da negociação</Label>
-                <Textarea
-                  value={opportunity.negotiationInfo}
-                  disabled
-                  className="bg-gray-50 mt-1 min-h-[100px]"
-                />
-              </div>
-            )}
-
-            {opportunity?.contract && (
-              <div>
-                <Label className="text-sm font-medium text-gray-700">Número do contrato</Label>
-                <Input
-                  value={opportunity.contract}
-                  disabled
-                  className="bg-gray-50 mt-1"
-                />
-              </div>
-            )}
-
-            {opportunity?.invoiceNumber && (
-              <div>
-                <Label className="text-sm font-medium text-gray-700">Número da danfe</Label>
-                <Input
-                  value={opportunity.invoiceNumber}
-                  disabled
-                  className="bg-gray-50 mt-1"
-                />
-              </div>
-            )}
-
-            <div className="flex justify-end mt-6">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-              >
-                Fechar
-              </Button>
-            </div>
+          <div className="flex justify-end mt-6">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+            >
+              Fechar
+            </Button>
           </div>
         );
 
