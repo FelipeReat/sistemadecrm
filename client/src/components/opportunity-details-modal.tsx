@@ -397,14 +397,17 @@ export default function OpportunityDetailsModal({
       if (cleanedData.budgetFile) {
         const existingDocuments = opportunity.documents ? [...opportunity.documents] : [];
         
-        // Mark this document as a proposal document
+        // Mark this document as a proposal document with metadata
         const budgetDoc = {
           ...cleanedData.budgetFile,
           documentType: 'proposal', // Add metadata to identify document type
-          phaseAdded: 'proposta'
+          phaseAdded: 'proposta',
+          addedAt: new Date().toISOString(),
+          addedInPhase: opportunity.phase
         };
         
-        existingDocuments.push(budgetDoc);
+        // Convert to JSON string as expected by the backend
+        existingDocuments.push(JSON.stringify(budgetDoc));
         cleanedData.documents = existingDocuments;
       } else {
         // Preserve existing documents if no budget file was uploaded
@@ -1610,17 +1613,28 @@ export default function OpportunityDetailsModal({
                             <p className="mt-1 text-gray-900 bg-white p-2 rounded border">{opportunity.discountDescription}</p>
                           </div>
                         )}
-                        {/* Show proposal documents - documents added from phase 'proposta' onwards */}
+                        {/* Show proposal documents - only documents added during proposal phase */}
                         {(() => {
                           if (!opportunity.documents || opportunity.documents.length === 0) return null;
                           
-                          // Get the original documents count from the initial opportunity creation
-                          // We'll assume documents uploaded in 'proposta' phase are those beyond the original ones
-                          const totalDocs = opportunity.documents.length;
-                          
-                          // For now, show all documents in proposal phase since we need to display them
-                          // In the future, we could track document upload timestamps or add phase metadata
-                          const proposalDocs = opportunity.documents;
+                          // Filter documents to show only those added during proposal phase
+                          // We'll identify proposal documents by checking if they have documentType: 'proposal' 
+                          // or if they were added after the opportunity reached proposal phase
+                          const proposalDocs = opportunity.documents.filter((doc) => {
+                            let parsedDoc;
+                            try {
+                              parsedDoc = typeof doc === 'string' ? JSON.parse(doc) : doc;
+                            } catch {
+                              return false; // Skip malformed documents
+                            }
+                            
+                            // Check if document was marked as proposal document or has proposal metadata
+                            return parsedDoc.documentType === 'proposal' || 
+                                   parsedDoc.phaseAdded === 'proposta' ||
+                                   (parsedDoc.name && parsedDoc.name.toLowerCase().includes('orçamento')) ||
+                                   (parsedDoc.name && parsedDoc.name.toLowerCase().includes('orcamento')) ||
+                                   (parsedDoc.name && parsedDoc.name.toLowerCase().includes('proposta'));
+                          });
 
                           if (proposalDocs.length === 0) return null;
 
