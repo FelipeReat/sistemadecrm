@@ -1,26 +1,29 @@
+
 import 'dotenv/config';
 import { drizzle as drizzlePostgres } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import * as schema from "@shared/schema";
 
-const isDatabaseProduction = process.env.NODE_ENV === 'production';
-
-// Create database connection based on environment
+// SEMPRE usar PostgreSQL (tanto desenvolvimento quanto produção)
 function createDatabase() {
-  // Use the Replit-provided DATABASE_URL for both development and production
   const databaseUrl = process.env.DATABASE_URL;
   
   if (!databaseUrl) {
-    throw new Error("DATABASE_URL must be set");
+    throw new Error("DATABASE_URL must be set. Configure your PostgreSQL connection string.");
   }
 
-  // Add SSL configuration for managed PostgreSQL databases (like Neon, Supabase, etc.)
+  // Add SSL configuration for managed PostgreSQL databases
   const ssl = !/localhost|127\.0\.0\.1/.test(databaseUrl) ? 'require' : false;
   
   const sql = postgres(databaseUrl, {
-    max: 10, // Pool de 10 conexões
+    max: 10,
     connect_timeout: 30,
-    ssl: ssl
+    ssl: ssl === 'require' ? {
+      rejectUnauthorized: false,
+      requestCert: false,
+      agent: false,
+      checkServerIdentity: () => undefined
+    } : false
   });
   
   return {
