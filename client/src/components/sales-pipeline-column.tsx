@@ -24,6 +24,7 @@ import {
   SortableContext,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
+import LossReasonModal, { LossReasonData } from "./loss-reason-modal";
 
 // Função para validar se uma oportunidade pode ser movida
 const canMoveOpportunity = (opportunity: Opportunity, targetPhase: string): { canMove: boolean; message?: string } => {
@@ -164,6 +165,8 @@ export default function SalesPipelineColumn({ phase, opportunities, isLoading, o
   const queryClient = useQueryClient();
   const { invalidateAllData } = useReportsSync();
   const [opportunityToDelete, setOpportunityToDelete] = useState<Opportunity | null>(null);
+  const [lossReasonModalOpen, setLossReasonModalOpen] = useState(false);
+  const [pendingLossData, setPendingLossData] = useState<{opportunityId: string; opportunity: Opportunity} | null>(null);
 
   const moveOpportunityMutation = useMutation({
     mutationFn: ({ opportunityId, newPhase }: { opportunityId: string; newPhase: string }) =>
@@ -179,6 +182,27 @@ export default function SalesPipelineColumn({ phase, opportunities, isLoading, o
       toast({
         title: "Erro",
         description: "Erro ao mover oportunidade.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const moveToLossMutation = useMutation({
+    mutationFn: ({ opportunityId, lossData }: { opportunityId: string; lossData: LossReasonData }) =>
+      apiRequest("PATCH", `/api/opportunities/${opportunityId}/move-to-loss`, lossData),
+    onSuccess: () => {
+      invalidateAllData();
+      toast({
+        title: "Sucesso",
+        description: "Oportunidade movida para perdido com sucesso!",
+      });
+      setLossReasonModalOpen(false);
+      setPendingLossData(null);
+    },
+    onError: () => {
+      toast({
+        title: "Erro",
+        description: "Erro ao mover oportunidade para perdido.",
         variant: "destructive",
       });
     },
@@ -230,6 +254,13 @@ export default function SalesPipelineColumn({ phase, opportunities, isLoading, o
           return;
         }
 
+        // Se está movendo para perdido, abrir modal para capturar motivo
+        if (phase.key === 'perdido') {
+          setPendingLossData({ opportunityId, opportunity });
+          setLossReasonModalOpen(true);
+          return;
+        }
+
         moveOpportunityMutation.mutate({ opportunityId, newPhase: phase.key });
       } catch (error) {
         // Fallback para formato antigo (apenas ID)
@@ -245,6 +276,13 @@ export default function SalesPipelineColumn({ phase, opportunities, isLoading, o
               description: validation.message,
               variant: "destructive",
             });
+            return;
+          }
+
+          // Se está movendo para perdido, abrir modal para capturar motivo
+          if (phase.key === 'perdido') {
+            setPendingLossData({ opportunityId, opportunity });
+            setLossReasonModalOpen(true);
             return;
           }
         }
@@ -352,7 +390,7 @@ export default function SalesPipelineColumn({ phase, opportunities, isLoading, o
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir Oportunidade</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir a oportunidade "{opportunityToDelete?.name}"? Esta ação não pode ser desfeita.
+              Tem certeza que deseja excluir a oportunidade "{opportunityToDelete?.contact}"? Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -363,6 +401,27 @@ export default function SalesPipelineColumn({ phase, opportunities, isLoading, o
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Modal de Motivo da Perda */}
+      <LossReasonModal
+        open={lossReasonModalOpen}
+        onOpenChange={(open) => {
+          setLossReasonModalOpen(open);
+          if (!open) {
+            setPendingLossData(null);
+          }
+        }}
+        opportunity={pendingLossData?.opportunity || null}
+        onConfirm={(lossData) => {
+          if (pendingLossData) {
+            moveToLossMutation.mutate({
+              opportunityId: pendingLossData.opportunityId,
+              lossData
+            });
+          }
+        }}
+        isLoading={moveToLossMutation.isPending}
+      />
     </div>
   );
 }
