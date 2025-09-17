@@ -57,7 +57,13 @@ const visitaTecnicaSchema = z.object({
   visitSchedule: z.string().min(1, "Data de agendamento da visita é obrigatória"),
   visitDate: z.string().optional(),
   visitDescription: z.string().optional(),
-  visitPhotos: z.array(z.string()).optional(),
+  visitPhotos: z.array(z.object({
+    id: z.string(),
+    name: z.string(),
+    size: z.number(),
+    type: z.string(),
+    url: z.string()
+  })).optional().default([]),
 });
 
 // Schema para o formulário de proposta
