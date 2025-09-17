@@ -74,6 +74,13 @@ const propostaSchema = z.object({
   budgetNumber: z.string().min(1, "Número do orçamento é obrigatório"),
   budget: z.string().min(1, "Valor do orçamento é obrigatório"),
   salesperson: z.string().optional(),
+  budgetFile: z.object({
+    id: z.string(),
+    name: z.string(),
+    size: z.number(),
+    type: z.string(),
+    url: z.string()
+  }).optional(),
 });
 
 // Schema para o formulário de negociação
@@ -153,6 +160,7 @@ export default function OpportunityDetailsModal({
       validityDate: opportunity?.validityDate || "",
       budgetNumber: opportunity?.budgetNumber || opportunity?.opportunityNumber || "",
       budget: opportunity?.budget || "",
+      budgetFile: undefined,
     },
   });
 
@@ -203,6 +211,7 @@ export default function OpportunityDetailsModal({
         budgetNumber: opportunity.budgetNumber || opportunity.opportunityNumber || "",
         budget: opportunity.budget || "",
         salesperson: opportunity.salesperson || "",
+        budgetFile: undefined,
       });
 
       negociacaoForm.reset({
@@ -243,6 +252,7 @@ export default function OpportunityDetailsModal({
         budgetNumber: "",
         budget: "",
         salesperson: "",
+        budgetFile: undefined,
       });
 
       negociacaoForm.reset({
