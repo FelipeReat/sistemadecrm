@@ -380,6 +380,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Move opportunity to loss with reason
+  app.patch("/api/opportunities/:id/move-to-loss", isAuthenticated, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { lossReason, lossObservation } = req.body;
+
+      // Validar se os dados obrigatórios foram fornecidos
+      if (!lossReason || !lossObservation) {
+        return res.status(400).json({ 
+          message: "Motivo da perda e observação detalhada são obrigatórios" 
+        });
+      }
+
+      // Buscar a oportunidade atual
+      const currentOpportunity = await storage.getOpportunity(id);
+      if (!currentOpportunity) {
+        return res.status(404).json({ message: "Oportunidade não encontrada" });
+      }
+
+      console.log(`💔 Movendo oportunidade ${id} da fase "${currentOpportunity.phase}" para "perdido"`);
+      console.log(`📝 Motivo: ${lossReason}`);
+      console.log(`📄 Observação: ${lossObservation.substring(0, 100)}...`);
+
+      // Atualizar para a fase perdido com os dados de motivo da perda
+      const updateData = {
+        phase: 'perdido',
+        lossReason,
+        lossObservation,
+        phaseUpdatedAt: new Date().toISOString(),
+      };
+
+      const opportunity = await storage.updateOpportunity(id, updateData);
+
+      if (!opportunity) {
+        return res.status(404).json({ message: "Erro ao mover oportunidade para perdido" });
+      }
+
+      console.log(`✅ Oportunidade movida para perdido com sucesso. Motivo registrado.`);
+      res.json(opportunity);
+    } catch (error: any) {
+      console.error("Erro ao mover oportunidade para perdido:", error);
+      res.status(500).json({ message: "Erro interno do servidor" });
+    }
+  });
+
   app.delete("/api/opportunities/:id", isAuthenticated, async (req, res) => {
     try {
       const { id } = req.params;
