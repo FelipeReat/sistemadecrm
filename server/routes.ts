@@ -348,6 +348,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { id, phase } = req.params;
 
+      // Impedir movimentação direta para "perdido" - deve usar /move-to-loss
+      if (phase === 'perdido') {
+        return res.status(400).json({ 
+          message: "Para mover para 'perdido', utilize o endpoint /move-to-loss com motivo obrigatório" 
+        });
+      }
+
       // Buscar a oportunidade atual para preservar todos os dados
       const currentOpportunity = await storage.getOpportunity(id);
       if (!currentOpportunity) {
@@ -384,14 +391,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch("/api/opportunities/:id/move-to-loss", isAuthenticated, async (req, res) => {
     try {
       const { id } = req.params;
-      const { lossReason, lossObservation } = req.body;
+      
+      // Validar dados com Zod
+      const lossDataSchema = z.object({
+        lossReason: z.string().min(1, "Motivo da perda é obrigatório"),
+        lossObservation: z.string().min(10, "Observação detalhada é obrigatória (mínimo 10 caracteres)").max(1000, "Observação muito longa (máximo 1000 caracteres)")
+      });
 
-      // Validar se os dados obrigatórios foram fornecidos
-      if (!lossReason || !lossObservation) {
-        return res.status(400).json({ 
-          message: "Motivo da perda e observação detalhada são obrigatórios" 
-        });
-      }
+      const validatedData = lossDataSchema.parse(req.body);
+      const { lossReason, lossObservation } = validatedData;
 
       // Buscar a oportunidade atual
       const currentOpportunity = await storage.getOpportunity(id);
@@ -403,15 +411,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`📝 Motivo: ${lossReason}`);
       console.log(`📄 Observação: ${lossObservation.substring(0, 100)}...`);
 
+      // Criar descrição composta para o card
+      const lossDescription = `[Perdido] ${lossReason} — ${lossObservation}`;
+
       // Atualizar para a fase perdido com os dados de motivo da perda
       const updateData = {
         phase: 'perdido',
         lossReason,
         lossObservation,
+        statement: lossDescription, // Salvar como descrição do card
         phaseUpdatedAt: new Date().toISOString(),
       };
 
-      const opportunity = await storage.updateOpportunity(id, updateData);
+      // Validar dados finais com schema da oportunidade
+      const finalValidatedData = insertOpportunitySchema.partial().parse(updateData);
+      const opportunity = await storage.updateOpportunity(id, finalValidatedData);
 
       if (!opportunity) {
         return res.status(404).json({ message: "Erro ao mover oportunidade para perdido" });
@@ -420,6 +434,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`✅ Oportunidade movida para perdido com sucesso. Motivo registrado.`);
       res.json(opportunity);
     } catch (error: any) {
+      if (error.name === "ZodError") {
+        const validationError = fromZodError(error);
+        return res.status(400).json({ message: validationError.message });
+      }
       console.error("Erro ao mover oportunidade para perdido:", error);
       res.status(500).json({ message: "Erro interno do servidor" });
     }
