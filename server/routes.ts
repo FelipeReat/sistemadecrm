@@ -1249,12 +1249,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Document upload endpoint
+  // Document upload endpoint - Base64 storage for production compatibility
   app.post("/api/documents/upload", isAuthenticated, (req, res) => {
-    documentUpload.single('document')(req, res, async (err) => {
+    const upload = multer({
+      storage: multer.memoryStorage(),
+      limits: {
+        fileSize: 10 * 1024 * 1024, // 10MB limit
+      },
+      fileFilter: (req, file, cb) => {
+        const allowedTypes = [
+          'application/pdf',
+          'application/msword',
+          'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+          'image/jpeg',
+          'image/jpg', 
+          'image/png',
+          'image/gif',
+          'text/plain'
+        ];
+
+        if (allowedTypes.includes(file.mimetype)) {
+          cb(null, true);
+        } else {
+          cb(new Error('Tipo de arquivo não suportado. Use PDF, DOC, DOCX, JPG, PNG, GIF ou TXT'));
+        }
+      }
+    }).single('document');
+
+    upload(req, res, async (err) => {
       try {
         if (err) {
-          console.error('Multer error:', err);
+          console.error('Upload error:', err);
           return res.status(400).json({ message: err.message || "Erro no upload do arquivo" });
         }
 
@@ -1262,13 +1287,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(400).json({ message: "Nenhum arquivo enviado" });
         }
 
+        // Convert file to Base64
+        const base64Data = req.file.buffer.toString('base64');
+        const dataUrl = `data:${req.file.mimetype};base64,${base64Data}`;
+
         const uploadedFile = {
           id: `doc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
           name: req.file.originalname,
-          filename: req.file.filename,
           size: req.file.size,
           type: req.file.mimetype,
-          url: `/uploads/documents/${req.file.filename}`,
+          url: dataUrl, // Store as data URL for direct browser access
           uploadedAt: new Date().toISOString(),
           uploadedBy: req.session.user!.id
         };
@@ -1281,29 +1309,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
-  // Serve uploaded documents 
-  app.get("/uploads/documents/:filename", isAuthenticated, (req, res) => {
-    const filename = req.params.filename;
-    const filepath = path.join(process.cwd(), 'uploads', 'documents', filename);
-
-    // Security check - ensure filename doesn't contain path traversal (but allow dots in filenames)
-    if (filename.includes('../') || filename.includes('..\\') || filename.includes('/') || filename.includes('\\')) {
-      return res.status(400).json({ message: "Nome de arquivo inválido" });
-    }
-
-    // Check if file exists
-    if (!fsSync.existsSync(filepath)) {
-      console.error('File not found:', filepath);
-      return res.status(404).json({ message: "Arquivo não encontrado" });
-    }
-
-    res.sendFile(filepath, (err) => {
-      if (err) {
-        console.error('Error serving file:', err);
-        res.status(404).json({ message: "Arquivo não encontrado" });
-      }
-    });
-  });
+  // Note: File serving endpoint removed - files are now stored as Base64 data URLs
 
   // Import functionality
 

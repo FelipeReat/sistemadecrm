@@ -1307,6 +1307,7 @@ export default function OpportunityDetailsModal({
                               rel="noopener noreferrer"
                               className="text-blue-600 hover:text-blue-800 hover:underline text-sm block truncate"
                               title={`Abrir ${parsedDoc.name}`}
+                              download={parsedDoc.name}
                             >
                               {parsedDoc.name || `Documento ${index + 1}`}
                             </a>
@@ -1528,6 +1529,7 @@ export default function OpportunityDetailsModal({
                                           rel="noopener noreferrer"
                                           className="text-blue-600 hover:text-blue-800 hover:underline text-sm block truncate"
                                           title={`Abrir ${parsedDoc.name}`}
+                                          download={parsedDoc.name}
                                         >
                                           {parsedDoc.name || `Documento ${index + 1}`}
                                         </a>
