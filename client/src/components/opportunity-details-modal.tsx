@@ -393,6 +393,22 @@ export default function OpportunityDetailsModal({
         }
       }
 
+      // Handle budget file - add to existing documents
+      if (cleanedData.budgetFile) {
+        const existingDocuments = opportunity.documents ? [...opportunity.documents] : [];
+        existingDocuments.push(cleanedData.budgetFile);
+        cleanedData.documents = existingDocuments;
+      } else {
+        // Preserve existing documents if no budget file was uploaded
+        if (opportunity.documents && !cleanedData.documents) {
+          cleanedData.documents = opportunity.documents;
+        }
+      }
+
+      if (opportunity.visitPhotos && !cleanedData.visitPhotos) {
+        cleanedData.visitPhotos = opportunity.visitPhotos;
+      }
+
       // Remove apenas campos undefined ou null, mantém strings vazias
       Object.keys(cleanedData).forEach(key => {
         if (cleanedData[key] === undefined || cleanedData[key] === null) {
@@ -400,16 +416,7 @@ export default function OpportunityDetailsModal({
         }
       });
 
-      // Preserve existing documents and photos when updating
-      if (opportunity.documents && !cleanedData.documents) {
-        cleanedData.documents = opportunity.documents;
-      }
-
-      if (opportunity.visitPhotos && !cleanedData.visitPhotos) {
-        cleanedData.visitPhotos = opportunity.visitPhotos;
-      }
-
-      // Remove apenas o campo budgetFile que é específico do form
+      // Remove o campo budgetFile que é específico do form (já foi processado acima)
       delete cleanedData.budgetFile;
 
       // Apenas atualiza os dados da oportunidade
@@ -1593,6 +1600,56 @@ export default function OpportunityDetailsModal({
                           <div className="md:col-span-2">
                             <span className="font-medium text-gray-700">Descrição do desconto:</span>
                             <p className="mt-1 text-gray-900 bg-white p-2 rounded border">{opportunity.discountDescription}</p>
+                          </div>
+                        )}
+                        {opportunity.documents && opportunity.documents.length > 0 && (
+                          <div className="md:col-span-2">
+                            <span className="font-medium text-gray-700">Documentos da proposta:</span>
+                            <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2">
+                              {opportunity.documents.map((doc, index) => {
+                                // Parse document if it's a JSON string
+                                let parsedDoc;
+                                try {
+                                  parsedDoc = typeof doc === 'string' ? JSON.parse(doc) : doc;
+                                } catch {
+                                  // If parsing fails, treat as legacy format
+                                  parsedDoc = { name: `Documento ${index + 1}`, url: doc };
+                                }
+
+                                // Only show documents that are likely budget/proposal related
+                                const isBudgetDoc = parsedDoc.name && (
+                                  parsedDoc.name.toLowerCase().includes('orcamento') ||
+                                  parsedDoc.name.toLowerCase().includes('orçamento') ||
+                                  parsedDoc.name.toLowerCase().includes('proposta') ||
+                                  parsedDoc.name.toLowerCase().includes('.pdf') ||
+                                  parsedDoc.name.toLowerCase().includes('.doc')
+                                );
+
+                                if (!isBudgetDoc) return null;
+
+                                return (
+                                  <div key={index} className="flex items-center space-x-2 p-2 bg-gray-50 rounded border">
+                                    <FileText className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                                    <div className="flex-1 min-w-0">
+                                      <a
+                                        href={parsedDoc.url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-blue-600 hover:text-blue-800 hover:underline text-sm block truncate"
+                                        title={`Abrir ${parsedDoc.name}`}
+                                      >
+                                        {parsedDoc.name || `Documento ${index + 1}`}
+                                      </a>
+                                      {parsedDoc.size && (
+                                        <span className="text-xs text-gray-500">
+                                          ({(parsedDoc.size / 1024 / 1024).toFixed(2)} MB)
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              }).filter(Boolean)}
+                            </div>
                           </div>
                         )}
                       </div>
