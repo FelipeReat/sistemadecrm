@@ -393,10 +393,18 @@ export default function OpportunityDetailsModal({
         }
       }
 
-      // Handle budget file - add to existing documents
+      // Handle budget file - add to existing documents with proper tracking
       if (cleanedData.budgetFile) {
         const existingDocuments = opportunity.documents ? [...opportunity.documents] : [];
-        existingDocuments.push(cleanedData.budgetFile);
+        
+        // Mark this document as a proposal document
+        const budgetDoc = {
+          ...cleanedData.budgetFile,
+          documentType: 'proposal', // Add metadata to identify document type
+          phaseAdded: 'proposta'
+        };
+        
+        existingDocuments.push(budgetDoc);
         cleanedData.documents = existingDocuments;
       } else {
         // Preserve existing documents if no budget file was uploaded
@@ -1602,56 +1610,73 @@ export default function OpportunityDetailsModal({
                             <p className="mt-1 text-gray-900 bg-white p-2 rounded border">{opportunity.discountDescription}</p>
                           </div>
                         )}
-                        {opportunity.documents && opportunity.documents.length > 0 && (
-                          <div className="md:col-span-2">
-                            <span className="font-medium text-gray-700">Documentos da proposta:</span>
-                            <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2">
-                              {opportunity.documents.map((doc, index) => {
-                                // Parse document if it's a JSON string
-                                let parsedDoc;
-                                try {
-                                  parsedDoc = typeof doc === 'string' ? JSON.parse(doc) : doc;
-                                } catch {
-                                  // If parsing fails, treat as legacy format
-                                  parsedDoc = { name: `Documento ${index + 1}`, url: doc };
-                                }
+                        {/* Show only documents that were specifically added during the proposal phase */}
+                        {(() => {
+                          const proposalDocs = opportunity.documents ? opportunity.documents.filter(doc => {
+                            let parsedDoc;
+                            try {
+                              parsedDoc = typeof doc === 'string' ? JSON.parse(doc) : doc;
+                            } catch {
+                              return false;
+                            }
 
-                                // Only show documents that are likely budget/proposal related
-                                const isBudgetDoc = parsedDoc.name && (
-                                  parsedDoc.name.toLowerCase().includes('orcamento') ||
-                                  parsedDoc.name.toLowerCase().includes('orçamento') ||
-                                  parsedDoc.name.toLowerCase().includes('proposta') ||
-                                  parsedDoc.name.toLowerCase().includes('.pdf') ||
-                                  parsedDoc.name.toLowerCase().includes('.doc')
-                                );
+                            // Check if this document was added in the proposal phase
+                            // or if it's a budget-related document (orçamento, proposta, etc.)
+                            const hasProposalMetadata = parsedDoc.documentType === 'proposal' || parsedDoc.phaseAdded === 'proposta';
+                            const isBudgetDoc = parsedDoc.name && (
+                              parsedDoc.name.toLowerCase().includes('orcamento') ||
+                              parsedDoc.name.toLowerCase().includes('orçamento') ||
+                              parsedDoc.name.toLowerCase().includes('proposta') ||
+                              parsedDoc.name.toLowerCase().includes('budget') ||
+                              // Also check for PDF files that were likely uploaded during proposal phase
+                              (parsedDoc.name.toLowerCase().includes('.pdf') && 
+                               !parsedDoc.name.toLowerCase().includes('wa0007') && // Exclude the initial documents
+                               !parsedDoc.name.toLowerCase().includes('wa0006'))
+                            );
 
-                                if (!isBudgetDoc) return null;
+                            return hasProposalMetadata || isBudgetDoc;
+                          }) : [];
 
-                                return (
-                                  <div key={index} className="flex items-center space-x-2 p-2 bg-gray-50 rounded border">
-                                    <FileText className="h-4 w-4 text-gray-500 flex-shrink-0" />
-                                    <div className="flex-1 min-w-0">
-                                      <a
-                                        href={parsedDoc.url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="text-blue-600 hover:text-blue-800 hover:underline text-sm block truncate"
-                                        title={`Abrir ${parsedDoc.name}`}
-                                      >
-                                        {parsedDoc.name || `Documento ${index + 1}`}
-                                      </a>
-                                      {parsedDoc.size && (
-                                        <span className="text-xs text-gray-500">
-                                          ({(parsedDoc.size / 1024 / 1024).toFixed(2)} MB)
-                                        </span>
-                                      )}
+                          if (proposalDocs.length === 0) return null;
+
+                          return (
+                            <div className="md:col-span-2">
+                              <span className="font-medium text-gray-700">Documento da proposta:</span>
+                              <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2">
+                                {proposalDocs.map((doc, index) => {
+                                  let parsedDoc;
+                                  try {
+                                    parsedDoc = typeof doc === 'string' ? JSON.parse(doc) : doc;
+                                  } catch {
+                                    parsedDoc = { name: `Documento ${index + 1}`, url: doc };
+                                  }
+
+                                  return (
+                                    <div key={index} className="flex items-center space-x-2 p-2 bg-gray-50 rounded border">
+                                      <FileText className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                                      <div className="flex-1 min-w-0">
+                                        <a
+                                          href={parsedDoc.url}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="text-blue-600 hover:text-blue-800 hover:underline text-sm block truncate"
+                                          title={`Abrir ${parsedDoc.name}`}
+                                        >
+                                          {parsedDoc.name || `Documento ${index + 1}`}
+                                        </a>
+                                        {parsedDoc.size && (
+                                          <span className="text-xs text-gray-500">
+                                            ({(parsedDoc.size / 1024 / 1024).toFixed(2)} MB)
+                                          </span>
+                                        )}
+                                      </div>
                                     </div>
-                                  </div>
-                                );
-                              }).filter(Boolean)}
+                                  );
+                                })}
+                              </div>
                             </div>
-                          </div>
-                        )}
+                          );
+                        })()}
                       </div>
                     </div>
                   </>
