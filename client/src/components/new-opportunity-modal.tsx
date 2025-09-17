@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -141,6 +141,26 @@ export default function NewOpportunityModal({ open, onOpenChange }: NewOpportuni
     setIsSubmitting(true);
     createOpportunityMutation.mutate(data);
   };
+
+  // Resetar formulário quando o modal abrir/fechar
+  useEffect(() => {
+    if (open) {
+      // Resetar formulário quando modal abrir
+      form.reset({
+        contact: "",
+        cpf: null,
+        company: "",
+        cnpj: null,
+        phone: "",
+        hasRegistration: false,
+        proposalOrigin: null,
+        businessTemperature: null,
+        needCategory: "",
+        clientNeeds: "",
+      });
+      setUploadedDocuments([]);
+    }
+  }, [open, form]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

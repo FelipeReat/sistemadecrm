@@ -170,23 +170,90 @@ export default function OpportunityDetailsModal({
     },
   });
 
-  // Atualizar valores dos formulários quando a oportunidade mudar
+  // Resetar todos os formulários quando o modal abrir ou a oportunidade mudar
   useEffect(() => {
-    if (opportunity) {
+    if (open && opportunity) {
+      // Resetar todos os formulários com os dados da oportunidade atual
+      prospeccaoForm.reset({
+        opportunityNumber: opportunity.opportunityNumber || "",
+        salesperson: opportunity.salesperson || "",
+        requiresVisit: opportunity.requiresVisit || false,
+      });
+
+      emAtendimentoForm.reset({
+        statement: opportunity.statement || "",
+      });
+
+      visitaTecnicaForm.reset({
+        visitSchedule: opportunity.visitSchedule || "",
+        visitDate: opportunity.visitDate || "",
+        visitPhotos: opportunity.visitPhotos || [],
+      });
+
       propostaForm.reset({
         discount: opportunity.discount || "",
         discountDescription: opportunity.discountDescription || "",
-        validityDate: opportunity.validityDate || "",
+        validityDate: opportunity.validityDate ? new Date(opportunity.validityDate).toISOString().split('T')[0] : "",
         budgetNumber: opportunity.budgetNumber || opportunity.opportunityNumber || "",
         budget: opportunity.budget || "",
+        salesperson: opportunity.salesperson || "",
+      });
+
+      negociacaoForm.reset({
+        status: opportunity.status || "",
+        finalValue: opportunity.finalValue || "",
+        negotiationInfo: opportunity.negotiationInfo || "",
+        contract: opportunity.contract || "",
+        invoiceNumber: opportunity.invoiceNumber || "",
+        lossReason: opportunity.lossReason || "",
       });
 
       perdidoForm.reset({
         lossReason: opportunity.lossReason || "",
         lossObservation: opportunity.lossObservation || "",
       });
+    } else if (open && !opportunity) {
+      // Limpar todos os formulários quando abrir sem oportunidade
+      prospeccaoForm.reset({
+        opportunityNumber: "",
+        salesperson: "",
+        requiresVisit: false,
+      });
+
+      emAtendimentoForm.reset({
+        statement: "",
+      });
+
+      visitaTecnicaForm.reset({
+        visitSchedule: "",
+        visitDate: "",
+        visitPhotos: [],
+      });
+
+      propostaForm.reset({
+        discount: "",
+        discountDescription: "",
+        validityDate: "",
+        budgetNumber: "",
+        budget: "",
+        salesperson: "",
+      });
+
+      negociacaoForm.reset({
+        status: "",
+        finalValue: "",
+        negotiationInfo: "",
+        contract: "",
+        invoiceNumber: "",
+        lossReason: "",
+      });
+
+      perdidoForm.reset({
+        lossReason: "",
+        lossObservation: "",
+      });
     }
-  }, [opportunity, propostaForm, perdidoForm]);
+  }, [open, opportunity, prospeccaoForm, emAtendimentoForm, visitaTecnicaForm, propostaForm, negociacaoForm, perdidoForm]);
 
   const updateOpportunityMutation = useMutation({
     mutationFn: (data: any & { id: string }) =>
