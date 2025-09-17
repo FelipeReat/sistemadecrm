@@ -48,6 +48,8 @@ const LOSS_REASONS = [
   "Falta de confiança",
   "Processo interno complexo",
   "Decisor mudou",
+  "Sem Estoque",
+  "Equipamento Em Manutenção",
   "Outro"
 ];
 
