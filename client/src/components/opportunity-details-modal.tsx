@@ -1192,91 +1192,15 @@ export default function OpportunityDetailsModal({
 
       case "perdido":
         return (
-          <Form {...perdidoForm}>
-            <form onSubmit={perdidoForm.handleSubmit(handleSubmit)} className="space-y-4">
-              <div className="space-y-4 border-t pt-4">
-                <h4 className="font-semibold text-gray-900 flex items-center">
-                  <TriangleAlert className="h-4 w-4 mr-2 text-red-600" />
-                  Informações da Oportunidade Perdida
-                </h4>
-
-                <FormField
-                  control={perdidoForm.control}
-                  name="lossReason"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="flex items-center">
-                        <TriangleAlert className="h-4 w-4 mr-2" />
-                        * Motivo da perda
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Ex: Preço alto, prazo inadequado, concorrência..."
-                          {...field}
-                          data-testid="input-loss-reason"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={perdidoForm.control}
-                  name="lossObservation"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="flex items-center">
-                        <FileText className="h-4 w-4 mr-2" />
-                        * Observação detalhada
-                      </FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder="Descreva detalhadamente o que aconteceu, contexto da perda, feedback do cliente, lições aprendidas..."
-                          className="min-h-[120px]"
-                          {...field}
-                          data-testid="textarea-loss-observation"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <DialogFooter className="flex justify-between items-center">
-                <Button
-                  type="button"
-                  variant="destructive"
-                  onClick={handleDelete}
-                  disabled={isSubmitting || deleteOpportunityMutation.isPending}
-                  data-testid="button-delete-opportunity"
-                  title="Excluir oportunidade"
-                  aria-label="Excluir oportunidade"
-                  className="text-red-600 bg-red-50 hover:bg-red-100 border-red-200 hover:border-red-300"
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Excluir
-                </Button>
-                <div className="flex space-x-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => onOpenChange(false)}
-                  >
-                    Cancelar
-                  </Button>
-                  <Button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="bg-red-600 hover:bg-red-700"
-                  >
-                    {isSubmitting ? "Salvando..." : "Salvar Observação"}
-                  </Button>
-                </div>
-              </DialogFooter>
-            </form>
-          </Form>
+          <div className="flex justify-end mt-6">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+            >
+              Fechar
+            </Button>
+          </div>
         );
 
       default:
