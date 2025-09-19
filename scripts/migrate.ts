@@ -10,14 +10,21 @@ async function runMigrations() {
     process.env.NODE_ENV = 'production';
   }
 
-  const dbUrl = process.env.PROD_DATABASE_URL || process.env.DATABASE_URL;
+  // Determinar qual variável de ambiente usar baseado no NODE_ENV
+  const isProduction = process.env.NODE_ENV === 'production';
+  const dbUrl = isProduction 
+    ? process.env.PROD_DATABASE_URL 
+    : process.env.DEV_DATABASE_URL || process.env.DATABASE_URL;
   
   if (!dbUrl) {
-    console.error('❌ Erro: DATABASE_URL não está definida!');
-    console.log('Configure a variável de ambiente DATABASE_URL com a string de conexão do seu banco PostgreSQL de produção.');
+    const envVar = isProduction ? 'PROD_DATABASE_URL' : 'DEV_DATABASE_URL';
+    console.error(`❌ Erro: ${envVar} não está definida!`);
+    console.log(`Configure a variável de ambiente ${envVar} com a string de conexão do seu banco PostgreSQL para ${isProduction ? 'produção' : 'desenvolvimento'}.`);
     console.log('Exemplo: DATABASE_URL="postgresql://user:password@host:5432/database"');
-    throw new Error('PROD_DATABASE_URL ou DATABASE_URL deve estar definida');
+    throw new Error(`${envVar} deve estar definida`);
   }
+  
+  console.log(`🚀 Executando migrações no ambiente: ${isProduction ? 'PRODUÇÃO' : 'DESENVOLVIMENTO'}`);
 
   console.log('🔗 URL do banco:', dbUrl.replace(/:[^:]*@/, ':***@')); // Oculta a senha no log
 

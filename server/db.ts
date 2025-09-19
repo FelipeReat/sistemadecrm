@@ -6,24 +6,30 @@ import * as schema from "@shared/schema";
 
 // SEMPRE usar PostgreSQL (tanto desenvolvimento quanto produção)
 function createDatabase() {
-  const databaseUrl = process.env.DATABASE_URL;
+  // Determinar qual variável de ambiente usar baseado no NODE_ENV
+  const isProduction = process.env.NODE_ENV === 'production';
+  const databaseUrl = isProduction 
+    ? process.env.PROD_DATABASE_URL 
+    : process.env.DEV_DATABASE_URL || process.env.DATABASE_URL;
   
   if (!databaseUrl) {
-    throw new Error("DATABASE_URL must be set. Configure your PostgreSQL connection string.");
+    const envVar = isProduction ? 'PROD_DATABASE_URL' : 'DEV_DATABASE_URL';
+    throw new Error(`${envVar} must be set. Configure your PostgreSQL connection string for ${isProduction ? 'production' : 'development'} environment.`);
   }
+  
+  console.log(`🔗 Conectando ao PostgreSQL (${isProduction ? 'PRODUÇÃO' : 'DESENVOLVIMENTO'})...`);
+  console.log(`📍 Host: ${new URL(databaseUrl).hostname}`);
 
-  // Add SSL configuration for managed PostgreSQL databases
-  const ssl = !/localhost|127\.0\.0\.1/.test(databaseUrl) ? 'require' : false;
+  // Configuração SSL consistente com pg-pool.ts
+  // Em desenvolvimento, desabilita SSL se DISABLE_SSL=true
+  const sslConfig = process.env.DISABLE_SSL === 'true' ? false : undefined;
   
   const sql = postgres(databaseUrl, {
     max: 10,
     connect_timeout: 30,
-    ssl: ssl === 'require' ? {
-      rejectUnauthorized: false,
-      requestCert: false,
-      agent: false,
-      checkServerIdentity: () => undefined
-    } : false
+    idle_timeout: 20,
+    max_lifetime: 60 * 30, // 30 minutos
+    ssl: sslConfig
   });
   
   return {

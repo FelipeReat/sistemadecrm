@@ -84,8 +84,8 @@ Error: self-signed certificate in certificate chain
 
 ## 🗄️ Banco de dados
 
-- **Desenvolvimento:** SQLite (`dev.db`)
-- **Produção:** PostgreSQL (AWS RDS)
+- **Desenvolvimento:** PostgreSQL (usando DEV_DATABASE_URL)
+- **Produção:** PostgreSQL (usando PROD_DATABASE_URL)
 
 ## 🔐 Configurações de ambiente
 

@@ -1,0 +1,127 @@
+5:18:25 PM [express] GET /api/users/salespeople 200 in 373ms :: [{"id":"bb5ca36c-7b79-4a13-842f-8429…
+Error getting opportunities: PostgresError: coluna "visit_date" não existe
+    at ErrorResponse (file:///C:/Projetos/Locador/crm/sistemadecrm/node_modules/.pnpm/postgres@3.4.7/node_modules/postgres/src/connection.js:794:26)
+    at handle (file:///C:/Projetos/Locador/crm/sistemadecrm/node_modules/.pnpm/postgres@3.4.7/node_modules/postgres/src/connection.js:480:6)
+    at Socket.data (file:///C:/Projetos/Locador/crm/sistemadecrm/node_modules/.pnpm/postgres@3.4.7/node_modules/postgres/src/connection.js:315:9)
+    at Socket.emit (node:events:519:28)
+    at addChunk (node:internal/streams/readable:559:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:510:3)
+    at Readable.push (node:internal/streams/readable:390:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:191:23) {
+  severity_local: 'ERRO',
+  severity: 'ERROR',
+  code: '42703',
+  position: '255',
+  file: 'parse_relation.c',
+  line: '3721',
+  routine: 'errorMissingColumn'
+}
+Error getting opportunities: PostgresError: coluna "visit_date" não existe
+    at ErrorResponse (file:///C:/Projetos/Locador/crm/sistemadecrm/node_modules/.pnpm/postgres@3.4.7/node_modules/postgres/src/connection.js:794:26)
+    at handle (file:///C:/Projetos/Locador/crm/sistemadecrm/node_modules/.pnpm/postgres@3.4.7/node_modules/postgres/src/connection.js:480:6)
+    at Socket.data (file:///C:/Projetos/Locador/crm/sistemadecrm/node_modules/.pnpm/postgres@3.4.7/node_modules/postgres/src/connection.js:315:9)
+    at Socket.emit (node:events:519:28)
+    at addChunk (node:internal/streams/readable:559:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:510:3)
+    at Readable.push (node:internal/streams/readable:390:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:191:23) {
+  severity_local: 'ERRO',
+  severity: 'ERROR',
+  code: '42703',
+  position: '255',
+  file: 'parse_relation.c',
+  line: '3721',
+  routine: 'errorMissingColumn'
+}
+5:18:25 PM [express] GET /api/opportunities 304 in 758ms :: []
+5:18:25 PM [express] GET /api/stats 304 in 761ms :: {"totalOpportunities":0,"wonOpportunities":0,"ac…
+🔍 Dados recebidos para criação: {
+  "contact": "i6u7ri76i76ri76ri7",
+  "cpf": "746.760.832-20",
+  "company": "Não informado",
+  "cnpj": null,
+  "phone": "(92) 99179-3742",
+  "hasRegistration": false,
+  "proposalOrigin": "SDR",
+  "businessTemperature": "morno",
+  "needCategory": "Plataformas Elevatórias",
+  "clientNeeds": "oi8foiku8yfkuyf",
+  "phase": "prospeccao",
+  "documents": [],
+  "createdBy": "Administrador"
+}
+📋 Preservando campo contact: i6u7ri76i76ri76ri7
+📋 Preservando campo company: Não informado
+📋 Preservando campo phone: (92) 99179-3742
+📋 Preservando campo needCategory: Plataformas Elevatórias
+📋 Preservando campo clientNeeds: oi8foiku8yfkuyf
+📋 Preservando campo businessTemperature: morno
+✅ Dados validados: {
+  "contact": "i6u7ri76i76ri76ri7",
+  "cpf": "74676083220",
+  "company": "Não informado",
+  "cnpj": null,
+  "phone": "92991793742",
+  "hasRegistration": false,
+  "proposalOrigin": "SDR",
+  "businessTemperature": "morno",
+  "needCategory": "Plataformas Elevatórias",
+  "clientNeeds": "oi8foiku8yfkuyf",
+  "documents": [],
+  "opportunityNumber": null,
+  "salesperson": null,
+  "requiresVisit": false,
+  "statement": null,
+  "visitSchedule": null,
+  "visitDate": null,
+  "visitPhotos": [],
+  "discount": null,
+  "discountDescription": null,
+  "validityDate": null,
+  "budgetNumber": null,
+  "budget": null,
+  "status": null,
+  "finalValue": null,
+  "negotiationInfo": null,
+  "contract": null,
+  "invoiceNumber": null,
+  "lossReason": null,
+  "lossObservation": null,
+  "phase": "prospeccao",
+  "createdBy": "Administrador"
+}
+Error creating opportunity: PostgresError: coluna "visit_date" da relação "opportunities" não existe
+    at ErrorResponse (file:///C:/Projetos/Locador/crm/sistemadecrm/node_modules/.pnpm/postgres@3.4.7/node_modules/postgres/src/connection.js:794:26)
+    at handle (file:///C:/Projetos/Locador/crm/sistemadecrm/node_modules/.pnpm/postgres@3.4.7/node_modules/postgres/src/connection.js:480:6)
+    at Socket.data (file:///C:/Projetos/Locador/crm/sistemadecrm/node_modules/.pnpm/postgres@3.4.7/node_modules/postgres/src/connection.js:315:9)
+    at Socket.emit (node:events:519:28)
+    at addChunk (node:internal/streams/readable:559:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:510:3)
+    at Readable.push (node:internal/streams/readable:390:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:191:23) {
+  severity_local: 'ERRO',
+  severity: 'ERROR',
+  code: '42703',
+  position: '277',
+  file: 'parse_target.c',
+  line: '1070',
+  routine: 'checkInsertTargets'
+}
+❌ Erro na criação da oportunidade: PostgresError: coluna "visit_date" da relação "opportunities" não existe
+    at ErrorResponse (file:///C:/Projetos/Locador/crm/sistemadecrm/node_modules/.pnpm/postgres@3.4.7/node_modules/postgres/src/connection.js:794:26)
+    at handle (file:///C:/Projetos/Locador/crm/sistemadecrm/node_modules/.pnpm/postgres@3.4.7/node_modules/postgres/src/connection.js:480:6)
+    at Socket.data (file:///C:/Projetos/Locador/crm/sistemadecrm/node_modules/.pnpm/postgres@3.4.7/node_modules/postgres/src/connection.js:315:9)
+    at Socket.emit (node:events:519:28)
+    at addChunk (node:internal/streams/readable:559:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:510:3)
+    at Readable.push (node:internal/streams/readable:390:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:191:23) {
+  severity_local: 'ERRO',
+  severity: 'ERROR',
+  code: '42703',
+  position: '277',
+  file: 'parse_target.c',
+  line: '1070',
+  routine: 'checkInsertTargets'
+}
+5:18:43 PM [express] POST /api/opportunities 500 in 675ms :: {"message":"Erro ao criar oportunidade"}
