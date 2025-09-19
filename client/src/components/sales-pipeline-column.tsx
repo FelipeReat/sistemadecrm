@@ -309,14 +309,14 @@ export default function SalesPipelineColumn({ phase, opportunities, isLoading, o
 
   return (
     <div
-      className="flex-shrink-0 w-80"
+      className="flex-shrink-0 w-80 h-full"
       onDragOver={handleDragOver}
       onDrop={handleDrop}
       data-testid={`column-${phase.key}`}
     >
-      <div className={`${phase.bgColor} rounded-lg ${phase.borderColor} border shadow-sm`}>
+      <div className={`${phase.bgColor} rounded-lg ${phase.borderColor} border shadow-sm h-full flex flex-col`}>
         {/* Header */}
-        <div className={`p-4 border-b ${phase.borderColor}`}>
+        <div className={`p-4 border-b ${phase.borderColor} flex-shrink-0`}>
           <div className="flex items-center justify-between">
             <div className="flex items-center">
               {renderIcon()}
@@ -344,7 +344,7 @@ export default function SalesPipelineColumn({ phase, opportunities, isLoading, o
         </div>
 
         {/* Opportunity Cards */}
-        <div className="p-4 space-y-3" data-testid={`opportunities-${phase.key}`}>
+        <div className="p-4 space-y-3 flex-1 overflow-y-auto" data-testid={`opportunities-${phase.key}`}>
           {isLoading ? (
             <div className="space-y-3">
               {[1, 2].map((i) => (
@@ -372,13 +372,13 @@ export default function SalesPipelineColumn({ phase, opportunities, isLoading, o
 
         {/* Success/Loss Messages */}
         {phase.successMessage && (
-          <div className={`p-4 border-t ${phase.borderColor}`}>
+          <div className={`p-4 border-t ${phase.borderColor} flex-shrink-0`}>
             <p className="text-sm text-white dark:text-white text-center opacity-90">{phase.successMessage}</p>
           </div>
         )}
 
         {phase.lossMessage && (
-          <div className={`p-4 border-t ${phase.borderColor}`}>
+          <div className={`p-4 border-t ${phase.borderColor} flex-shrink-0`}>
             <p className="text-sm text-white dark:text-white text-center opacity-90">{phase.lossMessage}</p>
           </div>
         )}

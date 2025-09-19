@@ -519,8 +519,8 @@ export default function CrmDashboard() {
         </div>
 
         {/* Sales Funnel Pipeline */}
-        <div className="overflow-x-auto" data-testid="sales-pipeline">
-          <div className="flex space-x-4 pb-4 min-w-max">
+        <div className="overflow-x-auto overflow-y-hidden" data-testid="sales-pipeline">
+          <div className="flex space-x-4 pb-4 min-w-max h-[calc(100vh-420px)]">
             {phaseConfig.map((phase) => (
               <SalesPipelineColumn
                 key={phase.key}
