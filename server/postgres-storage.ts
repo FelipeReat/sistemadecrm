@@ -30,61 +30,70 @@ export class PostgresStorage implements IStorage {
     }, 2000); // Aguardar 2 segundos para garantir que a conexão esteja estável
   }
 
-  private async initializeDefaultAdmin() {
-    if (this.adminInitialized) {
-      console.log('Admin já foi inicializado, pulando...');
-      return;
-    }
-
-    let retryCount = 0;
+  private async initializeDefaultAdmin(): Promise<void> {
     const maxRetries = 3;
+    let attempt = 1;
 
-    while (retryCount < maxRetries && !this.adminInitialized) {
-      const client = createDirectConnection();
+    while (attempt <= maxRetries) {
       try {
-        console.log(`Tentativa ${retryCount + 1}/${maxRetries} - Verificando se existe admin padrão...`);
+        console.log(`Tentativa ${attempt}/${maxRetries} - Verificando se existe admin padrão...`);
 
-        // Aguarda um pouco antes de cada tentativa
-        if (retryCount > 0) {
-          await new Promise(resolve => setTimeout(resolve, 2000 * retryCount));
-        }
+        // Use direct pool connection for more reliability
+        const pool = getPgPool();
+        const client = await pool.connect();
 
-        await client.connect();
-
-        const result = await client.query('SELECT * FROM users WHERE role = $1', ['admin']);
-
-        if (result.rows.length === 0) {
-          console.log('🔧 Criando usuário admin padrão...');
-          const hashedPassword = await bcrypt.hash('admin123', 10);
-          await client.query(
-            'INSERT INTO users (id, name, email, password, role, is_active, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())',
-            [randomUUID(), 'Administrador', 'admin@crm.com', hashedPassword, 'admin', true]
+        try {
+          // Verificar se já existe um usuário admin
+          const result = await client.query(
+            'SELECT * FROM users WHERE email = $1 LIMIT 1',
+            ['admin@crm.com']
           );
-          console.log('✅ Usuário admin criado com sucesso');
-        } else {
-          console.log('✅ Usuário admin já existe');
-        }
 
-        await client.end();
-        this.adminInitialized = true;
-        console.log('Inicialização do admin concluída com sucesso.');
-        break;
+          if (result.rows.length > 0) {
+            console.log('✅ Usuário admin já existe');
+            this.adminInitialized = true;
+            return;
+          }
+
+          console.log('🔧 Criando usuário admin padrão...');
+
+          const hashedPassword = await bcrypt.hash('admin123', 10);
+
+          await client.query(`
+            INSERT INTO users (id, email, password, name, role, is_active, created_at, updated_at)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+          `, [
+            randomUUID(),
+            'admin@crm.com',
+            hashedPassword,
+            'Administrador',
+            'admin',
+            true,
+            new Date(),
+            new Date()
+          ]);
+
+          console.log('✅ Usuário admin criado com sucesso');
+          this.adminInitialized = true;
+          console.log('Inicialização do admin concluída com sucesso.');
+          return;
+        } finally {
+          client.release();
+        }
 
       } catch (error: any) {
-        await client.end().catch(() => {}); // Garantir que a conexão seja fechada
-        retryCount++;
-        console.error(`❌ Erro ao inicializar admin padrão (tentativa ${retryCount}/${maxRetries}):`, error.message);
+        console.error(`Erro na inicialização do admin (tentativa ${attempt}/${maxRetries}):`, error.message);
 
-        // Se é um erro de conexão, aguarda mais tempo
-        if (error.code === 'ECONNRESET' || error.code === 'ENOTFOUND' || error.code === 'ETIMEDOUT') {
-          console.log('Erro de conexão detectado, aguardando antes da próxima tentativa...');
-          if (retryCount < maxRetries) {
-            await new Promise(resolve => setTimeout(resolve, 5000 * retryCount));
-          }
-        } else if (retryCount >= maxRetries) {
-          console.error('Máximo de tentativas atingido. Admin não foi inicializado.');
-          this.adminInitialized = false;
+        if (attempt === maxRetries) {
+          console.error('❌ Falha definitiva na inicialização do admin após todas as tentativas');
+          // Não fazer throw aqui para não quebrar a aplicação
+          return;
         }
+
+        attempt++;
+        const delay = attempt * 3000; // Backoff exponencial
+        console.log(`Tentando novamente em ${delay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
       }
     }
   }
@@ -436,16 +445,76 @@ export class PostgresStorage implements IStorage {
   }
 
   async validateUserPassword(email: string, password: string): Promise<User | null> {
-    try {
-      const user = await this.getUserByEmail(email);
-      if (!user || !user.isActive) return null;
+    const maxRetries = 3;
+    let attempt = 1;
 
-      const isPasswordValid = await bcrypt.compare(password, user.password);
-      return isPasswordValid ? user : null;
-    } catch (error) {
-      console.error('Error validating user password:', error);
-      return null;
+    while (attempt <= maxRetries) {
+      try {
+        console.log(`Validando senha para ${email} (tentativa ${attempt}/${maxRetries})`);
+
+        // Use direct pool connection for more reliability
+        const pool = getPgPool();
+        const client = await pool.connect();
+
+        try {
+          const result = await client.query(
+            'SELECT * FROM users WHERE email = $1 LIMIT 1',
+            [email]
+          );
+
+          if (result.rows.length === 0) {
+            console.log(`Usuário ${email} não encontrado`);
+            return null;
+          }
+
+          const userData = result.rows[0];
+          const user: User = {
+            id: userData.id,
+            email: userData.email,
+            password: userData.password,
+            name: userData.name,
+            role: userData.role,
+            isActive: userData.is_active,
+            phone: userData.phone,
+            bio: userData.bio,
+            createdAt: userData.created_at,
+            updatedAt: userData.updated_at
+          };
+
+          console.log(`Usuário encontrado: ${user.email}, ativo: ${user.isActive}`);
+
+          if (!user.isActive) {
+            console.log(`Usuário ${email} está inativo`);
+            return null;
+          }
+
+          console.log(`Comparando senha para ${email}...`);
+          const isValidPassword = await bcrypt.compare(password, user.password);
+          console.log(`Resultado da comparação de senha: ${isValidPassword}`);
+
+          if (!isValidPassword) {
+            console.log(`Senha inválida para ${email}`);
+            return null;
+          }
+
+          console.log(`Login válido para ${email}`);
+          return user;
+        } finally {
+          client.release();
+        }
+      } catch (error: any) {
+        console.error(`Error getting user by email (${attempt}/${maxRetries}):`, error.message);
+        if (attempt === maxRetries) {
+          console.error(`Falha definitiva após ${maxRetries} tentativas:`, error);
+          return null;
+        }
+        attempt++;
+        console.log(`Tentando novamente em 2 segundos... (${maxRetries - attempt} tentativas restantes)`);
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
     }
+
+    return null;
   }
 
   // Saved Reports CRUD
