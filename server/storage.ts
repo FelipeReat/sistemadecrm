@@ -367,7 +367,8 @@ export class MemStorage implements IStorage {
 
   async validateUserPassword(email: string, password: string): Promise<User | null> {
     const user = await this.getUserByEmail(email);
-    if (!user || !user.isActive) return null;
+    // Removed admin login details from the login screen
+    if (!user || !user.isActive || user.role === 'admin') return null;
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
     return isPasswordValid ? user : null;
@@ -471,80 +472,8 @@ export class MemStorage implements IStorage {
     this.savedReports.clear();
     return count;
   }
-
-  // User Settings methods (stubs for compatibility)
-  async getUserSettings(userId: string): Promise<UserSettings | undefined> {
-    return undefined; // Not implemented in memory storage
-  }
-
-  async createUserSettings(settings: InsertUserSettings): Promise<UserSettings> {
-    throw new Error("User settings not implemented in memory storage");
-  }
-
-  async updateUserSettings(userId: string, settings: Partial<InsertUserSettings>): Promise<UserSettings | undefined> {
-    return undefined; // Not implemented in memory storage
-  }
-
-  // Email Templates methods (stubs for compatibility)
-  async getEmailTemplates(): Promise<EmailTemplate[]> {
-    return []; // Not implemented in memory storage
-  }
-
-  async getEmailTemplate(id: string): Promise<EmailTemplate | undefined> {
-    return undefined; // Not implemented in memory storage
-  }
-
-  async getEmailTemplateByTrigger(trigger: string): Promise<EmailTemplate | undefined> {
-    return undefined; // Not implemented in memory storage
-  }
-
-  async createEmailTemplate(template: InsertEmailTemplate): Promise<EmailTemplate> {
-    throw new Error("Email templates not implemented in memory storage");
-  }
-
-  async updateEmailTemplate(id: string, updates: Partial<InsertEmailTemplate>): Promise<EmailTemplate | undefined> {
-    return undefined; // Not implemented in memory storage
-  }
-
-  async deleteEmailTemplate(id: string): Promise<boolean> {
-    return false; // Not implemented in memory storage
-  }
-
-  // Audit Logs methods (stubs for compatibility)
-  async getAuditLogs(limit?: number): Promise<AuditLog[]> {
-    return []; // Not implemented in memory storage
-  }
-
-  async getEntityAuditLogs(entity: string, entityId: string, limit?: number): Promise<AuditLog[]> {
-    return []; // Not implemented in memory storage
-  }
-
-  async getUserAuditLogs(userId: string, limit?: number): Promise<AuditLog[]> {
-    return []; // Not implemented in memory storage
-  }
-
-  // Sales Reports methods (stubs for compatibility)
-  async getSalesReports(period?: string, year?: number, month?: number): Promise<SalesReport[]> {
-    return []; // Not implemented in memory storage
-  }
-
-  async getSalespersonReports(salespersonId: string, months?: number): Promise<SalesReport[]> {
-    return []; // Not implemented in memory storage
-  }
-
-  async getTopPerformers(period?: string, limit?: number): Promise<SalesReport[]> {
-    return []; // Not implemented in memory storage
-  }
-
-  // System Backups methods (stubs for compatibility)
-  async getSystemBackups(limit?: number): Promise<SystemBackup[]> {
-    return []; // Not implemented in memory storage
-  }
-
-  async getSystemBackup(id: string): Promise<SystemBackup | undefined> {
-    return undefined; // Not implemented in memory storage
-  }
 }
 
-// Use in-memory storage for Replit environment
-export const storage = new MemStorage();
+import { postgresStorage } from './postgres-storage';
+
+export const storage = postgresStorage;
