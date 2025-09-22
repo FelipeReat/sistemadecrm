@@ -1127,6 +1127,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Clear all data endpoint - Admin only
+  app.delete("/api/admin/clear-all-data", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      console.log(`[ADMIN] Usuário ${req.session.user!.name} iniciando limpeza completa dos dados`);
+      
+      // Delete all opportunities
+      const deletedOpportunities = await storage.clearAllOpportunities();
+      console.log(`[ADMIN] ${deletedOpportunities} oportunidades removidas`);
+      
+      // Delete all automations
+      const deletedAutomations = await storage.clearAllAutomations();
+      console.log(`[ADMIN] ${deletedAutomations} automações removidas`);
+      
+      // Delete all saved reports
+      const deletedReports = await storage.clearAllSavedReports();
+      console.log(`[ADMIN] ${deletedReports} relatórios salvos removidos`);
+      
+      console.log(`[ADMIN] Limpeza completa finalizada por ${req.session.user!.name}`);
+      
+      res.json({ 
+        message: "Todos os dados foram removidos com sucesso",
+        summary: {
+          opportunities: deletedOpportunities,
+          automations: deletedAutomations,
+          savedReports: deletedReports
+        }
+      });
+    } catch (error: any) {
+      console.error("[ADMIN] Erro ao limpar dados:", error);
+      res.status(500).json({ message: "Erro ao limpar dados do sistema" });
+    }
+  });
+
   // Enhanced API routes for new features
 
   // User Settings

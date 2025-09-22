@@ -32,7 +32,8 @@ import {
   Upload,
   Trash2,
   LogOut,
-  X
+  X,
+  AlertTriangle
 } from "lucide-react";
 
 interface SettingsModalProps {
@@ -163,6 +164,25 @@ export default function SettingsModal({ open, onOpenChange }: SettingsModalProps
       toast({
         title: "Dados exportados",
         description: "O arquivo foi baixado com sucesso."
+      });
+    }
+  });
+
+  // Clear all data mutation - Admin only
+  const clearAllDataMutation = useMutation({
+    mutationFn: () => fetch("/api/admin/clear-all-data", { method: "DELETE" }).then(res => res.json()),
+    onSuccess: (data) => {
+      toast({
+        title: "Dados removidos",
+        description: `Todos os dados foram removidos: ${data.summary.opportunities} oportunidades, ${data.summary.automations} automações, ${data.summary.savedReports} relatórios.`
+      });
+      queryClient.clear();
+    },
+    onError: () => {
+      toast({
+        title: "Erro",
+        description: "Não foi possível limpar os dados.",
+        variant: "destructive"
       });
     }
   });
@@ -485,25 +505,40 @@ export default function SettingsModal({ open, onOpenChange }: SettingsModalProps
 
                 <Separator />
 
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2">
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                    <h4 className="font-medium text-destructive">Zona de Perigo</h4>
+                {currentUser?.role === 'admin' && (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                      <h4 className="font-medium text-destructive">Zona de Perigo</h4>
+                    </div>
+                    <Card className="border-destructive/20">
+                      <CardContent className="pt-6">
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <AlertTriangle className="h-4 w-4 text-destructive" />
+                            <h5 className="font-medium">Limpar todos os dados</h5>
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            Esta ação irá remover permanentemente TODAS as oportunidades, automações e relatórios do sistema. Esta ação não pode ser desfeita.
+                          </p>
+                          <Button 
+                            variant="destructive" 
+                            size="sm" 
+                            onClick={() => {
+                              if (window.confirm("⚠️ ATENÇÃO: Esta ação irá remover TODOS os dados do sistema permanentemente!\n\nTem certeza que deseja continuar? Esta ação NÃO pode ser desfeita.")) {
+                                clearAllDataMutation.mutate();
+                              }
+                            }}
+                            disabled={clearAllDataMutation.isPending}
+                            data-testid="button-clear-data"
+                          >
+                            {clearAllDataMutation.isPending ? "Limpando..." : "Limpar Dados"}
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
                   </div>
-                  <Card className="border-destructive/20">
-                    <CardContent className="pt-6">
-                      <div className="space-y-2">
-                        <h5 className="font-medium">Limpar todos os dados</h5>
-                        <p className="text-sm text-muted-foreground">
-                          Esta ação irá remover permanentemente todas as oportunidades. Esta ação não pode ser desfeita.
-                        </p>
-                        <Button variant="destructive" size="sm" disabled data-testid="button-clear-data">
-                          Limpar Dados
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>

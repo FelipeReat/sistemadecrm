@@ -1,4 +1,4 @@
-import { type Opportunity, type InsertOpportunity, type Automation, type InsertAutomation, type User, type InsertUser, type UpdateUser, type SavedReport, type InsertSavedReport, type UpdateSavedReport, type UserSettings, type InsertUserSettings, type EmailTemplate, type InsertEmailTemplate, type AuditLog, type SalesReport, type SystemBackup } from "@shared/schema";
+import { type Opportunity, type InsertOpportunity, type Automation, type InsertAutomation, type User, type InsertUser, type UpdateUser, type SavedReport, type InsertSavedReport, type UserSettings, type InsertUserSettings, type EmailTemplate, type InsertEmailTemplate, type AuditLog, type SalesReport, type SystemBackup } from "@shared/schema";
 import { db } from './db';
 import { opportunities, automations, users, savedReports, userSettings, emailTemplates, auditLogs, salesReports, systemBackups, emailLogs } from '@shared/schema';
 import { eq, desc, and, count, sum } from 'drizzle-orm';
@@ -9,12 +9,12 @@ import { getPgPool, createDirectConnection } from "./pg-pool";
 
 export class PostgresStorage implements IStorage {
   private adminInitialized = false;
-  
+
   constructor() {
     // Inicializar admin de forma assíncrona e segura
     this.safeInitializeDefaultAdmin();
   }
-  
+
   private safeInitializeDefaultAdmin() {
     // Usar setTimeout para evitar bloquear o construtor
     setTimeout(async () => {
@@ -29,7 +29,7 @@ export class PostgresStorage implements IStorage {
       }
     }, 2000); // Aguardar 2 segundos para garantir que a conexão esteja estável
   }
-  
+
   private async initializeDefaultAdmin() {
     if (this.adminInitialized) {
       console.log('Admin já foi inicializado, pulando...');
@@ -38,21 +38,21 @@ export class PostgresStorage implements IStorage {
 
     let retryCount = 0;
     const maxRetries = 3;
-    
+
     while (retryCount < maxRetries && !this.adminInitialized) {
       const client = createDirectConnection();
       try {
         console.log(`Tentativa ${retryCount + 1}/${maxRetries} - Verificando se existe admin padrão...`);
-        
+
         // Aguarda um pouco antes de cada tentativa
         if (retryCount > 0) {
           await new Promise(resolve => setTimeout(resolve, 2000 * retryCount));
         }
-        
+
         await client.connect();
-        
+
         const result = await client.query('SELECT * FROM users WHERE role = $1', ['admin']);
-        
+
         if (result.rows.length === 0) {
           console.log('🔧 Criando usuário admin padrão...');
           const hashedPassword = await bcrypt.hash('admin123', 10);
@@ -64,17 +64,17 @@ export class PostgresStorage implements IStorage {
         } else {
           console.log('✅ Usuário admin já existe');
         }
-        
+
         await client.end();
         this.adminInitialized = true;
         console.log('Inicialização do admin concluída com sucesso.');
         break;
-        
+
       } catch (error: any) {
         await client.end().catch(() => {}); // Garantir que a conexão seja fechada
         retryCount++;
         console.error(`❌ Erro ao inicializar admin padrão (tentativa ${retryCount}/${maxRetries}):`, error.message);
-        
+
         // Se é um erro de conexão, aguarda mais tempo
         if (error.code === 'ECONNRESET' || error.code === 'ENOTFOUND' || error.code === 'ETIMEDOUT') {
           console.log('Erro de conexão detectado, aguardando antes da próxima tentativa...');
@@ -109,7 +109,7 @@ export class PostgresStorage implements IStorage {
         .from(opportunities)
         .where(eq(opportunities.id, id))
         .limit(1);
-      
+
       return result[0] || undefined;
     } catch (error) {
       console.error('Error getting opportunity:', error);
@@ -121,7 +121,7 @@ export class PostgresStorage implements IStorage {
     try {
       const id = randomUUID();
       const now = new Date();
-      
+
       const opportunity: Opportunity = { 
         id,
         createdAt: now,
@@ -133,30 +133,30 @@ export class PostgresStorage implements IStorage {
         phone: insertOpportunity.phone || null,
         cpf: insertOpportunity.cpf || null,
         cnpj: insertOpportunity.cnpj || null,
-        
+
         // Business details
         hasRegistration: insertOpportunity.hasRegistration || false,
         proposalOrigin: insertOpportunity.proposalOrigin || null,
         businessTemperature: insertOpportunity.businessTemperature || 'morno',
         needCategory: insertOpportunity.needCategory || null,
         clientNeeds: insertOpportunity.clientNeeds || null,
-        
+
         // Documents
         documents: insertOpportunity.documents ? 
           insertOpportunity.documents.map(doc => 
             typeof doc === 'string' ? doc : JSON.stringify(doc)
           ) : null,
-        
+
         // Phase and workflow
         phase: insertOpportunity.phase || 'prospeccao',
         createdBy: insertOpportunity.createdBy || 'system',
-        
+
         // Prospection phase data
         opportunityNumber: insertOpportunity.opportunityNumber || null,
         salesperson: insertOpportunity.salesperson || null,
         requiresVisit: insertOpportunity.requiresVisit || false,
         statement: insertOpportunity.statement || null,
-        
+
         // Visit technical data
         visitSchedule: insertOpportunity.visitSchedule || null,
         visitDate: insertOpportunity.visitDate || null,
@@ -164,14 +164,14 @@ export class PostgresStorage implements IStorage {
           insertOpportunity.visitPhotos.map(photo => 
             typeof photo === 'string' ? photo : JSON.stringify(photo)
           ) : null,
-        
+
         // Proposal data
         discount: insertOpportunity.discount || null,
         discountDescription: insertOpportunity.discountDescription || null,
         validityDate: insertOpportunity.validityDate ? new Date(insertOpportunity.validityDate) : null,
         budgetNumber: insertOpportunity.budgetNumber || null,
         budget: insertOpportunity.budget || null,
-        
+
         // Negotiation data
         status: insertOpportunity.status || null,
         finalValue: insertOpportunity.finalValue || null,
@@ -181,12 +181,12 @@ export class PostgresStorage implements IStorage {
         lossReason: insertOpportunity.lossReason || null,
         lossObservation: insertOpportunity.lossObservation || null,
       };
-      
+
       const result = await db
         .insert(opportunities)
         .values(opportunity)
         .returning();
-      
+
       return result[0];
     } catch (error) {
       console.error('Error creating opportunity:', error);
@@ -198,20 +198,20 @@ export class PostgresStorage implements IStorage {
     try {
       const existing = await this.getOpportunity(id);
       if (!existing) return undefined;
-      
+
       // Preservar dados existentes e aplicar atualizações
       const updatedData = {
         ...updates,
         updatedAt: new Date(),
         phaseUpdatedAt: updates.phase && updates.phase !== existing.phase ? new Date() : existing.phaseUpdatedAt
       };
-      
+
       const result = await db
         .update(opportunities)
         .set(updatedData)
         .where(eq(opportunities.id, id))
         .returning();
-      
+
       return result[0] || undefined;
     } catch (error) {
       console.error('Error updating opportunity:', error);
@@ -224,7 +224,7 @@ export class PostgresStorage implements IStorage {
       const result = await db
         .delete(opportunities)
         .where(eq(opportunities.id, id));
-      
+
       return result.rowCount > 0;
     } catch (error) {
       console.error('Error deleting opportunity:', error);
@@ -283,12 +283,12 @@ export class PostgresStorage implements IStorage {
         id,
         createdAt: new Date()
       };
-      
+
       const result = await db
         .insert(automations)
         .values(automation)
         .returning();
-      
+
       return result[0];
     } catch (error) {
       console.error('Error creating automation:', error);
@@ -301,7 +301,7 @@ export class PostgresStorage implements IStorage {
       const result = await db
         .delete(automations)
         .where(eq(automations.id, id));
-      
+
       return result.rowCount > 0;
     } catch (error) {
       console.error('Error deleting automation:', error);
@@ -329,7 +329,7 @@ export class PostgresStorage implements IStorage {
         .from(users)
         .where(eq(users.id, id))
         .limit(1);
-      
+
       return result[0] || undefined;
     } catch (error) {
       console.error('Error getting user:', error);
@@ -346,12 +346,12 @@ export class PostgresStorage implements IStorage {
           .from(users)
           .where(eq(users.email, email))
           .limit(1);
-        
+
         return result[0] || undefined;
       } catch (error: any) {
         retries--;
         console.error(`Error getting user by email (${3 - retries}/3):`, error?.message || error);
-        
+
         if (retries > 0 && (error?.code === 'ECONNRESET' || error?.code === 'ENOTFOUND' || error?.code === 'ETIMEDOUT')) {
           console.log(`Tentando novamente em 1 segundo... (${retries} tentativas restantes)`);
           await new Promise(resolve => setTimeout(resolve, 1000));
@@ -368,7 +368,7 @@ export class PostgresStorage implements IStorage {
       const id = randomUUID();
       const now = new Date();
       const hashedPassword = await bcrypt.hash(insertUser.password, 10);
-      
+
       const user: User = {
         id,
         email: insertUser.email,
@@ -381,12 +381,12 @@ export class PostgresStorage implements IStorage {
         createdAt: now,
         updatedAt: now,
       };
-      
+
       const result = await db
         .insert(users)
         .values(user)
         .returning();
-      
+
       return result[0];
     } catch (error) {
       console.error('Error creating user:', error);
@@ -401,20 +401,20 @@ export class PostgresStorage implements IStorage {
         password: updates.password ? await bcrypt.hash(updates.password, 10) : undefined,
         updatedAt: new Date()
       };
-      
+
       // Remove undefined values
       Object.keys(updatedData).forEach(key => {
         if (updatedData[key] === undefined) {
           delete updatedData[key];
         }
       });
-      
+
       const result = await db
         .update(users)
         .set(updatedData)
         .where(eq(users.id, id))
         .returning();
-      
+
       return result[0] || undefined;
     } catch (error) {
       console.error('Error updating user:', error);
@@ -427,7 +427,7 @@ export class PostgresStorage implements IStorage {
       const result = await db
         .delete(users)
         .where(eq(users.id, id));
-      
+
       return result.rowCount > 0;
     } catch (error) {
       console.error('Error deleting user:', error);
@@ -439,7 +439,7 @@ export class PostgresStorage implements IStorage {
     try {
       const user = await this.getUserByEmail(email);
       if (!user || !user.isActive) return null;
-      
+
       const isPasswordValid = await bcrypt.compare(password, user.password);
       return isPasswordValid ? user : null;
     } catch (error) {
@@ -468,7 +468,7 @@ export class PostgresStorage implements IStorage {
         .from(savedReports)
         .where(eq(savedReports.id, id))
         .limit(1);
-      
+
       return result[0] || undefined;
     } catch (error) {
       console.error('Error getting saved report:', error);
@@ -508,7 +508,7 @@ export class PostgresStorage implements IStorage {
     try {
       const id = randomUUID();
       const now = new Date();
-      
+
       const report: SavedReport = {
         id,
         name: insertReport.name,
@@ -525,12 +525,12 @@ export class PostgresStorage implements IStorage {
         createdAt: now,
         updatedAt: now,
       };
-      
+
       const result = await db
         .insert(savedReports)
         .values(report)
         .returning();
-      
+
       return result[0];
     } catch (error) {
       console.error('Error creating saved report:', error);
@@ -544,13 +544,13 @@ export class PostgresStorage implements IStorage {
         ...updates,
         updatedAt: new Date()
       };
-      
+
       const result = await db
         .update(savedReports)
         .set(updatedData)
         .where(eq(savedReports.id, id))
         .returning();
-      
+
       return result[0] || undefined;
     } catch (error) {
       console.error('Error updating saved report:', error);
@@ -563,7 +563,7 @@ export class PostgresStorage implements IStorage {
       const result = await db
         .delete(savedReports)
         .where(eq(savedReports.id, id));
-      
+
       return result.rowCount > 0;
     } catch (error) {
       console.error('Error deleting saved report:', error);
@@ -571,23 +571,30 @@ export class PostgresStorage implements IStorage {
     }
   }
 
-  async updateReportLastGenerated(id: string): Promise<SavedReport | undefined> {
-    try {
-      const result = await db
-        .update(savedReports)
-        .set({
-          lastGenerated: new Date(),
-          updatedAt: new Date()
-        })
-        .where(eq(savedReports.id, id))
-        .returning();
-      
-      return result[0] || undefined;
-    } catch (error) {
-      console.error('Error updating report last generated:', error);
-      return undefined;
-    }
+  async updateReportLastGenerated(id: string): Promise<SavedReport | null> {
+    const [updated] = await this.db
+      .update(savedReports)
+      .set({ lastGenerated: new Date().toISOString() })
+      .where(eq(savedReports.id, id))
+      .returning();
+    return updated || null;
   }
+
+  async clearAllOpportunities(): Promise<number> {
+    const result = await this.db.delete(opportunities);
+    return result.rowCount || 0;
+  }
+
+  async clearAllAutomations(): Promise<number> {
+    const result = await this.db.delete(automations);
+    return result.rowCount || 0;
+  }
+
+  async clearAllSavedReports(): Promise<number> {
+    const result = await this.db.delete(savedReports);
+    return result.rowCount || 0;
+  }
+
 
   // User Settings CRUD
   async getUserSettings(userId: string): Promise<UserSettings | undefined> {
@@ -597,7 +604,7 @@ export class PostgresStorage implements IStorage {
         .from(userSettings)
         .where(eq(userSettings.userId, userId))
         .limit(1);
-      
+
       return result[0] || undefined;
     } catch (error) {
       console.error('Error getting user settings:', error);
@@ -611,7 +618,7 @@ export class PostgresStorage implements IStorage {
         .insert(userSettings)
         .values(settings)
         .returning();
-      
+
       return result[0];
     } catch (error) {
       console.error('Error creating user settings:', error);
@@ -626,7 +633,7 @@ export class PostgresStorage implements IStorage {
         .set(updates)
         .where(eq(userSettings.userId, userId))
         .returning();
-      
+
       return result[0] || undefined;
     } catch (error) {
       console.error('Error updating user settings:', error);
@@ -654,7 +661,7 @@ export class PostgresStorage implements IStorage {
         .from(emailTemplates)
         .where(eq(emailTemplates.id, id))
         .limit(1);
-      
+
       return result[0] || undefined;
     } catch (error) {
       console.error('Error getting email template:', error);
@@ -672,7 +679,7 @@ export class PostgresStorage implements IStorage {
           eq(emailTemplates.active, true)
         ))
         .limit(1);
-      
+
       return result[0] || undefined;
     } catch (error) {
       console.error('Error getting email template by trigger:', error);
@@ -686,7 +693,7 @@ export class PostgresStorage implements IStorage {
         .insert(emailTemplates)
         .values(template)
         .returning();
-      
+
       return result[0];
     } catch (error) {
       console.error('Error creating email template:', error);
@@ -701,7 +708,7 @@ export class PostgresStorage implements IStorage {
         .set(updates)
         .where(eq(emailTemplates.id, id))
         .returning();
-      
+
       return result[0] || undefined;
     } catch (error) {
       console.error('Error updating email template:', error);
@@ -714,7 +721,7 @@ export class PostgresStorage implements IStorage {
       const result = await db
         .delete(emailTemplates)
         .where(eq(emailTemplates.id, id));
-      
+
       return result.rowCount > 0;
     } catch (error) {
       console.error('Error deleting email template:', error);
@@ -771,16 +778,16 @@ export class PostgresStorage implements IStorage {
   async getSalesReports(period?: string, year?: number, month?: number): Promise<SalesReport[]> {
     try {
       let query = db.select().from(salesReports);
-      
+
       const conditions = [];
       if (period) conditions.push(eq(salesReports.period, period));
       if (year) conditions.push(eq(salesReports.year, year));
       if (month) conditions.push(eq(salesReports.month, month));
-      
+
       if (conditions.length > 0) {
         query = query.where(and(...conditions));
       }
-      
+
       return await query.orderBy(desc(salesReports.generatedAt));
     } catch (error) {
       console.error('Error getting sales reports:', error);
@@ -850,7 +857,7 @@ export class PostgresStorage implements IStorage {
         .from(systemBackups)
         .where(eq(systemBackups.id, id))
         .limit(1);
-      
+
       return result[0] || undefined;
     } catch (error) {
       console.error('Error getting system backup:', error);

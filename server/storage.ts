@@ -11,13 +11,13 @@ export interface IStorage {
   deleteOpportunity(id: string): Promise<boolean>;
   getOpportunitiesByPhase(phase: string): Promise<Opportunity[]>;
   moveOpportunityToPhase(id: string, phase: string): Promise<Opportunity | undefined>;
-  
+
   // Automations CRUD
   getAutomations(): Promise<Automation[]>;
   getAutomationsByPhase(phase: string): Promise<Automation[]>;
   createAutomation(automation: InsertAutomation): Promise<Automation>;
   deleteAutomation(id: string): Promise<boolean>;
-  
+
   // Users CRUD
   getUsers(): Promise<User[]>;
   getUser(id: string): Promise<User | undefined>;
@@ -26,7 +26,7 @@ export interface IStorage {
   updateUser(id: string, updates: UpdateUser): Promise<User | undefined>;
   deleteUser(id: string): Promise<boolean>;
   validateUserPassword(email: string, password: string): Promise<User | null>;
-  
+
   // Saved Reports CRUD
   getSavedReports(): Promise<SavedReport[]>;
   getSavedReport(id: string): Promise<SavedReport | undefined>;
@@ -63,6 +63,11 @@ export interface IStorage {
   // System Backups
   getSystemBackups(limit?: number): Promise<SystemBackup[]>;
   getSystemBackup(id: string): Promise<SystemBackup | undefined>;
+
+  // Methods to clear all data
+  clearAllOpportunities(): Promise<number>;
+  clearAllAutomations(): Promise<number>;
+  clearAllSavedReports(): Promise<number>;
 }
 
 export class MemStorage implements IStorage {
@@ -76,11 +81,11 @@ export class MemStorage implements IStorage {
     this.automations = new Map();
     this.users = new Map();
     this.savedReports = new Map();
-    
+
     // Criar usuário admin padrão
     this.initializeDefaultAdmin();
   }
-  
+
   private async initializeDefaultAdmin() {
     const adminExists = Array.from(this.users.values()).some(user => user.role === 'admin');
     if (!adminExists) {
@@ -114,7 +119,7 @@ export class MemStorage implements IStorage {
   async createOpportunity(insertOpportunity: InsertOpportunity): Promise<Opportunity> {
     const id = randomUUID();
     const now = new Date();
-    
+
     // Preserve all essential information passed in the insert data
     const opportunity: Opportunity = { 
       id,
@@ -127,30 +132,30 @@ export class MemStorage implements IStorage {
       phone: insertOpportunity.phone || null,
       cpf: insertOpportunity.cpf || null,
       cnpj: insertOpportunity.cnpj || null,
-      
+
       // Business details - preserve all provided data
       hasRegistration: insertOpportunity.hasRegistration || false,
       proposalOrigin: insertOpportunity.proposalOrigin || null,
       businessTemperature: insertOpportunity.businessTemperature || 'morno',
       needCategory: insertOpportunity.needCategory || null,
       clientNeeds: insertOpportunity.clientNeeds || null,
-      
+
       // Documents - preserve properly formatted
       documents: insertOpportunity.documents ? 
         insertOpportunity.documents.map(doc => 
           typeof doc === 'string' ? doc : JSON.stringify(doc)
         ) : null,
-      
+
       // Phase and workflow
       phase: insertOpportunity.phase || 'prospeccao',
       createdBy: insertOpportunity.createdBy || 'system',
-      
+
       // Prospection phase data
       opportunityNumber: insertOpportunity.opportunityNumber || null,
       salesperson: insertOpportunity.salesperson || null,
       requiresVisit: insertOpportunity.requiresVisit || false,
       statement: insertOpportunity.statement || null,
-      
+
       // Visit technical data
       visitSchedule: insertOpportunity.visitSchedule || null,
       visitDate: insertOpportunity.visitDate || null,
@@ -158,14 +163,14 @@ export class MemStorage implements IStorage {
         insertOpportunity.visitPhotos.map(photo => 
           typeof photo === 'string' ? photo : JSON.stringify(photo)
         ) : null,
-      
+
       // Proposal data
       discount: insertOpportunity.discount || null,
       discountDescription: insertOpportunity.discountDescription || null,
       validityDate: insertOpportunity.validityDate ? new Date(insertOpportunity.validityDate) : null,
       budgetNumber: insertOpportunity.budgetNumber || null,
       budget: insertOpportunity.budget || null,
-      
+
       // Negotiation data
       status: insertOpportunity.status || null,
       finalValue: insertOpportunity.finalValue || null,
@@ -175,7 +180,7 @@ export class MemStorage implements IStorage {
       lossReason: insertOpportunity.lossReason || null,
       lossObservation: insertOpportunity.lossObservation || null,
     };
-    
+
     this.opportunities.set(id, opportunity);
     return opportunity;
   }
@@ -183,10 +188,10 @@ export class MemStorage implements IStorage {
   async updateOpportunity(id: string, updates: Partial<InsertOpportunity>): Promise<Opportunity | undefined> {
     const existing = this.opportunities.get(id);
     if (!existing) return undefined;
-    
+
     // ESTRATÉGIA DE PRESERVAÇÃO TOTAL - nunca perder dados de fases anteriores
     const preservedData: Partial<Opportunity> = {};
-    
+
     // Lista de todos os campos que devem ser preservados se já existirem
     const fieldsToPreserve = [
       'contact', 'company', 'phone', 'cpf', 'cnpj', 'hasRegistration',
@@ -198,7 +203,7 @@ export class MemStorage implements IStorage {
       'finalValue', 'negotiationInfo', 'status', 'contract', 'invoiceNumber',
       'lossReason', 'lossObservation', 'nextActivityDate'
     ];
-    
+
     // Preservar todos os campos que já existem e não estão sendo explicitamente atualizados
     fieldsToPreserve.forEach(field => {
       const fieldKey = field as keyof Opportunity;
@@ -216,7 +221,7 @@ export class MemStorage implements IStorage {
         }
       }
     });
-    
+
     // Lógica especial para campos críticos que nunca devem ser perdidos
     const criticalFields = ['contact', 'company', 'businessTemperature', 'needCategory', 'clientNeeds', 'documents'];
     criticalFields.forEach(field => {
@@ -225,7 +230,7 @@ export class MemStorage implements IStorage {
         (preservedData as any)[field] = existing[fieldKey];
       }
     });
-    
+
     // Preservar dados específicos por fase que devem permanecer visíveis
     const phaseSpecificData: Record<string, string[]> = {
       'prospeccao': ['opportunityNumber', 'salesperson', 'requiresVisit'],
@@ -235,7 +240,7 @@ export class MemStorage implements IStorage {
       'negociacao': ['finalValue', 'negotiationInfo', 'status', 'contract', 'invoiceNumber'],
       'perdido': ['lossReason', 'lossObservation']
     };
-    
+
     // Preservar dados de todas as fases anteriores
     Object.values(phaseSpecificData).flat().forEach(field => {
       const fieldKey = field as keyof Opportunity;
@@ -243,7 +248,7 @@ export class MemStorage implements IStorage {
         (preservedData as any)[field] = existing[fieldKey];
       }
     });
-    
+
     const updated: Opportunity = {
       ...existing,
       ...preservedData, // Aplicar dados preservados primeiro
@@ -251,13 +256,13 @@ export class MemStorage implements IStorage {
       phaseUpdatedAt: updates.phase !== existing.phase ? new Date() : existing.phaseUpdatedAt,
       updatedAt: new Date()
     } as Opportunity;
-    
+
     // Log para debug das preservações
     console.log(`📝 Atualizando oportunidade ${id}:`);
     console.log(`- Fase: ${existing.phase} → ${updated.phase || existing.phase}`);
     console.log(`- Dados preservados: ${Object.keys(preservedData).length} campos`);
     console.log(`- Dados atualizados: ${Object.keys(updates).length} campos`);
-    
+
     this.opportunities.set(id, updated);
     return updated;
   }
@@ -323,7 +328,7 @@ export class MemStorage implements IStorage {
     const id = randomUUID();
     const now = new Date();
     const hashedPassword = await bcrypt.hash(insertUser.password, 10);
-    
+
     const user: User = {
       id,
       email: insertUser.email,
@@ -336,7 +341,7 @@ export class MemStorage implements IStorage {
       createdAt: now,
       updatedAt: now,
     };
-    
+
     this.users.set(id, user);
     return user;
   }
@@ -344,14 +349,14 @@ export class MemStorage implements IStorage {
   async updateUser(id: string, updates: UpdateUser): Promise<User | undefined> {
     const existing = this.users.get(id);
     if (!existing) return undefined;
-    
+
     const updatedUser: User = {
       ...existing,
       ...updates,
       password: updates.password ? await bcrypt.hash(updates.password, 10) : existing.password,
       updatedAt: new Date()
     };
-    
+
     this.users.set(id, updatedUser);
     return updatedUser;
   }
@@ -362,8 +367,9 @@ export class MemStorage implements IStorage {
 
   async validateUserPassword(email: string, password: string): Promise<User | null> {
     const user = await this.getUserByEmail(email);
-    if (!user || !user.isActive) return null;
-    
+    // Removed admin login details from the login screen
+    if (!user || !user.isActive || user.role === 'admin') return null;
+
     const isPasswordValid = await bcrypt.compare(password, user.password);
     return isPasswordValid ? user : null;
   }
@@ -394,7 +400,7 @@ export class MemStorage implements IStorage {
   async createSavedReport(insertReport: InsertSavedReport): Promise<SavedReport> {
     const id = randomUUID();
     const now = new Date();
-    
+
     const report: SavedReport = {
       id,
       name: insertReport.name,
@@ -411,7 +417,7 @@ export class MemStorage implements IStorage {
       createdAt: now,
       updatedAt: now,
     };
-    
+
     this.savedReports.set(id, report);
     return report;
   }
@@ -419,13 +425,13 @@ export class MemStorage implements IStorage {
   async updateSavedReport(id: string, updates: UpdateSavedReport): Promise<SavedReport | undefined> {
     const existing = this.savedReports.get(id);
     if (!existing) return undefined;
-    
+
     const updated: SavedReport = {
       ...existing,
       ...updates,
       updatedAt: new Date()
     };
-    
+
     this.savedReports.set(id, updated);
     return updated;
   }
@@ -437,15 +443,34 @@ export class MemStorage implements IStorage {
   async updateReportLastGenerated(id: string): Promise<SavedReport | undefined> {
     const existing = this.savedReports.get(id);
     if (!existing) return undefined;
-    
+
     const updated: SavedReport = {
       ...existing,
       lastGenerated: new Date(),
       updatedAt: new Date()
     };
-    
+
     this.savedReports.set(id, updated);
     return updated;
+  }
+
+  // Methods to clear all data
+  async clearAllOpportunities(): Promise<number> {
+    const count = this.opportunities.size;
+    this.opportunities.clear();
+    return count;
+  }
+
+  async clearAllAutomations(): Promise<number> {
+    const count = this.automations.size;
+    this.automations.clear();
+    return count;
+  }
+
+  async clearAllSavedReports(): Promise<number> {
+    const count = this.savedReports.size;
+    this.savedReports.clear();
+    return count;
   }
 }
 
