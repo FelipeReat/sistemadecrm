@@ -150,12 +150,7 @@ export default function Login() {
             </p>
           </div>
           
-          {/* Informações de login padrão - pode ser removido em produção */}
-          <div className="mt-4 text-center">
-            <p className="text-xs text-muted-foreground">
-              Usuário: <strong>admin@crm.com</strong> | Senha: <strong>admin123</strong>
-            </p>
-          </div>
+          
         </CardContent>
       </Card>
     </div>
