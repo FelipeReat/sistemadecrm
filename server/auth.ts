@@ -1,9 +1,8 @@
 import session from "express-session";
 import type { Express, RequestHandler } from "express";
-import connectPg from "connect-pg-simple";
+import MemoryStore from "memorystore";
 import { storage } from "./storage";
 import type { User } from "@shared/schema";
-import { getPgPool } from './pg-pool';
 
 declare module 'express-session' {
   interface SessionData {
@@ -15,13 +14,11 @@ declare module 'express-session' {
 
 export function getSession() {
   const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
-  const pgStore = connectPg(session);
+  const MemStore = MemoryStore(session);
 
-  const sessionStore = new pgStore({
-    pool: getPgPool(),
-    createTableIfMissing: true,
+  const sessionStore = new MemStore({
+    checkPeriod: 86400000, // prune expired entries every 24h
     ttl: sessionTtl,
-    tableName: "sessions",
   });
 
   return session({

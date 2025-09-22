@@ -1,11 +1,12 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { dbOperations } from "./db-storage";
-import { emailService } from "./email-service";
-import { auditService } from "./audit-service";
-import { backupService } from "./backup-service";
-import { schedulerService } from "./scheduler";
+// import { dbOperations } from "./db-storage"; // Disabled for memory storage
+// Disabled database-dependent services for memory storage
+// import { emailService } from "./email-service";
+// import { auditService } from "./audit-service";
+// import { backupService } from "./backup-service";
+// import { schedulerService } from "./scheduler";
 import { insertOpportunitySchema, insertAutomationSchema, insertUserSchema, updateUserSchema, loginSchema, insertSavedReportSchema, updateSavedReportSchema, insertUserSettingsSchema, insertEmailTemplateSchema } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import { getSession, isAuthenticated, isAdmin, isManagerOrAdmin, canEditAllOpportunities, canViewReports } from "./auth";
@@ -1165,7 +1166,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // User Settings
   app.get("/api/user/settings", isAuthenticated, async (req, res) => {
     try {
-      const settings = await dbOperations.getUserSettings(req.session.userId!);
+      const settings = await storage.getUserSettings(req.session.userId!);
       res.json(settings || {
         emailNotifications: true,
         smsNotifications: false,
@@ -1181,7 +1182,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put("/api/user/settings", isAuthenticated, async (req, res) => {
     try {
-      const settings = await dbOperations.updateUserSettings(req.session.userId!, req.body);
+      const settings = await storage.updateUserSettings(req.session.userId!, req.body);
       res.json(settings);
     } catch (error) {
       res.status(500).json({ message: "Erro ao atualizar configurações" });
@@ -1191,7 +1192,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Manual backup
   app.post("/api/backup/create", isAuthenticated, isAdmin, async (req, res) => {
     try {
-      const success = await backupService.createDatabaseBackup('manual');
+      // const success = await backupService.createDatabaseBackup('manual');
+      const success = false; // Backup disabled for memory storage
       if (success) {
         res.json({ message: "Backup criado com sucesso" });
       } else {
@@ -1205,12 +1207,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Excel export
   app.get("/api/export/excel", isAuthenticated, async (req, res) => {
     try {
-      const filepath = await backupService.createDataExport('excel');
-      if (filepath) {
-        res.download(filepath, 'crm-export.xlsx');
-      } else {
-        res.status(500).json({ message: "Falha ao criar exportação" });
-      }
+      // const filepath = await backupService.createDataExport('excel');
+      // Excel export disabled for memory storage
+      res.status(500).json({ message: "Exportação Excel não disponível no modo de memória" });
     } catch (error) {
       res.status(500).json({ message: "Erro ao criar exportação" });
     }
