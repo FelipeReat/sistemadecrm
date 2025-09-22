@@ -54,13 +54,11 @@
     "@radix-ui/react-tooltip": "^1.2.0",
     "@tanstack/react-query": "^5.60.5",
     "@types/bcryptjs": "^2.4.6",
-
     "@types/memoizee": "^0.4.12",
     "@types/multer": "^2.0.0",
     "@types/nodemailer": "^7.0.1",
     "@types/twilio": "^3.19.2",
     "bcryptjs": "^3.0.2",
-
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
@@ -86,6 +84,7 @@
     "openid-client": "^6.6.4",
     "passport": "^0.7.0",
     "passport-local": "^1.0.0",
+    "pg": "^8.16.3",
     "postgres": "^3.4.7",
     "react": "^18.3.1",
     "react-day-picker": "^8.10.1",

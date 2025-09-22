@@ -14,14 +14,22 @@ export function getPgPool() {
   // Configuração SSL baseada no ambiente e suporte do servidor
   let sslConfig;
   if (process.env.NODE_ENV === 'production') {
-    sslConfig = { 
-      rejectUnauthorized: true,
-      // Permite certificados auto-assinados apenas se explicitamente configurado
-      ...(process.env.ALLOW_SELF_SIGNED_CERTS === 'true' && { rejectUnauthorized: false })
-    };
+    // Em produção, SEMPRE usar SSL
+    if (process.env.ALLOW_SELF_SIGNED_CERTS === 'true') {
+      sslConfig = { 
+        rejectUnauthorized: false,
+        requestCert: true,
+        agent: false
+      };
+    } else {
+      sslConfig = { 
+        rejectUnauthorized: true,
+        requestCert: true
+      };
+    }
   } else {
     // Em desenvolvimento, desabilita SSL se o servidor não suportar
-    sslConfig = process.env.DISABLE_SSL === 'true' ? false : undefined;
+    sslConfig = process.env.DISABLE_SSL === 'true' ? false : { rejectUnauthorized: false };
   }
 
   return new Pool({
@@ -54,14 +62,22 @@ export function createDirectConnection() {
   // Configuração SSL baseada no ambiente e suporte do servidor
   let sslConfig;
   if (process.env.NODE_ENV === 'production') {
-    sslConfig = { 
-      rejectUnauthorized: true,
-      // Permite certificados auto-assinados apenas se explicitamente configurado
-      ...(process.env.ALLOW_SELF_SIGNED_CERTS === 'true' && { rejectUnauthorized: false })
-    };
+    // Em produção, SEMPRE usar SSL
+    if (process.env.ALLOW_SELF_SIGNED_CERTS === 'true') {
+      sslConfig = { 
+        rejectUnauthorized: false,
+        requestCert: true,
+        agent: false
+      };
+    } else {
+      sslConfig = { 
+        rejectUnauthorized: true,
+        requestCert: true
+      };
+    }
   } else {
     // Em desenvolvimento, desabilita SSL se o servidor não suportar
-    sslConfig = process.env.DISABLE_SSL === 'true' ? false : undefined;
+    sslConfig = process.env.DISABLE_SSL === 'true' ? false : { rejectUnauthorized: false };
   }
 
   return new Client({

@@ -21,8 +21,24 @@ function createDatabase() {
   console.log(`📍 Host: ${new URL(databaseUrl).hostname}`);
 
   // Configuração SSL consistente com pg-pool.ts
-  // Em desenvolvimento, desabilita SSL se DISABLE_SSL=true
-  const sslConfig = process.env.DISABLE_SSL === 'true' ? false : undefined;
+  let sslConfig;
+  if (isProduction) {
+    // Em produção, SEMPRE usar SSL
+    if (process.env.ALLOW_SELF_SIGNED_CERTS === 'true') {
+      sslConfig = { 
+        rejectUnauthorized: false,
+        requestCert: true
+      };
+    } else {
+      sslConfig = { 
+        rejectUnauthorized: true,
+        requestCert: true
+      };
+    }
+  } else {
+    // Em desenvolvimento, desabilita SSL se DISABLE_SSL=true
+    sslConfig = process.env.DISABLE_SSL === 'true' ? false : { rejectUnauthorized: false };
+  }
   
   const sql = postgres(databaseUrl, {
     max: 10,
