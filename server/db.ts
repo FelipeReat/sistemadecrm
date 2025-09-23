@@ -36,8 +36,8 @@ function createDatabase() {
       };
     }
   } else {
-    // Em desenvolvimento, desabilita SSL se DISABLE_SSL=true
-    sslConfig = process.env.DISABLE_SSL === 'true' ? false : { rejectUnauthorized: false };
+    // Em desenvolvimento, desabilitar SSL por padrão
+    sslConfig = false;
   }
   
   const sql = postgres(databaseUrl, {

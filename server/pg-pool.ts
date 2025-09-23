@@ -28,11 +28,8 @@ export function getPgPool() {
       };
     }
   } else {
-    // Em desenvolvimento, desabilita SSL se o servidor não suportar
-    sslConfig =
-      process.env.DISABLE_SSL === "true"
-        ? false
-        : { rejectUnauthorized: false };
+    // Em desenvolvimento, desabilitar SSL por padrão
+    sslConfig = false;
   }
 
   return new Pool({
@@ -78,11 +75,8 @@ export function createDirectConnection() {
       };
     }
   } else {
-    // Em desenvolvimento, desabilita SSL se o servidor não suportar
-    sslConfig =
-      process.env.DISABLE_SSL === "true"
-        ? false
-        : { rejectUnauthorized: false };
+    // Em desenvolvimento, desabilitar SSL por padrão
+    sslConfig = false;
   }
 
   return new Client({
