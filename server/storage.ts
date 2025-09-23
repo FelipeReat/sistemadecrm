@@ -39,6 +39,7 @@ export interface IStorage {
 
   // User Settings CRUD
   getUserSettings(userId: string): Promise<UserSettings | undefined>;
+  getSystemSettings(): Promise<{ settingKey: string; settingValue: string }[]>;
   createUserSettings(settings: InsertUserSettings): Promise<UserSettings>;
   updateUserSettings(userId: string, settings: Partial<InsertUserSettings>): Promise<UserSettings | undefined>;
 

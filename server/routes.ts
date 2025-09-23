@@ -293,8 +293,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Check if this is an imported card and if editing is allowed
       if (existingOpportunity.isImported) {
-        const editingSetting = await storage.getUserSettings('system');
-        const allowEditing = editingSetting?.find(s => s.settingKey === 'allow_imported_card_editing')?.settingValue === 'true';
+        const systemSettings = await storage.getSystemSettings();
+        const allowEditing = systemSettings.find(s => s.settingKey === 'allow_imported_card_editing')?.settingValue === 'true';
         
         if (!allowEditing) {
           return res.status(403).json({ message: "Edição de cards importados não está permitida" });
@@ -474,8 +474,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Check if this is an imported card and if deletion is allowed
       if (existingOpportunity.isImported) {
-        const deletionSetting = await storage.getUserSettings('system');
-        const allowDeletion = deletionSetting?.find(s => s.settingKey === 'allow_imported_card_deletion')?.settingValue === 'true';
+        const systemSettings = await storage.getSystemSettings();
+        const allowDeletion = systemSettings.find(s => s.settingKey === 'allow_imported_card_deletion')?.settingValue === 'true';
         
         if (!allowDeletion) {
           return res.status(403).json({ message: "Exclusão de cards importados não está permitida" });

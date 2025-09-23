@@ -617,6 +617,21 @@ export class PostgresStorage implements IStorage {
     }
   }
 
+  // System Settings - temporary method to handle system configurations
+  async getSystemSettings(): Promise<{ settingKey: string; settingValue: string }[]> {
+    try {
+      // For now, return hardcoded system settings that allow editing and deletion of imported cards
+      return [
+        { settingKey: 'allow_imported_card_editing', settingValue: 'true' },
+        { settingKey: 'allow_imported_card_deletion', settingValue: 'true' },
+        { settingKey: 'imported_card_audit_enabled', settingValue: 'true' }
+      ];
+    } catch (error) {
+      console.error('Error getting system settings:', error);
+      return [];
+    }
+  }
+
   async createUserSettings(settings: InsertUserSettings): Promise<UserSettings> {
     try {
       const result = await db
