@@ -51,6 +51,11 @@ export const opportunities = pgTable("opportunities", {
   // Auditoria
   createdBy: text("created_by").notNull(),
 
+  // Import tracking fields
+  isImported: boolean("is_imported").default(false),
+  importBatchId: text("import_batch_id"),
+  importSource: text("import_source"),
+
   // Timestamps
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
   updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
@@ -235,6 +240,17 @@ export const insertOpportunitySchema = createInsertSchema(opportunities, {
 
   // Auditoria
   createdBy: z.string().min(1, "Criado por é obrigatório"),
+
+  // Import tracking fields
+  isImported: z.boolean().optional().default(false),
+  importBatchId: z.string().optional().nullable().transform(val => {
+    if (!val || val.trim() === '') return null;
+    return val.trim();
+  }),
+  importSource: z.string().optional().nullable().transform(val => {
+    if (!val || val.trim() === '') return null;
+    return val.trim();
+  }),
 
   // Timestamps
   createdAt: z.string().optional(),

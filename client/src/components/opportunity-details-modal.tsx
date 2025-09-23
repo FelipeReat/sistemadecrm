@@ -30,6 +30,7 @@ import { FileUpload } from "@/components/ui/file-upload";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useReportsSync } from "@/hooks/useReportsSync";
+import { useAuth } from "@/hooks/useAuth";
 import type { Opportunity } from "@shared/schema";
 import { masks } from "@/lib/masks";
 import { formatters } from "@/lib/formatters";
@@ -115,6 +116,7 @@ export default function OpportunityDetailsModal({
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { invalidateAllData } = useReportsSync();
+  const { user } = useAuth();
 
   // Query para buscar usuários que podem ser vendedores
   const { data: salespeople, isLoading: isLoadingSalespeople } = useQuery({
@@ -348,8 +350,47 @@ export default function OpportunityDetailsModal({
     return currentIndex < phaseOrder.length - 1 ? phaseOrder[currentIndex + 1] : null;
   };
 
+  // Check if user can edit/delete imported cards
+  const canEditImportedCard = (opportunity: Opportunity): boolean => {
+    if (!opportunity?.isImported || !user) return true; // Non-imported cards or no user context
+    
+    const userRole = user.role;
+    const isAssignedSalesperson = opportunity.salesperson === user.name;
+    
+    // Managers and admins can always edit imported cards
+    if (userRole === 'gerente' || userRole === 'admin') {
+      return true;
+    }
+    
+    // Salespeople can only edit if they are assigned to the opportunity
+    if (userRole === 'vendedor' && isAssignedSalesperson) {
+      return true;
+    }
+    
+    return false;
+  };
+
+  const canDeleteImportedCard = (opportunity: Opportunity): boolean => {
+    if (!opportunity?.isImported || !user) return true; // Non-imported cards or no user context
+    
+    const userRole = user.role;
+    
+    // Only managers and admins can delete imported cards
+    return userRole === 'gerente' || userRole === 'admin';
+  };
+
   const handleDelete = () => {
     if (!opportunity) return;
+
+    // Check permissions for imported cards
+    if (opportunity.isImported && !canDeleteImportedCard(opportunity)) {
+      toast({
+        title: "Acesso negado",
+        description: "Você não tem permissão para excluir cards importados. Apenas gerentes e administradores podem excluir cards importados.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     const confirmed = window.confirm(
       `Tem certeza que deseja excluir a oportunidade da empresa "${opportunity.company}"? Esta ação não pode ser desfeita.`
@@ -363,6 +404,16 @@ export default function OpportunityDetailsModal({
 
   const handleSubmit = async (data: any) => {
     if (!opportunity) return;
+
+    // Check permissions for imported cards
+    if (opportunity.isImported && !canEditImportedCard(opportunity)) {
+      toast({
+        title: "Acesso negado",
+        description: "Você não tem permissão para editar este card importado. Apenas gerentes, administradores ou o vendedor responsável podem editar cards importados.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setIsSubmitting(true);
 
@@ -548,9 +599,9 @@ export default function OpportunityDetailsModal({
                   type="button"
                   variant="destructive"
                   onClick={handleDelete}
-                  disabled={isSubmitting || deleteOpportunityMutation.isPending}
+                  disabled={isSubmitting || deleteOpportunityMutation.isPending || (opportunity?.isImported && !canDeleteImportedCard(opportunity))}
                   data-testid="button-delete-opportunity"
-                  title="Excluir oportunidade"
+                  title={opportunity?.isImported && !canDeleteImportedCard(opportunity) ? "Você não tem permissão para excluir cards importados" : "Excluir oportunidade"}
                   aria-label="Excluir oportunidade"
                   className="text-red-600 bg-red-50 hover:bg-red-100 border-red-200 hover:border-red-300"
                 >
@@ -615,9 +666,9 @@ export default function OpportunityDetailsModal({
                   type="button"
                   variant="destructive"
                   onClick={handleDelete}
-                  disabled={isSubmitting || deleteOpportunityMutation.isPending}
+                  disabled={isSubmitting || deleteOpportunityMutation.isPending || (opportunity?.isImported && !canDeleteImportedCard(opportunity))}
                   data-testid="button-delete-opportunity"
-                  title="Excluir oportunidade"
+                  title={opportunity?.isImported && !canDeleteImportedCard(opportunity) ? "Você não tem permissão para excluir cards importados" : "Excluir oportunidade"}
                   aria-label="Excluir oportunidade"
                   className="text-red-600 bg-red-50 hover:bg-red-100 border-red-200 hover:border-red-300"
                 >
@@ -634,8 +685,9 @@ export default function OpportunityDetailsModal({
                   </Button>
                   <Button
                     type="submit"
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || (opportunity?.isImported && !canEditImportedCard(opportunity))}
                     className="bg-blue-600 hover:bg-blue-700"
+                    title={opportunity?.isImported && !canEditImportedCard(opportunity) ? "Você não tem permissão para editar cards importados" : undefined}
                   >
                     {isSubmitting ? "Salvando..." : "Salvar"}
                   </Button>
@@ -758,9 +810,9 @@ export default function OpportunityDetailsModal({
                   type="button"
                   variant="destructive"
                   onClick={handleDelete}
-                  disabled={isSubmitting || deleteOpportunityMutation.isPending}
+                  disabled={isSubmitting || deleteOpportunityMutation.isPending || (opportunity?.isImported && !canDeleteImportedCard(opportunity))}
                   data-testid="button-delete-opportunity"
-                  title="Excluir oportunidade"
+                  title={opportunity?.isImported && !canDeleteImportedCard(opportunity) ? "Você não tem permissão para excluir cards importados" : "Excluir oportunidade"}
                   aria-label="Excluir oportunidade"
                   className="text-red-600 bg-red-50 hover:bg-red-100 border-red-200 hover:border-red-300"
                 >
@@ -777,8 +829,9 @@ export default function OpportunityDetailsModal({
                   </Button>
                   <Button
                     type="submit"
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || (opportunity?.isImported && !canEditImportedCard(opportunity))}
                     className="bg-blue-600 hover:bg-blue-700"
+                    title={opportunity?.isImported && !canEditImportedCard(opportunity) ? "Você não tem permissão para editar cards importados" : undefined}
                   >
                     {isSubmitting ? "Salvando..." : "Salvar"}
                   </Button>
@@ -981,9 +1034,9 @@ export default function OpportunityDetailsModal({
                   type="button"
                   variant="destructive"
                   onClick={handleDelete}
-                  disabled={isSubmitting || deleteOpportunityMutation.isPending}
+                  disabled={isSubmitting || deleteOpportunityMutation.isPending || (opportunity?.isImported && !canDeleteImportedCard(opportunity))}
                   data-testid="button-delete-opportunity"
-                  title="Excluir oportunidade"
+                  title={opportunity?.isImported && !canDeleteImportedCard(opportunity) ? "Você não tem permissão para excluir cards importados" : "Excluir oportunidade"}
                   aria-label="Excluir oportunidade"
                   className="text-red-600 bg-red-50 hover:bg-red-100 border-red-200 hover:border-red-300"
                 >
@@ -1000,8 +1053,9 @@ export default function OpportunityDetailsModal({
                   </Button>
                   <Button
                     type="submit"
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || (opportunity?.isImported && !canEditImportedCard(opportunity))}
                     className="bg-blue-600 hover:bg-blue-700"
+                    title={opportunity?.isImported && !canEditImportedCard(opportunity) ? "Você não tem permissão para editar cards importados" : undefined}
                   >
                     {isSubmitting ? "Salvando..." : "Salvar"}
                   </Button>
@@ -1147,9 +1201,9 @@ export default function OpportunityDetailsModal({
                   type="button"
                   variant="destructive"
                   onClick={handleDelete}
-                  disabled={isSubmitting || deleteOpportunityMutation.isPending}
+                  disabled={isSubmitting || deleteOpportunityMutation.isPending || (opportunity?.isImported && !canDeleteImportedCard(opportunity))}
                   data-testid="button-delete-opportunity"
-                  title="Excluir oportunidade"
+                  title={opportunity?.isImported && !canDeleteImportedCard(opportunity) ? "Você não tem permissão para excluir cards importados" : "Excluir oportunidade"}
                   aria-label="Excluir oportunidade"
                   className="text-red-600 bg-red-50 hover:bg-red-100 border-red-200 hover:border-red-300"
                 >
@@ -1166,8 +1220,9 @@ export default function OpportunityDetailsModal({
                   </Button>
                   <Button
                     type="submit"
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || (opportunity?.isImported && !canEditImportedCard(opportunity))}
                     className="bg-blue-600 hover:bg-blue-700"
+                    title={opportunity?.isImported && !canEditImportedCard(opportunity) ? "Você não tem permissão para editar cards importados" : undefined}
                   >
                     {isSubmitting ? "Salvando..." : "Salvar"}
                   </Button>

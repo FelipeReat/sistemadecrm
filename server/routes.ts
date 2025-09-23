@@ -291,15 +291,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Oportunidade não encontrada" });
       }
 
-      // Usuários comuns só podem editar suas próprias oportunidades
-      if (req.session.user!.role === 'usuario') {
-        // Se a oportunidade foi criada por este usuário ou ainda não tem vendedor atribuído, pode editar
-        const canEdit = existingOpportunity.createdBy === req.session.user!.name || 
-                       existingOpportunity.salesperson === req.session.user!.name ||
-                       !existingOpportunity.salesperson;
+      // Check if this is an imported card and if editing is allowed
+      if (existingOpportunity.isImported) {
+        const editingSetting = await storage.getUserSettings('system');
+        const allowEditing = editingSetting?.find(s => s.settingKey === 'allow_imported_card_editing')?.settingValue === 'true';
+        
+        if (!allowEditing) {
+          return res.status(403).json({ message: "Edição de cards importados não está permitida" });
+        }
 
-        if (!canEdit) {
-          return res.status(403).json({ message: "Você só pode editar suas próprias oportunidades" });
+        // For imported cards, only managers and admins can edit, unless user is the assigned salesperson
+        if (req.session.user!.role === 'usuario') {
+          const canEditImported = existingOpportunity.salesperson === req.session.user!.name;
+          if (!canEditImported) {
+            return res.status(403).json({ message: "Apenas gerentes, admins ou o vendedor responsável podem editar cards importados" });
+          }
+        }
+      } else {
+        // Usuários comuns só podem editar suas próprias oportunidades (non-imported)
+        if (req.session.user!.role === 'usuario') {
+          // Se a oportunidade foi criada por este usuário ou ainda não tem vendedor atribuído, pode editar
+          const canEdit = existingOpportunity.createdBy === req.session.user!.name || 
+                         existingOpportunity.salesperson === req.session.user!.name ||
+                         !existingOpportunity.salesperson;
+
+          if (!canEdit) {
+            return res.status(403).json({ message: "Você só pode editar suas próprias oportunidades" });
+          }
         }
       }
 
@@ -454,14 +472,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Oportunidade não encontrada" });
       }
 
-      // Usuários comuns só podem excluir suas próprias oportunidades
-      if (req.session.user!.role === 'usuario') {
-        // Se a oportunidade foi criada por este usuário ou ele é o vendedor responsável, pode excluir
-        const canDelete = existingOpportunity.createdBy === req.session.user!.name || 
-                         existingOpportunity.salesperson === req.session.user!.name;
+      // Check if this is an imported card and if deletion is allowed
+      if (existingOpportunity.isImported) {
+        const deletionSetting = await storage.getUserSettings('system');
+        const allowDeletion = deletionSetting?.find(s => s.settingKey === 'allow_imported_card_deletion')?.settingValue === 'true';
+        
+        if (!allowDeletion) {
+          return res.status(403).json({ message: "Exclusão de cards importados não está permitida" });
+        }
 
-        if (!canDelete) {
-          return res.status(403).json({ message: "Você só pode excluir suas próprias oportunidades" });
+        // For imported cards, only managers and admins can delete
+        if (req.session.user!.role === 'usuario') {
+          return res.status(403).json({ message: "Apenas gerentes e admins podem excluir cards importados" });
+        }
+      } else {
+        // Usuários comuns só podem excluir suas próprias oportunidades (non-imported)
+        if (req.session.user!.role === 'usuario') {
+          // Se a oportunidade foi criada por este usuário ou ele é o vendedor responsável, pode excluir
+          const canDelete = existingOpportunity.createdBy === req.session.user!.name || 
+                           existingOpportunity.salesperson === req.session.user!.name;
+
+          if (!canDelete) {
+            return res.status(403).json({ message: "Você só pode excluir suas próprias oportunidades" });
+          }
         }
       }
       // Gerentes e Admins podem excluir qualquer oportunidade (sem verificação adicional)
@@ -1630,7 +1663,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       documents: [],
       visitPhotos: [],
       phase: 'prospeccao', // Default phase (will be overridden if targetPhase is provided)
-      businessTemperature: 'morno' // Default temperature
+      businessTemperature: 'morno', // Default temperature
+      // Import tracking fields
+      isImported: true,
+      importBatchId: `batch_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      importSource: 'csv_upload'
     };
 
     // Process all field mappings first

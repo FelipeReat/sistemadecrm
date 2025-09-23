@@ -1,4 +1,4 @@
-import { User, Phone, Building, Calendar, FileText, DollarSign, MapPin, TriangleAlert, CheckCircle, AlertCircle } from "lucide-react";
+import { User, Phone, Building, Calendar, FileText, DollarSign, MapPin, TriangleAlert, CheckCircle, AlertCircle, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { formatDistanceToNow } from "date-fns";
@@ -104,6 +104,18 @@ export default function OpportunityCard({ opportunity, onViewDetails }: Opportun
     return null;
   };
 
+  const getImportedBadge = () => {
+    if (opportunity.isImported) {
+      return (
+        <Badge className="bg-purple-100 text-purple-800 text-xs font-medium flex items-center gap-1" title={`Importado via ${opportunity.importSource || 'CSV'} - Lote: ${opportunity.importBatchId || 'N/A'}`}>
+          <Download className="h-3 w-3" />
+          Importado
+        </Badge>
+      );
+    }
+    return null;
+  };
+
 
   return (
     <div
@@ -139,12 +151,11 @@ export default function OpportunityCard({ opportunity, onViewDetails }: Opportun
         </Button>
       </div>
 
-      {/* Badge de status */}
-      {getStatusBadge() && (
-        <div className="mb-3">
-          {getStatusBadge()}
-        </div>
-      )}
+      {/* Badges de status e importação */}
+      <div className="mb-3 flex flex-wrap gap-2">
+        {getStatusBadge()}
+        {getImportedBadge()}
+      </div>
 
       <div className="space-y-1 text-sm text-muted-foreground">
         {opportunity.phone && (

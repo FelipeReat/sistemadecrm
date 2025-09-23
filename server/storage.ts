@@ -179,6 +179,11 @@ export class MemStorage implements IStorage {
       invoiceNumber: insertOpportunity.invoiceNumber || null,
       lossReason: insertOpportunity.lossReason || null,
       lossObservation: insertOpportunity.lossObservation || null,
+
+      // Import tracking data
+      isImported: insertOpportunity.isImported || false,
+      importBatchId: insertOpportunity.importBatchId || null,
+      importSource: insertOpportunity.importSource || null,
     };
 
     this.opportunities.set(id, opportunity);
@@ -201,7 +206,8 @@ export class MemStorage implements IStorage {
       'visitSchedule', 'visitDate', 'visitDescription', 'visitRealization',
       'budget', 'budgetNumber', 'validityDate', 'discount', 'discountDescription',
       'finalValue', 'negotiationInfo', 'status', 'contract', 'invoiceNumber',
-      'lossReason', 'lossObservation', 'nextActivityDate'
+      'lossReason', 'lossObservation', 'nextActivityDate',
+      'isImported', 'importBatchId', 'importSource'
     ];
 
     // Preservar todos os campos que já existem e não estão sendo explicitamente atualizados
@@ -223,7 +229,7 @@ export class MemStorage implements IStorage {
     });
 
     // Lógica especial para campos críticos que nunca devem ser perdidos
-    const criticalFields = ['contact', 'company', 'businessTemperature', 'needCategory', 'clientNeeds', 'documents'];
+    const criticalFields = ['contact', 'company', 'businessTemperature', 'needCategory', 'clientNeeds', 'documents', 'isImported', 'importBatchId', 'importSource'];
     criticalFields.forEach(field => {
       const fieldKey = field as keyof Opportunity;
       if (existing[fieldKey] && (!updates.hasOwnProperty(field) || !updates[field as keyof typeof updates])) {

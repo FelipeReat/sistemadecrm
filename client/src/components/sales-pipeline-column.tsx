@@ -4,6 +4,7 @@ import OpportunityCard from "./opportunity-card";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useReportsSync } from "@/hooks/useReportsSync";
+import { useAuth } from "@/hooks/useAuth";
 import type { Opportunity } from "@shared/schema";
 import {
   AlertDialog,
@@ -164,9 +165,27 @@ export default function SalesPipelineColumn({ phase, opportunities, isLoading, o
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { invalidateAllData } = useReportsSync();
+  const { user } = useAuth();
   const [opportunityToDelete, setOpportunityToDelete] = useState<Opportunity | null>(null);
   const [lossReasonModalOpen, setLossReasonModalOpen] = useState(false);
   const [pendingLossData, setPendingLossData] = useState<{opportunityId: string; opportunity: Opportunity} | null>(null);
+
+  // Função para verificar se o usuário pode mover cards importados
+  const canMoveImportedCard = (opportunity: Opportunity): boolean => {
+    if (!opportunity.isImported || !user) return true;
+    
+    // Admin e gerente podem mover qualquer card importado
+    if (user.role === 'admin' || user.role === 'gerente') {
+      return true;
+    }
+    
+    // Vendedor só pode mover se for o vendedor responsável
+    if (user.role === 'vendedor') {
+      return opportunity.salesperson === user.name;
+    }
+    
+    return false;
+  };
 
   const moveOpportunityMutation = useMutation({
     mutationFn: ({ opportunityId, newPhase }: { opportunityId: string; newPhase: string }) =>
@@ -242,6 +261,16 @@ export default function SalesPipelineColumn({ phase, opportunities, isLoading, o
       try {
         const { opportunityId, opportunity } = JSON.parse(opportunityData);
 
+        // Verificar permissão para mover cards importados
+        if (!canMoveImportedCard(opportunity)) {
+          toast({
+            title: "Movimento não permitido",
+            description: "Você não tem permissão para mover este card importado. Apenas administradores, gerentes ou o vendedor responsável podem movê-lo.",
+            variant: "destructive",
+          });
+          return;
+        }
+
         // Validar se a oportunidade pode ser movida
         const validation = canMoveOpportunity(opportunity, phase.key);
 
@@ -268,6 +297,16 @@ export default function SalesPipelineColumn({ phase, opportunities, isLoading, o
         const opportunity = opportunities.find(opp => opp.id === opportunityId);
 
         if (opportunity) {
+          // Verificar permissão para mover cards importados
+          if (!canMoveImportedCard(opportunity)) {
+            toast({
+              title: "Movimento não permitido",
+              description: "Você não tem permissão para mover este card importado. Apenas administradores, gerentes ou o vendedor responsável podem movê-lo.",
+              variant: "destructive",
+            });
+            return;
+          }
+
           const validation = canMoveOpportunity(opportunity, phase.key);
 
           if (!validation.canMove) {

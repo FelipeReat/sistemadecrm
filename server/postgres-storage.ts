@@ -180,6 +180,11 @@ export class PostgresStorage implements IStorage {
         invoiceNumber: insertOpportunity.invoiceNumber || null,
         lossReason: insertOpportunity.lossReason || null,
         lossObservation: insertOpportunity.lossObservation || null,
+
+        // Import tracking fields
+        isImported: insertOpportunity.isImported || false,
+        importBatchId: insertOpportunity.importBatchId || null,
+        importSource: insertOpportunity.importSource || null,
       };
 
       const result = await db
