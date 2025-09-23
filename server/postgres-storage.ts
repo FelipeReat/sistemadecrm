@@ -581,17 +581,17 @@ export class PostgresStorage implements IStorage {
   }
 
   async clearAllOpportunities(): Promise<number> {
-    const result = await this.db.delete(opportunities);
+    const result = await db.delete(opportunities);
     return result.rowCount || 0;
   }
 
   async clearAllAutomations(): Promise<number> {
-    const result = await this.db.delete(automations);
+    const result = await db.delete(automations);
     return result.rowCount || 0;
   }
 
   async clearAllSavedReports(): Promise<number> {
-    const result = await this.db.delete(savedReports);
+    const result = await db.delete(savedReports);
     return result.rowCount || 0;
   }
 
