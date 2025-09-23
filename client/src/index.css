@@ -53,14 +53,14 @@
   --spacing: 0.25rem;
   
   /* CRM Phase Colors */
-  --nova-oportunidade: hsl(52 80% 75%);
-  --prospeccao: hsl(37 85% 80%);
-  --atendimento: hsl(273 80% 75%);
-  --visita: hsl(214 85% 75%);
-  --proposta: hsl(326 80% 80%);
-  --negociacao: hsl(214 85% 75%);
-  --ganho: hsl(142 70% 75%);
-  --perdido: hsl(0 80% 80%);
+  --nova-oportunidade: hsl(48 100% 67%);
+  --prospeccao: hsl(48 100% 67%);
+  --atendimento: hsl(48 100% 67%);
+  --visita: hsl(48 100% 67%);
+  --proposta: hsl(48 100% 67%);
+  --negociacao: hsl(48 100% 67%);
+  --ganho: hsl(48 100% 67%);
+  --perdido: hsl(48 100% 67%);
 }
 
 .dark {
@@ -110,14 +110,14 @@
   --shadow-2xl: 0px 2px 0px 0px hsl(0 0% 0% / 0.05);
 
   /* CRM Phase Colors - Dark Mode */
-  --nova-oportunidade: hsl(52 60% 55%);
-  --prospeccao: hsl(37 70% 50%);
-  --atendimento: hsl(273 60% 55%);
-  --visita: hsl(214 70% 50%);
-  --proposta: hsl(326 60% 55%);
-  --negociacao: hsl(214 70% 50%);
-  --ganho: hsl(142 50% 50%);
-  --perdido: hsl(0 70% 50%);
+  --nova-oportunidade: hsl(48 90% 50%);
+  --prospeccao: hsl(48 90% 50%);
+  --atendimento: hsl(48 90% 50%);
+  --visita: hsl(48 90% 50%);
+  --proposta: hsl(48 90% 50%);
+  --negociacao: hsl(48 90% 50%);
+  --ganho: hsl(48 90% 50%);
+  --perdido: hsl(48 90% 50%);
 }
 
 .font-inter {
