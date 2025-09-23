@@ -320,7 +320,7 @@ export default function SalesPipelineColumn({ phase, opportunities, isLoading, o
           <div className="flex items-center justify-between">
             <div className="flex items-center">
               {renderIcon()}
-              <h3 className="text-lg font-semibold text-white dark:text-white">{phase.title}</h3>
+              <h3 className="text-lg font-semibold text-black dark:text-black">{phase.title}</h3>
             </div>
             <div className="flex items-center space-x-2">
               <Badge className={phase.badgeColor} data-testid={`count-${phase.key}`}>
