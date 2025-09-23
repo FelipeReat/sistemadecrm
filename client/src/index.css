@@ -11,56 +11,56 @@
   --card-foreground: hsl(210 25% 7.8431%);
   --popover: hsl(0 0% 100%);
   --popover-foreground: hsl(210 25% 7.8431%);
-  --primary: hsl(210 10% 45%);
-  --primary-foreground: hsl(0 0% 100%);
+  --primary: hsl(48 100% 50%);
+  --primary-foreground: hsl(0 0% 0%);
   --secondary: hsl(210 25% 7.8431%);
   --secondary-foreground: hsl(0 0% 100%);
-  --muted: hsl(210 10% 90%);
+  --muted: hsl(48 30% 92%);
   --muted-foreground: hsl(210 25% 7.8431%);
-  --accent: hsl(210 10% 92%);
-  --accent-foreground: hsl(210 10% 45%);
+  --accent: hsl(48 80% 85%);
+  --accent-foreground: hsl(48 100% 30%);
   --destructive: hsl(356.3033 90.5579% 54.3137%);
   --destructive-foreground: hsl(0 0% 100%);
-  --border: hsl(210 15% 88%);
-  --input: hsl(210 10% 96%);
-  --ring: hsl(210 10% 45%);
-  --chart-1: hsl(210 10% 45%);
-  --chart-2: hsl(220 10% 40%);
+  --border: hsl(48 20% 80%);
+  --input: hsl(48 40% 95%);
+  --ring: hsl(48 100% 50%);
+  --chart-1: hsl(48 100% 50%);
+  --chart-2: hsl(50 90% 45%);
   --chart-3: hsl(42.0290 92.8251% 56.2745%);
-  --chart-4: hsl(200 10% 50%);
-  --chart-5: hsl(180 10% 45%);
-  --sidebar: hsl(210 10% 97%);
+  --chart-4: hsl(45 85% 55%);
+  --chart-5: hsl(52 80% 60%);
+  --sidebar: hsl(48 50% 95%);
   --sidebar-foreground: hsl(210 25% 7.8431%);
-  --sidebar-primary: hsl(210 10% 45%);
-  --sidebar-primary-foreground: hsl(0 0% 100%);
-  --sidebar-accent: hsl(210 10% 92%);
-  --sidebar-accent-foreground: hsl(210 10% 45%);
-  --sidebar-border: hsl(210 15% 88%);
-  --sidebar-ring: hsl(210 10% 45%);
+  --sidebar-primary: hsl(48 100% 50%);
+  --sidebar-primary-foreground: hsl(0 0% 0%);
+  --sidebar-accent: hsl(48 80% 85%);
+  --sidebar-accent-foreground: hsl(48 100% 30%);
+  --sidebar-border: hsl(48 20% 80%);
+  --sidebar-ring: hsl(48 100% 50%);
   --font-sans: Inter, system-ui, sans-serif;
   --font-serif: Georgia, serif;
   --font-mono: Menlo, monospace;
   --radius: 1.3rem;
-  --shadow-2xs: 0px 2px 0px 0px hsl(210 10% 45% / 0.00);
-  --shadow-xs: 0px 2px 0px 0px hsl(210 10% 45% / 0.00);
-  --shadow-sm: 0px 2px 0px 0px hsl(210 10% 45% / 0.00), 0px 1px 2px -1px hsl(210 10% 45% / 0.00);
-  --shadow: 0px 2px 0px 0px hsl(210 10% 45% / 0.00), 0px 1px 2px -1px hsl(210 10% 45% / 0.00);
-  --shadow-md: 0px 2px 0px 0px hsl(210 10% 45% / 0.00), 0px 2px 4px -1px hsl(210 10% 45% / 0.00);
-  --shadow-lg: 0px 2px 0px 0px hsl(210 10% 45% / 0.00), 0px 4px 6px -1px hsl(210 10% 45% / 0.00);
-  --shadow-xl: 0px 2px 0px 0px hsl(210 10% 45% / 0.00), 0px 8px 10px -1px hsl(210 10% 45% / 0.00);
-  --shadow-2xl: 0px 2px 0px 0px hsl(210 10% 45% / 0.00);
+  --shadow-2xs: 0px 2px 0px 0px hsl(48 100% 50% / 0.00);
+  --shadow-xs: 0px 2px 0px 0px hsl(48 100% 50% / 0.00);
+  --shadow-sm: 0px 2px 0px 0px hsl(48 100% 50% / 0.00), 0px 1px 2px -1px hsl(48 100% 50% / 0.00);
+  --shadow: 0px 2px 0px 0px hsl(48 100% 50% / 0.00), 0px 1px 2px -1px hsl(48 100% 50% / 0.00);
+  --shadow-md: 0px 2px 0px 0px hsl(48 100% 50% / 0.00), 0px 2px 4px -1px hsl(48 100% 50% / 0.00);
+  --shadow-lg: 0px 2px 0px 0px hsl(48 100% 50% / 0.00), 0px 4px 6px -1px hsl(48 100% 50% / 0.00);
+  --shadow-xl: 0px 2px 0px 0px hsl(48 100% 50% / 0.00), 0px 8px 10px -1px hsl(48 100% 50% / 0.00);
+  --shadow-2xl: 0px 2px 0px 0px hsl(48 100% 50% / 0.00);
   --tracking-normal: 0em;
   --spacing: 0.25rem;
   
   /* CRM Phase Colors */
-  --nova-oportunidade: hsl(48 100% 67%);
-  --prospeccao: hsl(48 100% 67%);
-  --atendimento: hsl(48 100% 67%);
-  --visita: hsl(48 100% 67%);
-  --proposta: hsl(48 100% 67%);
-  --negociacao: hsl(48 100% 67%);
-  --ganho: hsl(48 100% 67%);
-  --perdido: hsl(48 100% 67%);
+  --nova-oportunidade: hsl(220 10% 60%);
+  --prospeccao: hsl(220 10% 60%);
+  --atendimento: hsl(220 10% 60%);
+  --visita: hsl(220 10% 60%);
+  --proposta: hsl(220 10% 60%);
+  --negociacao: hsl(220 10% 60%);
+  --ganho: hsl(220 10% 60%);
+  --perdido: hsl(220 10% 60%);
 }
 
 .dark {
@@ -110,14 +110,14 @@
   --shadow-2xl: 0px 2px 0px 0px hsl(0 0% 0% / 0.05);
 
   /* CRM Phase Colors - Dark Mode */
-  --nova-oportunidade: hsl(48 90% 50%);
-  --prospeccao: hsl(48 90% 50%);
-  --atendimento: hsl(48 90% 50%);
-  --visita: hsl(48 90% 50%);
-  --proposta: hsl(48 90% 50%);
-  --negociacao: hsl(48 90% 50%);
-  --ganho: hsl(48 90% 50%);
-  --perdido: hsl(48 90% 50%);
+  --nova-oportunidade: hsl(220 10% 50%);
+  --prospeccao: hsl(220 10% 50%);
+  --atendimento: hsl(220 10% 50%);
+  --visita: hsl(220 10% 50%);
+  --proposta: hsl(220 10% 50%);
+  --negociacao: hsl(220 10% 50%);
+  --ganho: hsl(220 10% 50%);
+  --perdido: hsl(220 10% 50%);
 }
 
 .font-inter {
