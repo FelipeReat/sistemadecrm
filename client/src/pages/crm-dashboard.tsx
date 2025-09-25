@@ -47,6 +47,7 @@ export default function CrmDashboard() {
   const [isAdvancedFiltersModalOpen, setIsAdvancedFiltersModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
+  const [filteredPhaseOnly, setFilteredPhaseOnly] = useState<string | null>(null);
   
   // Advanced filters
   const [searchTerm, setSearchTerm] = useState('');
@@ -75,6 +76,11 @@ export default function CrmDashboard() {
 
   // Advanced filtering logic
   const filteredOpportunities = opportunities.filter(opportunity => {
+    // Filtro por fase individual (prioridade máxima)
+    if (filteredPhaseOnly) {
+      if (opportunity.phase !== filteredPhaseOnly) return false;
+    }
+
     // Search term filter (contact, company, cpf, cnpj)
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
@@ -93,8 +99,8 @@ export default function CrmDashboard() {
       if (!userMatch) return false;
     }
 
-    // Phase filter
-    if (selectedPhases.length > 0) {
+    // Phase filter (apenas se não houver filtro individual ativo)
+    if (!filteredPhaseOnly && selectedPhases.length > 0) {
       if (!selectedPhases.includes(opportunity.phase)) return false;
     }
 
@@ -249,6 +255,15 @@ export default function CrmDashboard() {
     setMaxValue('');
     setSortBy('createdAt');
     setSortOrder('desc');
+    setFilteredPhaseOnly(null);
+  };
+
+  const handleTogglePhaseFilter = (phase: string) => {
+    if (filteredPhaseOnly === phase) {
+      setFilteredPhaseOnly(null);
+    } else {
+      setFilteredPhaseOnly(phase);
+    }
   };
 
   const handlePhaseSelect = (phase: string) => {
@@ -336,15 +351,15 @@ export default function CrmDashboard() {
                 >
                   <Filter className="h-4 w-4" />
                   <span>Filtros Avançados</span>
-                  {(selectedUsers.length > 0 || selectedPhases.length > 0 || searchTerm || selectedBusinessTemp || minValue || maxValue || dateRange.from || dateRange.to) && (
+                  {(selectedUsers.length > 0 || selectedPhases.length > 0 || searchTerm || selectedBusinessTemp || minValue || maxValue || dateRange.from || dateRange.to || filteredPhaseOnly) && (
                     <Badge variant="destructive" className="h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs">
-                      {(selectedUsers.length + selectedPhases.length + (searchTerm ? 1 : 0) + (selectedBusinessTemp && selectedBusinessTemp !== 'all' ? 1 : 0) + ((minValue || maxValue) ? 1 : 0) + ((dateRange.from || dateRange.to) ? 1 : 0))}
+                      {(selectedUsers.length + selectedPhases.length + (searchTerm ? 1 : 0) + (selectedBusinessTemp && selectedBusinessTemp !== 'all' ? 1 : 0) + ((minValue || maxValue) ? 1 : 0) + ((dateRange.from || dateRange.to) ? 1 : 0) + (filteredPhaseOnly ? 1 : 0))}
                     </Badge>
                   )}
                 </Button>
 
                 {/* Clear All Filters Button */}
-                {(selectedUsers.length > 0 || selectedPhases.length > 0 || searchTerm || selectedBusinessTemp || minValue || maxValue || dateRange.from || dateRange.to) && (
+                {(selectedUsers.length > 0 || selectedPhases.length > 0 || searchTerm || selectedBusinessTemp || minValue || maxValue || dateRange.from || dateRange.to || filteredPhaseOnly) && (
                   <Button
                     variant="ghost"
                     size="sm"
@@ -371,10 +386,20 @@ export default function CrmDashboard() {
             </div>
 
             {/* Active Filters Display */}
-            {(selectedUsers.length > 0 || selectedPhases.length > 0 || searchTerm || selectedBusinessTemp || minValue || maxValue || dateRange.from || dateRange.to) && (
+            {(selectedUsers.length > 0 || selectedPhases.length > 0 || searchTerm || selectedBusinessTemp || minValue || maxValue || dateRange.from || dateRange.to || filteredPhaseOnly) && (
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-sm text-muted-foreground">Filtros ativos:</span>
                 
+                {filteredPhaseOnly && (
+                  <Badge variant="destructive" className="flex items-center gap-1">
+                    <Filter className="h-3 w-3" />
+                    Fase: {phaseConfig.find(p => p.key === filteredPhaseOnly)?.title || filteredPhaseOnly}
+                    <button onClick={() => setFilteredPhaseOnly(null)} className="ml-1 hover:bg-destructive-foreground/20 rounded-full p-0.5">
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                )}
+
                 {searchTerm && (
                   <Badge variant="secondary" className="flex items-center gap-1">
                     Busca: "{searchTerm}"
@@ -393,7 +418,7 @@ export default function CrmDashboard() {
                   </Badge>
                 ))}
 
-                {selectedPhases.map((phase) => (
+                {!filteredPhaseOnly && selectedPhases.map((phase) => (
                   <Badge key={phase} variant="secondary" className="flex items-center gap-1">
                     {phaseConfig.find(p => p.key === phase)?.title || phase}
                     <button onClick={() => handlePhaseRemove(phase)} className="ml-1 hover:bg-secondary-foreground/20 rounded-full p-0.5">
@@ -529,6 +554,8 @@ export default function CrmDashboard() {
                 isLoading={isLoadingOpportunities}
                 onViewDetails={handleViewDetails}
                 onCreateOpportunityInPhase={() => handleCreateOpportunityInPhase(phase.key)}
+                isPhaseFiltered={filteredPhaseOnly === phase.key}
+                onTogglePhaseFilter={handleTogglePhaseFilter}
               />
             ))}
           </div>

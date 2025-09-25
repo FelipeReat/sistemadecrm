@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import OpportunityCard from "./opportunity-card";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -26,6 +27,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import LossReasonModal, { LossReasonData } from "./loss-reason-modal";
+import { Filter, FilterX } from "lucide-react";
 
 // Função para validar se uma oportunidade pode ser movida
 const canMoveOpportunity = (opportunity: Opportunity, targetPhase: string): { canMove: boolean; message?: string } => {
@@ -159,9 +161,11 @@ interface SalesPipelineColumnProps {
   isLoading: boolean;
   onViewDetails?: (opportunity: Opportunity) => void;
   onCreateOpportunityInPhase?: (phase: string) => void;
+  isPhaseFiltered?: boolean;
+  onTogglePhaseFilter?: (phase: string) => void;
 }
 
-export default function SalesPipelineColumn({ phase, opportunities, isLoading, onViewDetails, onCreateOpportunityInPhase }: SalesPipelineColumnProps) {
+export default function SalesPipelineColumn({ phase, opportunities, isLoading, onViewDetails, onCreateOpportunityInPhase, isPhaseFiltered = false, onTogglePhaseFilter }: SalesPipelineColumnProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { invalidateAllData } = useReportsSync();
@@ -365,6 +369,29 @@ export default function SalesPipelineColumn({ phase, opportunities, isLoading, o
               <Badge className={phase.badgeColor} data-testid={`count-${phase.key}`}>
                 {opportunities.length}
               </Badge>
+              
+              {/* Botão de filtro por fase */}
+              {onTogglePhaseFilter && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onTogglePhaseFilter(phase.key)}
+                  className={`h-6 w-6 p-0 transition-all duration-200 ${
+                    isPhaseFiltered 
+                      ? 'bg-white bg-opacity-30 text-white hover:bg-opacity-40' 
+                      : 'bg-white bg-opacity-10 text-white hover:bg-opacity-20'
+                  }`}
+                  title={isPhaseFiltered ? `Remover filtro da fase ${phase.title}` : `Filtrar apenas fase ${phase.title}`}
+                  data-testid={`filter-phase-${phase.key}`}
+                >
+                  {isPhaseFiltered ? (
+                    <FilterX className="h-3 w-3" />
+                  ) : (
+                    <Filter className="h-3 w-3" />
+                  )}
+                </Button>
+              )}
+              
               {phase.key === 'proposta' && (
                 <button
                   onClick={() => onCreateOpportunityInPhase?.(phase.key)}
