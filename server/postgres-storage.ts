@@ -130,7 +130,7 @@ export class PostgresStorage implements IStorage {
         // Core contact information
         contact: insertOpportunity.contact || "Não informado",
         company: insertOpportunity.company || "Não informado",
-        phone: insertOpportunity.phone || null,
+        phone: null, // SEMPRE null para evitar erros de constraint
         cpf: insertOpportunity.cpf || null,
         cnpj: insertOpportunity.cnpj || null,
 

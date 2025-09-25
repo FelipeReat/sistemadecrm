@@ -10,7 +10,7 @@ export const opportunities = pgTable("opportunities", {
   cpf: text("cpf"),
   company: text("company").notNull(),
   cnpj: text("cnpj"),
-  phone: text("phone").default(sql`NULL`),
+  phone: text("phone"),
   hasRegistration: boolean("has_registration").default(false),
   proposalOrigin: text("proposal_origin"),
   businessTemperature: text("business_temperature"),

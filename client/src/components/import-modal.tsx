@@ -71,13 +71,13 @@ interface ImportStatus {
 type ImportStep = 'upload' | 'mapping' | 'preview' | 'progress';
 
 const FIELD_MAPPINGS = {
-  contact: { displayName: 'Nome do Contato', required: true },
-  company: { displayName: 'Nome da Empresa', required: true },
-  phone: { displayName: 'Telefone', required: true },
+  contact: { displayName: 'Nome do Contato', required: false },
+  company: { displayName: 'Nome da Empresa', required: false },
+  phone: { displayName: 'Telefone', required: false },
   cpf: { displayName: 'CPF', required: false },
   cnpj: { displayName: 'CNPJ', required: false },
-  needCategory: { displayName: 'Categoria da Necessidade', required: true },
-  clientNeeds: { displayName: 'Necessidades do Cliente', required: true },
+  needCategory: { displayName: 'Categoria da Necessidade', required: false },
+  clientNeeds: { displayName: 'Necessidades do Cliente', required: false },
   budget: { displayName: 'Orçamento', required: false },
   finalValue: { displayName: 'Valor Final', required: false },
   businessTemperature: { displayName: 'Temperatura do Negócio', required: false },
@@ -554,7 +554,7 @@ export function ImportModal({ isOpen, onClose, onImportComplete }: ImportModalPr
                 <AlertDescription>
                   <strong>Formatos suportados:</strong> CSV, Excel (.xlsx, .xls)<br />
                   <strong>Tamanho máximo:</strong> 50MB<br />
-                  <strong>Campos obrigatórios:</strong> Nome do Contato, Empresa, Telefone, Categoria da Necessidade, Necessidades do Cliente
+                  <strong>Campos:</strong> Todos os campos são opcionais. Você pode importar dados com qualquer combinação de campos disponíveis.
                 </AlertDescription>
               </Alert>
             </div>

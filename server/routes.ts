@@ -1739,8 +1739,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       transformed.needCategory = transformed.needCategory.slice(0, 500);
     }
 
-    // FORÇAR phone como null para evitar erros de banco
+    // FORÇAR phone como null SEMPRE para evitar qualquer erro de banco
     transformed.phone = null;
+    
+    // Garantir que TODOS os campos problemáticos sejam null se necessário
+    if (!transformed.phone) transformed.phone = null;
+    if (!transformed.cpf || transformed.cpf === '') transformed.cpf = null;
+    if (!transformed.cnpj || transformed.cnpj === '') transformed.cnpj = null;
 
     console.log(`✅ Card transformado com sucesso - ${transformed.contact} | ${transformed.company}`);
     return transformed;
