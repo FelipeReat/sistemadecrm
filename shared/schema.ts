@@ -10,7 +10,7 @@ export const opportunities = pgTable("opportunities", {
   cpf: text("cpf"),
   company: text("company").notNull(),
   cnpj: text("cnpj"),
-  phone: text("phone").notNull(),
+  phone: text("phone"),
   hasRegistration: boolean("has_registration").default(false),
   proposalOrigin: text("proposal_origin"),
   businessTemperature: text("business_temperature"),
@@ -89,7 +89,8 @@ export const insertOpportunitySchema = createInsertSchema(opportunities, {
   }),
   phone: z.string().optional().nullable().transform(val => {
     if (!val || val.trim() === '') return null;
-    return val.replace(/\D/g, '') || null;
+    const cleaned = val.replace(/\D/g, '');
+    return cleaned || null;
   }),
   hasRegistration: z.boolean().optional().default(false),
   proposalOrigin: z.string().optional().nullable().transform(val => {
