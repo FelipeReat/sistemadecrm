@@ -228,13 +228,21 @@ export class PostgresStorage implements IStorage {
     try {
       console.log(`🗂️  PostgresStorage: Executando DELETE para oportunidade ${id}`);
       
+      // Primeiro verificar se a oportunidade existe
+      const existingOpportunity = await this.getOpportunity(id);
+      if (!existingOpportunity) {
+        console.log(`🗂️  PostgresStorage: Oportunidade ${id} não encontrada`);
+        return false;
+      }
+
       const result = await db
         .delete(opportunities)
         .where(eq(opportunities.id, id));
 
-      console.log(`🗂️  PostgresStorage: DELETE executado, rowCount: ${result.rowCount}`);
+      console.log(`🗂️  PostgresStorage: DELETE executado, resultado:`, result);
       
-      const wasDeleted = (result.rowCount || 0) > 0;
+      // Para Drizzle ORM, verificar se o resultado é truthy ou se existe rowCount
+      const wasDeleted = result && (typeof result.rowCount === 'number' ? result.rowCount > 0 : true);
       console.log(`🗂️  PostgresStorage: Resultado da exclusão: ${wasDeleted}`);
       
       return wasDeleted;
