@@ -6,16 +6,16 @@ import { z } from "zod";
 export const opportunities = pgTable("opportunities", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   // Fase 1: Nova oportunidade
-  contact: text("contact").notNull(),
+  contact: text("contact"),
   cpf: text("cpf"),
-  company: text("company").notNull(),
+  company: text("company"),
   cnpj: text("cnpj"),
   phone: text("phone"),
   hasRegistration: boolean("has_registration").default(false),
   proposalOrigin: text("proposal_origin"),
   businessTemperature: text("business_temperature"),
-  needCategory: text("need_category").notNull(),
-  clientNeeds: text("client_needs").notNull(),
+  needCategory: text("need_category"),
+  clientNeeds: text("client_needs"),
   documents: text("documents").array(),
 
   // Fase 2: Prospecção
@@ -46,10 +46,10 @@ export const opportunities = pgTable("opportunities", {
   lossObservation: text("loss_observation"), // Observação detalhada para fase perdida
 
   // Controle de fase
-  phase: text("phase").notNull().default("prospeccao"),
+  phase: text("phase").default("prospeccao"),
 
   // Auditoria
-  createdBy: text("created_by").notNull(),
+  createdBy: text("created_by"),
 
   // Import tracking fields
   isImported: boolean("is_imported").default(false),
@@ -57,9 +57,9 @@ export const opportunities = pgTable("opportunities", {
   importSource: text("import_source"),
 
   // Timestamps
-  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
-  updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
-  phaseUpdatedAt: timestamp("phase_updated_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`),
+  phaseUpdatedAt: timestamp("phase_updated_at").default(sql`CURRENT_TIMESTAMP`),
 });
 
 export const automations = pgTable("automations", {
@@ -112,11 +112,11 @@ export const insertOpportunitySchema = createInsertSchema(opportunities, {
     return 'morno';
   }),
   needCategory: z.string().optional().nullable().transform(val => {
-    if (!val || val.trim() === '') return null;
+    if (!val || val.trim() === '') return "Categoria não informada";
     return val.trim().slice(0, 500); // Limit length but preserve data
   }),
   clientNeeds: z.string().optional().nullable().transform(val => {
-    if (!val || val.trim() === '') return null;
+    if (!val || val.trim() === '') return "Necessidades não informadas";
     return val.trim().slice(0, 2000); // Preserve longer client needs descriptions
   }),
   documents: z.union([
@@ -248,7 +248,10 @@ export const insertOpportunitySchema = createInsertSchema(opportunities, {
   }),
 
   // Auditoria
-  createdBy: z.string().min(1, "Criado por é obrigatório"),
+  createdBy: z.string().optional().nullable().transform(val => {
+    if (!val || val.trim() === '') return "Sistema de Importação";
+    return val.trim();
+  }),
 
   // Import tracking fields
   isImported: z.boolean().optional().default(false),
