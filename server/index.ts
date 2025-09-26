@@ -5,8 +5,8 @@ import { setupVite, serveStatic, log } from "./vite";
 import { schedulerService } from "./scheduler";
 
 const app = express();
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: false, limit: '50mb' }));
+app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ extended: false, limit: "50mb" }));
 
 app.use((req, res, next) => {
   const start = Date.now();
@@ -73,7 +73,7 @@ app.use((req, res, next) => {
   // ALWAYS serve the app on port 5000 in Replit
   // Replit requires port 5000 for webview applications
   // this serves both the API and the client.
-  const port = 5000; // Force port 5000 for Replit
+  const port = parseInt(process.env.PORT || "5000", 10);
   log("Using fixed PORT:", port.toString());
 
   // Use configurable host binding with safe default
