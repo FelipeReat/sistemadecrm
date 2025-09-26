@@ -321,9 +321,12 @@ export default function OpportunityDetailsModal({
   });
 
   const deleteOpportunityMutation = useMutation({
-    mutationFn: (opportunityId: string) =>
-      apiRequest("DELETE", `/api/opportunities/${opportunityId}`),
+    mutationFn: (opportunityId: string) => {
+      console.log(`🗑️  Cliente: Iniciando exclusão da oportunidade ${opportunityId}`);
+      return apiRequest("DELETE", `/api/opportunities/${opportunityId}`);
+    },
     onSuccess: () => {
+      console.log(`✅ Cliente: Exclusão bem-sucedida`);
       invalidateAllData(); // Sincroniza dashboard e relatórios
       toast({
         title: "Sucesso",
@@ -332,7 +335,9 @@ export default function OpportunityDetailsModal({
       onOpenChange(false);
     },
     onError: (error: any) => {
+      console.error(`❌ Cliente: Erro na exclusão:`, error);
       const errorMessage = error?.response?.data?.message || error?.message || "Erro ao excluir oportunidade.";
+      console.error(`❌ Cliente: Mensagem de erro:`, errorMessage);
       toast({
         title: "Erro",
         description: errorMessage,

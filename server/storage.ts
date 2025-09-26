@@ -275,7 +275,11 @@ export class MemStorage implements IStorage {
   }
 
   async deleteOpportunity(id: string): Promise<boolean> {
-    return this.opportunities.delete(id);
+    console.log(`🗂️  MemStorage: Executando DELETE para oportunidade ${id}`);
+    const existed = this.opportunities.has(id);
+    const wasDeleted = this.opportunities.delete(id);
+    console.log(`🗂️  MemStorage: Oportunidade existia: ${existed}, foi removida: ${wasDeleted}`);
+    return wasDeleted;
   }
 
   async getOpportunitiesByPhase(phase: string): Promise<Opportunity[]> {

@@ -232,9 +232,12 @@ export default function SalesPipelineColumn({ phase, opportunities, isLoading, o
   });
 
   const deleteOpportunityMutation = useMutation({
-    mutationFn: (opportunityId: string) =>
-      apiRequest("DELETE", `/api/opportunities/${opportunityId}`),
+    mutationFn: (opportunityId: string) => {
+      console.log(`🗑️  Coluna: Iniciando exclusão da oportunidade ${opportunityId}`);
+      return apiRequest("DELETE", `/api/opportunities/${opportunityId}`);
+    },
     onSuccess: () => {
+      console.log(`✅ Coluna: Exclusão bem-sucedida`);
       invalidateAllData(); // Sincroniza dashboard e relatórios
       toast({
         title: "Sucesso",
@@ -243,7 +246,9 @@ export default function SalesPipelineColumn({ phase, opportunities, isLoading, o
       setOpportunityToDelete(null);
     },
     onError: (error: any) => {
-      const errorMessage = error?.response?.data?.message || "Erro ao excluir oportunidade.";
+      console.error(`❌ Coluna: Erro na exclusão:`, error);
+      const errorMessage = error?.response?.data?.message || error?.message || "Erro ao excluir oportunidade.";
+      console.error(`❌ Coluna: Mensagem de erro:`, errorMessage);
       toast({
         title: "Erro",
         description: errorMessage,

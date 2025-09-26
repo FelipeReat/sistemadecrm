@@ -466,48 +466,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { id } = req.params;
 
+      console.log(`🗑️  Tentativa de exclusão da oportunidade ${id} pelo usuário ${req.session.user!.name} (${req.session.user!.role})`);
+
       // Busca a oportunidade existente para verificar permissões
       const existingOpportunity = await storage.getOpportunity(id);
       if (!existingOpportunity) {
+        console.log(`❌ Oportunidade ${id} não encontrada`);
         return res.status(404).json({ message: "Oportunidade não encontrada" });
       }
 
-      // Check if this is an imported card and if deletion is allowed
-      if (existingOpportunity.isImported) {
-        const systemSettings = await storage.getSystemSettings();
-        const allowDeletion = systemSettings.find(s => s.settingKey === 'allow_imported_card_deletion')?.settingValue === 'true';
-        
-        if (!allowDeletion) {
-          return res.status(403).json({ message: "Exclusão de cards importados não está permitida" });
-        }
+      console.log(`📋 Oportunidade encontrada: ${existingOpportunity.company} - Importado: ${existingOpportunity.isImported}`);
 
-        // For imported cards, only managers and admins can delete
-        if (req.session.user!.role === 'usuario') {
-          return res.status(403).json({ message: "Apenas gerentes e admins podem excluir cards importados" });
-        }
-      } else {
-        // Usuários comuns só podem excluir suas próprias oportunidades (non-imported)
-        if (req.session.user!.role === 'usuario') {
-          // Se a oportunidade foi criada por este usuário ou ele é o vendedor responsável, pode excluir
-          const canDelete = existingOpportunity.createdBy === req.session.user!.name || 
-                           existingOpportunity.salesperson === req.session.user!.name;
+      const userRole = req.session.user!.role;
+      const userName = req.session.user!.name;
 
+      // Admins podem excluir QUALQUER card
+      if (userRole === 'admin') {
+        console.log(`✅ Admin pode excluir qualquer card`);
+      }
+      // Gerentes podem excluir QUALQUER card
+      else if (userRole === 'gerente') {
+        console.log(`✅ Gerente pode excluir qualquer card`);
+      }
+      // Usuários/Vendedores têm permissões limitadas
+      else if (userRole === 'usuario' || userRole === 'vendedor') {
+        // Para cards importados, apenas se for o vendedor responsável
+        if (existingOpportunity.isImported) {
+          const isAssignedSalesperson = existingOpportunity.salesperson === userName;
+          if (!isAssignedSalesperson) {
+            console.log(`❌ Usuário ${userName} não é o vendedor responsável pelo card importado`);
+            return res.status(403).json({ message: "Apenas administradores, gerentes ou o vendedor responsável podem excluir cards importados" });
+          }
+          console.log(`✅ Usuário ${userName} é o vendedor responsável pelo card importado`);
+        }
+        // Para cards normais, se foi criado por ele ou se é o vendedor responsável
+        else {
+          const canDelete = existingOpportunity.createdBy === userName || 
+                           existingOpportunity.salesperson === userName;
+          
           if (!canDelete) {
+            console.log(`❌ Usuário ${userName} não tem permissão para excluir este card`);
             return res.status(403).json({ message: "Você só pode excluir suas próprias oportunidades" });
           }
+          console.log(`✅ Usuário ${userName} pode excluir este card`);
         }
       }
-      // Gerentes e Admins podem excluir qualquer oportunidade (sem verificação adicional)
 
+      // Tentar excluir
+      console.log(`🗑️  Executando exclusão da oportunidade ${id}`);
       const deleted = await storage.deleteOpportunity(id);
 
       if (!deleted) {
-        return res.status(404).json({ message: "Oportunidade não encontrada" });
+        console.log(`❌ Falha ao excluir oportunidade ${id} - storage retornou false`);
+        return res.status(500).json({ message: "Erro interno ao excluir oportunidade" });
       }
 
+      console.log(`✅ Oportunidade ${id} excluída com sucesso`);
       res.status(204).send();
-    } catch (error) {
-      res.status(500).json({ message: "Erro ao excluir oportunidade" });
+    } catch (error: any) {
+      console.error(`❌ Erro ao excluir oportunidade ${id}:`, error);
+      res.status(500).json({ message: `Erro ao excluir oportunidade: ${error?.message || 'Erro desconhecido'}` });
     }
   });
 

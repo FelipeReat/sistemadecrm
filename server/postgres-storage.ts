@@ -226,13 +226,20 @@ export class PostgresStorage implements IStorage {
 
   async deleteOpportunity(id: string): Promise<boolean> {
     try {
+      console.log(`🗂️  PostgresStorage: Executando DELETE para oportunidade ${id}`);
+      
       const result = await db
         .delete(opportunities)
         .where(eq(opportunities.id, id));
 
-      return result.rowCount > 0;
-    } catch (error) {
-      console.error('Error deleting opportunity:', error);
+      console.log(`🗂️  PostgresStorage: DELETE executado, rowCount: ${result.rowCount}`);
+      
+      const wasDeleted = (result.rowCount || 0) > 0;
+      console.log(`🗂️  PostgresStorage: Resultado da exclusão: ${wasDeleted}`);
+      
+      return wasDeleted;
+    } catch (error: any) {
+      console.error(`❌ PostgresStorage: Erro ao excluir oportunidade ${id}:`, error?.message || error);
       return false;
     }
   }
