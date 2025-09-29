@@ -12,7 +12,7 @@ export const config = {
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       
       // Sempre usar porta 5000 em Replit, que é a porta padrão para webview
-      const port = 5000;
+      const port = config.isDevelopment ? 5000 : 5501;
       const host = `${window.location.hostname}:${port}`;
       
       console.log('🔧 Configuração WebSocket:', {
