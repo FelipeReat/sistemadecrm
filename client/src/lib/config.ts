@@ -11,7 +11,7 @@ export const config = {
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       
       // Usar a mesma porta que o servidor está rodando
-      const port = window.location.port || (config.isDevelopment ? '5501' : '5501');
+      const port = config.isDevelopment ? 5000 : 5501;
       const host = `${window.location.hostname}:${port}`;
       
       console.log('🔧 Configuração WebSocket:', {
