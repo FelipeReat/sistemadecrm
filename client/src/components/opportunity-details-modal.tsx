@@ -118,6 +118,39 @@ export default function OpportunityDetailsModal({
   const { invalidateAllData } = useReportsSync();
   const { user } = useAuth();
 
+  // Funções auxiliares para formatação
+  const formatBudgetForDisplay = (value: string | number | null | undefined): string => {
+    if (!value) return '';
+    const numValue = typeof value === 'string' ? parseFloat(value) : value;
+    if (isNaN(numValue)) return '';
+    return (numValue / 100).toLocaleString('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+      minimumFractionDigits: 2
+    });
+  };
+
+  const formatDiscountForDisplay = (value: string | number | null | undefined): string => {
+    if (!value) return '';
+    const numValue = typeof value === 'string' ? parseFloat(value) : value;
+    if (isNaN(numValue)) return '';
+    return numValue.toFixed(2).replace('.', ',') + '%';
+  };
+
+  const formatDateForDisplay = (value: string | null | undefined): string => {
+    if (!value) return '';
+    try {
+      const date = new Date(value);
+      if (isNaN(date.getTime())) return '';
+      const day = String(date.getDate()).padStart(2, '0');
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const year = date.getFullYear();
+      return `${day}/${month}/${year}`;
+    } catch {
+      return '';
+    }
+  };
+
   // Query para buscar usuários que podem ser vendedores
   const { data: salespeople, isLoading: isLoadingSalespeople } = useQuery({
     queryKey: ["/api/users/salespeople"],
@@ -207,18 +240,18 @@ export default function OpportunityDetailsModal({
       });
 
       propostaForm.reset({
-        discount: opportunity.discount || "",
+        discount: formatDiscountForDisplay(opportunity.discount),
         discountDescription: opportunity.discountDescription || "",
-        validityDate: opportunity.validityDate ? new Date(opportunity.validityDate).toISOString().split('T')[0] : "",
+        validityDate: formatDateForDisplay(opportunity.validityDate),
         budgetNumber: opportunity.budgetNumber || opportunity.opportunityNumber || "",
-        budget: opportunity.budget || "",
+        budget: formatBudgetForDisplay(opportunity.budget),
         salesperson: opportunity.salesperson || "",
         budgetFile: undefined,
       });
 
       negociacaoForm.reset({
         status: opportunity.status || "",
-        finalValue: opportunity.finalValue || "",
+        finalValue: formatBudgetForDisplay(opportunity.finalValue),
         negotiationInfo: opportunity.negotiationInfo || "",
         contract: opportunity.contract || "",
         invoiceNumber: opportunity.invoiceNumber || "",
