@@ -123,7 +123,7 @@ export default function OpportunityDetailsModal({
     if (!value) return '';
     const numValue = typeof value === 'string' ? parseFloat(value) : value;
     if (isNaN(numValue)) return '';
-    return (numValue / 100).toLocaleString('pt-BR', {
+    return numValue.toLocaleString('pt-BR', {
       style: 'currency',
       currency: 'BRL',
       minimumFractionDigits: 2
