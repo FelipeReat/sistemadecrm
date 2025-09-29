@@ -1285,13 +1285,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           'text/plain'
         ];
 
-        if (process.env.NODE_ENV !== 'production') {
-          console.log('File upload attempt:', {
-            originalname: file.originalname,
-            mimetype: file.mimetype,
-            size: file.size
-          });
-        }
+
 
         if (allowedTypes.includes(file.mimetype)) {
           cb(null, true);
@@ -1696,9 +1690,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // SEMPRE aplicar targetPhase se fornecido
     if (targetPhase !== undefined && targetPhase !== null && targetPhase !== '') {
       transformed.phase = targetPhase;
-      if (process.env.NODE_ENV !== 'production') {
-        console.log(`🎯 OVERRIDE: Aplicando targetPhase "${targetPhase}"`);
-      }
     }
 
     // FALLBACKS FINAIS para garantir dados válidos
@@ -1740,9 +1731,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!transformed.cpf || transformed.cpf === '') transformed.cpf = null;
     if (!transformed.cnpj || transformed.cnpj === '') transformed.cnpj = null;
 
-    if (process.env.NODE_ENV !== 'production') {
-        console.log(`✅ Card transformado com sucesso - ${transformed.contact} | ${transformed.company}`);
-      }
+
     return transformed;
   }
 
@@ -1884,9 +1873,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get preview of first 10 processed records
       const previewData = data.slice(0, 10).map((row: any, index: number) => {
         // Pass targetPhase to transformRow - SEMPRE usar a fase selecionada
-        if (process.env.NODE_ENV !== 'production') {
-          console.log(`🔍 Preview - usando targetPhase: ${targetPhase} para linha ${index + 1}`);
-        }
         const transformed = transformRow(row, mapping, req.session.userId!, targetPhase); 
         const rowErrors = validateRow(row, mapping, index);
         return {
@@ -1962,12 +1948,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           let failed = 0;
           const errors: any[] = [];
 
-          if (process.env.NODE_ENV !== 'production') {
-            console.log(`Starting import for user ${userId}, processing ${data.length} rows`);
-            console.log(`Mapping:`, JSON.stringify(mapping, null, 2));
-            console.log(`Target Phase: ${targetPhase}`); // Log target phase
-            console.log(`Fase selecionada será aplicada a TODOS os registros: ${targetPhase}`);
-          }
+
 
           for (let i = 0; i < data.length; i++) {
             const row = data[i];
@@ -1977,21 +1958,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
               // NUNCA pular linhas - validar apenas para logs
               const rowErrors = validateRow(row, mapping, i);
               if (rowErrors.length > 0) {
-                if (process.env.NODE_ENV !== 'production') {
-                  console.log(`⚠️ Warnings na linha ${i + 1}:`, rowErrors.length);
-                }
                 errors.push(...rowErrors);
               }
 
               // Transform row SEMPRE, independente de erros
-              if (process.env.NODE_ENV !== 'production') {
-                console.log(`🚀 Processando linha ${i + 1} - targetPhase: "${targetPhase}"`);
-              }
               const transformedData = transformRow(row, mapping, userId, targetPhase);
-
-              if (process.env.NODE_ENV !== 'production') {
-                console.log(`✅ Linha ${i + 1} transformada - Fase: "${transformedData.phase}"`);
-              }
 
               // Validate with Zod schema com MÚLTIPLOS FALLBACKS
               let validatedData = null;
@@ -2043,9 +2014,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                     };
                     validatedData = insertOpportunitySchema.parse(minimalData);
                   }
-                  if (process.env.NODE_ENV !== 'production') {
-                    console.log(`✅ Linha ${i + 1} validada na tentativa ${attempt}`);
-                  }
+
                 } catch (zodError: any) {
                   console.error(`❌ Tentativa ${attempt} falhou para linha ${i + 1}:`, zodError.errors);
                   if (attempt === maxAttempts) {
@@ -2059,9 +2028,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 try {
                   await storage.createOpportunity(validatedData);
                   created++;
-                  if (process.env.NODE_ENV !== 'production') {
-                    console.log(`✅ Linha ${i + 1} importada com sucesso`);
-                  }
                 } catch (dbError: any) {
                   console.error(`❌ Erro no banco para linha ${i + 1}:`, dbError.message);
                   
@@ -2088,9 +2054,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
                     const emergencyValidated = insertOpportunitySchema.parse(emergencyData);
                     await storage.createOpportunity(emergencyValidated);
                     created++;
-                    if (process.env.NODE_ENV !== 'production') {
-                      console.log(`🚨 Linha ${i + 1} importada como dados de emergência`);
-                    }
                   } catch (emergencyError: any) {
                     console.error(`🚨 Falha total na linha ${i + 1}:`, emergencyError.message);
                     failed++;
@@ -2136,9 +2099,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 const fallbackValidated = insertOpportunitySchema.parse(fallbackData);
                 await storage.createOpportunity(fallbackValidated);
                 created++;
-                if (process.env.NODE_ENV !== 'production') {
-                    console.log(`🔄 Linha ${i + 1} importada como fallback após erro`);
-                  }
               } catch (fallbackError: any) {
                 failed++;
                 console.error(`🚨 Fallback final falhou para linha ${i + 1}:`, fallbackError.message);

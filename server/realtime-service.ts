@@ -25,16 +25,10 @@ export class RealtimeService {
       this.broadcastError('Erro na conexão com o banco de dados');
     });
 
-    if (process.env.NODE_ENV !== 'production') {
-      console.log('🔧 Event handlers configurados para RealtimeService');
-    }
+
   }
 
   private handleOpportunityChange(notification: OpportunityChangeNotification) {
-    if (process.env.NODE_ENV !== 'production') {
-      console.log('🔄 Processando mudança de oportunidade:', notification.operation);
-    }
-
     // Criar mensagem WebSocket baseada na notificação
     // IMPORTANTE: O frontend espera type: 'opportunity:change' e data com a notificação completa
     const wsMessage: WebSocketMessage = {
@@ -45,11 +39,6 @@ export class RealtimeService {
 
     // Broadcast para todos os clientes conectados
     this.wsManager.broadcast(wsMessage);
-
-    if (process.env.NODE_ENV !== 'production') {
-      console.log(`📡 Broadcasted ${notification.operation} para clientes WebSocket`);
-      console.log('📦 Dados enviados:', JSON.stringify(wsMessage, null, 2));
-    }
   }
 
   private broadcastError(message: string) {
@@ -64,7 +53,7 @@ export class RealtimeService {
 
   async initialize(): Promise<void> {
     try {
-      console.log('🚀 Inicializando RealtimeService...');
+
       
       // Conectar ao PostgreSQL Listener
       await this.pgListener.connect();
@@ -129,9 +118,6 @@ export class RealtimeService {
 
   // Método para forçar reconexão do PostgreSQL
   async reconnectPostgreSQL(): Promise<void> {
-    if (process.env.NODE_ENV !== 'production') {
-      console.log('🔄 Reconectando PostgreSQL Listener...');
-    }
     await this.pgListener.forceReconnect();
   }
 

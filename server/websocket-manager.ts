@@ -20,9 +20,6 @@ export class WebSocketManager extends EventEmitter {
 
   private setupWebSocketServer() {
     this.wss.on('connection', (ws: WebSocket, req) => {
-      if (process.env.NODE_ENV !== 'production') {
-        console.log('🔌 Nova conexão WebSocket estabelecida');
-      }
       
       // Adicionar cliente à lista
       this.clients.add(ws);
@@ -51,9 +48,6 @@ export class WebSocketManager extends EventEmitter {
 
       // Remover cliente quando desconectar
       ws.on('close', () => {
-        if (process.env.NODE_ENV !== 'production') {
-          console.log('🔌 Conexão WebSocket fechada');
-        }
         this.clients.delete(ws);
       });
 
@@ -63,16 +57,9 @@ export class WebSocketManager extends EventEmitter {
         this.clients.delete(ws);
       });
     });
-
-    if (process.env.NODE_ENV !== 'production') {
-      console.log('🚀 WebSocket Server configurado em /ws');
-    }
   }
 
   private handleClientMessage(ws: WebSocket, message: any) {
-    if (process.env.NODE_ENV !== 'production') {
-      console.log('📨 Mensagem recebida do cliente:', message);
-    }
     
     switch (message.type) {
       case 'ping':
@@ -93,9 +80,7 @@ export class WebSocketManager extends EventEmitter {
         break;
         
       default:
-        if (process.env.NODE_ENV !== 'production') {
-          console.log('⚠️ Tipo de mensagem não reconhecido:', message.type);
-        }
+        // Tipo de mensagem não reconhecido - ignorar silenciosamente
     }
   }
 
@@ -107,9 +92,6 @@ export class WebSocketManager extends EventEmitter {
 
   // Método público para broadcast de mensagens
   public broadcast(message: WebSocketMessage) {
-    if (process.env.NODE_ENV !== 'production') {
-      console.log(`📡 Broadcasting para ${this.clients.size} clientes:`, message.type);
-    }
     
     this.clients.forEach((client) => {
       if (client.readyState === WebSocket.OPEN) {

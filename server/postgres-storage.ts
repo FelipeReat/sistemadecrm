@@ -53,17 +53,11 @@ export class PostgresStorage implements IStorage {
         const result = await client.query('SELECT * FROM users WHERE role = $1', ['admin']);
 
         if (result.rows.length === 0) {
-          if (process.env.NODE_ENV !== 'production') {
-            console.log('🔧 Criando usuário admin padrão...');
-          }
           const hashedPassword = await bcrypt.hash('admin123', 10);
           await client.query(
             'INSERT INTO users (id, name, email, password, role, is_active, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())',
             [randomUUID(), 'Administrador', 'admin@crm.com', hashedPassword, 'admin', true]
           );
-          if (process.env.NODE_ENV !== 'production') {
-            console.log('✅ Usuário admin criado com sucesso');
-          }
         }
 
         await client.end();
@@ -366,7 +360,6 @@ export class PostgresStorage implements IStorage {
         console.error(`Error getting user by email (${3 - retries}/3):`, error?.message || error);
 
         if (retries > 0 && (error?.code === 'ECONNRESET' || error?.code === 'ENOTFOUND' || error?.code === 'ETIMEDOUT')) {
-          console.log(`Tentando novamente em 1 segundo... (${retries} tentativas restantes)`);
           await new Promise(resolve => setTimeout(resolve, 1000));
           continue;
         }

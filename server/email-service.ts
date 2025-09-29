@@ -33,14 +33,11 @@ class EmailService {
 
     if (emailConfig.auth.user && emailConfig.auth.pass) {
       this.transporter = nodemailer.createTransport(emailConfig);
-    } else {
-      console.log('📧 Email service not configured - SMTP_USER and SMTP_PASSWORD required');
     }
   }
 
   async sendEmail(options: EmailOptions): Promise<boolean> {
     if (!this.transporter) {
-      console.log('📧 Email service not configured, logging email instead');
       await this.logEmail(options, 'failed', 'Email service not configured');
       return false;
     }
@@ -53,7 +50,6 @@ class EmailService {
         html: options.html,
       });
 
-      console.log('📧 Email sent:', info.messageId);
       await this.logEmail(options, 'sent');
       return true;
     } catch (error) {

@@ -29,16 +29,11 @@ class SMSService {
 
     if (accountSid && authToken) {
       this.client = twilio(accountSid, authToken);
-      console.log('📱 SMS/WhatsApp service initialized with Twilio');
-    } else {
-      console.log('📱 SMS/WhatsApp service not configured - Twilio credentials required');
     }
   }
 
   async sendSMS(options: SMSOptions): Promise<boolean> {
     if (!this.client || !this.twilioPhoneNumber) {
-      console.log('📱 SMS service not configured, logging message instead');
-      console.log(`SMS to ${options.to}: ${options.message}`);
       return false;
     }
 
@@ -49,7 +44,6 @@ class SMSService {
         to: options.to,
       });
 
-      console.log(`📱 SMS sent successfully: ${message.sid}`);
       return true;
     } catch (error) {
       console.error('📱 SMS error:', error);
@@ -59,8 +53,6 @@ class SMSService {
 
   async sendWhatsApp(options: WhatsAppOptions): Promise<boolean> {
     if (!this.client || !this.twilioWhatsAppNumber) {
-      console.log('📱 WhatsApp service not configured, logging message instead');
-      console.log(`WhatsApp to ${options.to}: ${options.message}`);
       return false;
     }
 
@@ -75,7 +67,6 @@ class SMSService {
         to: toNumber,
       });
 
-      console.log(`📱 WhatsApp sent successfully: ${message.sid}`);
       return true;
     } catch (error) {
       console.error('📱 WhatsApp error:', error);

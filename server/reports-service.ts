@@ -5,7 +5,6 @@ import type { InsertSalesReport } from '@shared/schema';
 
 export async function generateSalesReports(period: 'daily' | 'monthly' | 'quarterly' = 'daily') {
   try {
-    console.log(`📊 Generating ${period} sales reports...`);
     
     const now = new Date();
     let startDate: Date;
@@ -38,7 +37,6 @@ export async function generateSalesReports(period: 'daily' | 'monthly' | 'quarte
       await generateSalespersonReport(salesperson.id, period, startDate, endDate, now);
     }
 
-    console.log(`📊 ${period} sales reports generated successfully`);
     return true;
 
   } catch (error) {
@@ -103,8 +101,6 @@ async function generateSalespersonReport(
     };
 
     await db.insert(salesReports).values(reportData);
-
-    console.log(`📊 Report generated for salesperson ${salespersonId}: ${wonOpportunities}/${totalOpportunities} won`);
 
   } catch (error) {
     console.error(`📊 Failed to generate report for salesperson ${salespersonId}:`, error);
