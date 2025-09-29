@@ -3,15 +3,16 @@
 
 export const config = {
   // Detectar ambiente baseado na URL ou outras características
-  isDevelopment: window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1',
+  // Em Replit, sempre usar configuração de desenvolvimento para usar porta 5000
+  isDevelopment: window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.hostname.includes('replit.dev'),
   
   // Configurações de WebSocket
   websocket: {
     getUrl(): string {
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       
-      // Usar a mesma porta que o servidor está rodando
-      const port = config.isDevelopment ? 5000 : 5501;
+      // Sempre usar porta 5000 em Replit, que é a porta padrão para webview
+      const port = 5000;
       const host = `${window.location.hostname}:${port}`;
       
       console.log('🔧 Configuração WebSocket:', {

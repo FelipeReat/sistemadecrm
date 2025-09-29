@@ -60,7 +60,7 @@ app.use((req, res, next) => {
       log("⚠️ URL do banco não configurada, serviço de tempo real desabilitado");
     }
   } catch (error) {
-    log("❌ Erro ao inicializar serviço de tempo real:", error);
+    log("❌ Erro ao inicializar serviço de tempo real:", String(error));
     log("⚠️ Continuando sem funcionalidades de tempo real");
   }
 
