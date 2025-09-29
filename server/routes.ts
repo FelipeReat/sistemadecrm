@@ -80,7 +80,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       rateLimiter.recordSuccessfulLogin(email);
       req.session.userId = user.id;
       req.session.user = user;
-      req.session.lastAccess = new Date().toISOString();
+      req.session.lastAccess = new Date();
 
       if (process.env.NODE_ENV !== 'production') {
         console.log(`[AUTH] Login bem-sucedido para ${email} (${user.role})`);
@@ -423,7 +423,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         lossReason,
         lossObservation,
         statement: lossDescription, // Salvar como descrição do card
-        phaseUpdatedAt: new Date().toISOString(),
+        phaseUpdatedAt: new Date(),
       };
 
       // Validar dados finais com schema da oportunidade
@@ -1349,7 +1349,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           size: req.file.size,
           type: req.file.mimetype,
           url: dataUrl, // Store as data URL for direct browser access
-          uploadedAt: new Date().toISOString(),
+          uploadedAt: new Date(),
           uploadedBy: req.session.user!.id
         };
 

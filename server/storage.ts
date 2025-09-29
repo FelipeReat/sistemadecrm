@@ -260,7 +260,7 @@ export class MemStorage implements IStorage {
       ...existing,
       ...preservedData, // Aplicar dados preservados primeiro
       ...updates, // Depois aplicar atualizações
-      phaseUpdatedAt: updates.phase !== existing.phase ? new Date() : existing.phaseUpdatedAt,
+      phaseUpdatedAt: updates.phase !== existing.phase ? new Date() : (existing.phaseUpdatedAt ? new Date(existing.phaseUpdatedAt) : new Date()),
       updatedAt: new Date()
     } as Opportunity;
 

@@ -183,9 +183,12 @@ export const insertOpportunitySchema = createInsertSchema(opportunities, {
   validityDate: z.any().optional().nullable().transform(val => {
     if (!val || val === '') return null;
     try {
+      // If it's already a Date object, return it
+      if (val instanceof Date) return val;
+      // If it's a string, convert to Date
       const date = new Date(val);
       if (isNaN(date.getTime())) return null;
-      return val.toString();
+      return date;
     } catch {
       return null;
     }
@@ -264,10 +267,37 @@ export const insertOpportunitySchema = createInsertSchema(opportunities, {
     return val.trim();
   }),
 
-  // Timestamps
-  createdAt: z.string().optional(),
-  updatedAt: z.string().optional(),
-  phaseUpdatedAt: z.string().optional().nullable(),
+  // Timestamps - handle both Date objects and strings
+  createdAt: z.any().optional().transform(val => {
+    if (!val) return undefined;
+    if (val instanceof Date) return val;
+    try {
+      const date = new Date(val);
+      return isNaN(date.getTime()) ? undefined : date;
+    } catch {
+      return undefined;
+    }
+  }),
+  updatedAt: z.any().optional().transform(val => {
+    if (!val) return undefined;
+    if (val instanceof Date) return val;
+    try {
+      const date = new Date(val);
+      return isNaN(date.getTime()) ? undefined : date;
+    } catch {
+      return undefined;
+    }
+  }),
+  phaseUpdatedAt: z.any().optional().nullable().transform(val => {
+    if (!val) return null;
+    if (val instanceof Date) return val;
+    try {
+      const date = new Date(val);
+      return isNaN(date.getTime()) ? null : date;
+    } catch {
+      return null;
+    }
+  }),
 });
 
 export const insertAutomationSchema = createInsertSchema(automations).omit({
