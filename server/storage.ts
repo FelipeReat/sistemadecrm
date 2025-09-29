@@ -265,20 +265,16 @@ export class MemStorage implements IStorage {
     } as Opportunity;
 
     // Log para debug das preservações
-    console.log(`📝 Atualizando oportunidade ${id}:`);
-    console.log(`- Fase: ${existing.phase} → ${updated.phase || existing.phase}`);
-    console.log(`- Dados preservados: ${Object.keys(preservedData).length} campos`);
-    console.log(`- Dados atualizados: ${Object.keys(updates).length} campos`);
+
+
 
     this.opportunities.set(id, updated);
     return updated;
   }
 
   async deleteOpportunity(id: string): Promise<boolean> {
-    console.log(`🗂️  MemStorage: Executando DELETE para oportunidade ${id}`);
     const existed = this.opportunities.has(id);
     const wasDeleted = this.opportunities.delete(id);
-    console.log(`🗂️  MemStorage: Oportunidade existia: ${existed}, foi removida: ${wasDeleted}`);
     return wasDeleted;
   }
 

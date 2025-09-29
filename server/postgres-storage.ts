@@ -22,7 +22,9 @@ export class PostgresStorage implements IStorage {
         try {
           await this.initializeDefaultAdmin();
         } catch (error) {
-          console.error('Erro na inicialização segura do admin:', error);
+          if (process.env.NODE_ENV !== 'production') {
+            console.error('Erro na inicialização segura do admin:', error);
+          }
           // Tenta novamente após 10 segundos com backoff exponencial
           setTimeout(() => this.safeInitializeDefaultAdmin(), 10000);
         }
@@ -32,7 +34,6 @@ export class PostgresStorage implements IStorage {
 
   private async initializeDefaultAdmin() {
     if (this.adminInitialized) {
-      console.log('Admin já foi inicializado, pulando...');
       return;
     }
 
@@ -42,8 +43,6 @@ export class PostgresStorage implements IStorage {
     while (retryCount < maxRetries && !this.adminInitialized) {
       const client = createDirectConnection();
       try {
-        console.log(`Tentativa ${retryCount + 1}/${maxRetries} - Verificando se existe admin padrão...`);
-
         // Aguarda um pouco antes de cada tentativa
         if (retryCount > 0) {
           await new Promise(resolve => setTimeout(resolve, 2000 * retryCount));
@@ -54,20 +53,21 @@ export class PostgresStorage implements IStorage {
         const result = await client.query('SELECT * FROM users WHERE role = $1', ['admin']);
 
         if (result.rows.length === 0) {
-          console.log('🔧 Criando usuário admin padrão...');
+          if (process.env.NODE_ENV !== 'production') {
+            console.log('🔧 Criando usuário admin padrão...');
+          }
           const hashedPassword = await bcrypt.hash('admin123', 10);
           await client.query(
             'INSERT INTO users (id, name, email, password, role, is_active, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())',
             [randomUUID(), 'Administrador', 'admin@crm.com', hashedPassword, 'admin', true]
           );
-          console.log('✅ Usuário admin criado com sucesso');
-        } else {
-          console.log('✅ Usuário admin já existe');
+          if (process.env.NODE_ENV !== 'production') {
+            console.log('✅ Usuário admin criado com sucesso');
+          }
         }
 
         await client.end();
         this.adminInitialized = true;
-        console.log('Inicialização do admin concluída com sucesso.');
         break;
 
       } catch (error: any) {
@@ -77,7 +77,6 @@ export class PostgresStorage implements IStorage {
 
         // Se é um erro de conexão, aguarda mais tempo
         if (error.code === 'ECONNRESET' || error.code === 'ENOTFOUND' || error.code === 'ETIMEDOUT') {
-          console.log('Erro de conexão detectado, aguardando antes da próxima tentativa...');
           if (retryCount < maxRetries) {
             await new Promise(resolve => setTimeout(resolve, 5000 * retryCount));
           }
@@ -226,28 +225,22 @@ export class PostgresStorage implements IStorage {
 
   async deleteOpportunity(id: string): Promise<boolean> {
     try {
-      console.log(`🗂️  PostgresStorage: Executando DELETE para oportunidade ${id}`);
-      
       // Primeiro verificar se a oportunidade existe
       const existingOpportunity = await this.getOpportunity(id);
       if (!existingOpportunity) {
-        console.log(`🗂️  PostgresStorage: Oportunidade ${id} não encontrada`);
         return false;
       }
 
       const result = await db
         .delete(opportunities)
         .where(eq(opportunities.id, id));
-
-      console.log(`🗂️  PostgresStorage: DELETE executado, resultado:`, result);
       
       // Para Drizzle ORM, verificar se o resultado é truthy ou se existe rowCount
       const wasDeleted = result && (typeof result.rowCount === 'number' ? result.rowCount > 0 : true);
-      console.log(`🗂️  PostgresStorage: Resultado da exclusão: ${wasDeleted}`);
       
       return wasDeleted;
     } catch (error: any) {
-      console.error(`❌ PostgresStorage: Erro ao excluir oportunidade ${id}:`, error?.message || error);
+      console.error(`❌ PostgresStorage: Erro ao excluir oportunidade:`, error?.message || error);
       return false;
     }
   }

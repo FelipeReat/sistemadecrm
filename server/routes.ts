@@ -43,7 +43,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Verifica rate limiting
       if (rateLimiter.isBlocked(email)) {
         const blockTime = rateLimiter.getBlockTimeRemaining(email);
-        console.log(`[AUTH] Login bloqueado para ${email}, tempo restante: ${blockTime} minutos`);
+        if (process.env.NODE_ENV !== 'production') {
+          console.log(`[AUTH] Login bloqueado para ${email}, tempo restante: ${blockTime} minutos`);
+        }
         return res.status(429).json({ 
           message: `Muitas tentativas falharam. Tente novamente em ${blockTime} minutos.` 
         });
@@ -54,7 +56,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!user) {
         rateLimiter.recordFailedAttempt(email);
         const remaining = rateLimiter.getRemainingAttempts(email);
-        console.log(`[AUTH] Falha de login para ${email}, tentativas restantes: ${remaining}`);
+        if (process.env.NODE_ENV !== 'production') {
+          console.log(`[AUTH] Falha de login para ${email}, tentativas restantes: ${remaining}`);
+        }
 
         let message = "Email ou senha inválidos";
         if (remaining <= 2) {
@@ -66,7 +70,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Verifica se o usuário está ativo
       if (!user.isActive) {
-        console.log(`[AUTH] Tentativa de login de usuário inativo: ${email}`);
+        if (process.env.NODE_ENV !== 'production') {
+          console.log(`[AUTH] Tentativa de login de usuário inativo: ${email}`);
+        }
         return res.status(401).json({ message: "Conta desativada. Entre em contato com o administrador." });
       }
 
@@ -76,7 +82,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       req.session.user = user;
       req.session.lastAccess = new Date().toISOString();
 
-      console.log(`[AUTH] Login bem-sucedido para ${email} (${user.role})`);
+      if (process.env.NODE_ENV !== 'production') {
+        console.log(`[AUTH] Login bem-sucedido para ${email} (${user.role})`);
+      }
 
       // Remove password from response
       const { password: _, ...userWithoutPassword } = user;
@@ -234,8 +242,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         createdBy: req.session.user!.name || req.session.user!.email || "Usuário"
       };
 
-      console.log('🔍 Dados recebidos para criação:', JSON.stringify(dataToValidate, null, 2));
-
       // Ensure documents are properly formatted and persisted
       if (dataToValidate.documents && Array.isArray(dataToValidate.documents)) {
         dataToValidate.documents = dataToValidate.documents.map((doc: any) => {
@@ -256,19 +262,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Ensure all essential fields are preserved - don't transform empty strings to null
-      ['contact', 'company', 'phone', 'needCategory', 'clientNeeds', 'businessTemperature'].forEach(field => {
-        if (dataToValidate[field] !== undefined && dataToValidate[field] !== null) {
-          // Preserve the original value, even if it's an empty string that will be transformed
-          console.log(`📋 Preservando campo ${field}:`, dataToValidate[field]);
-        }
-      });
-
       const validatedData = insertOpportunitySchema.parse(dataToValidate);
-      console.log('✅ Dados validados:', JSON.stringify(validatedData, null, 2));
-
       const opportunity = await storage.createOpportunity(validatedData);
-      console.log('🎯 Oportunidade criada:', JSON.stringify(opportunity, null, 2));
 
       res.status(201).json(opportunity);
     } catch (error: any) {
@@ -380,21 +375,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Oportunidade não encontrada" });
       }
 
-      console.log(`🔄 Movendo oportunidade ${id} da fase "${currentOpportunity.phase}" para "${phase}"`);
-      console.log(`📊 Dados atuais preservados: ${Object.keys(currentOpportunity).filter(key => 
-        currentOpportunity[key as keyof typeof currentOpportunity] !== null && 
-        currentOpportunity[key as keyof typeof currentOpportunity] !== undefined &&
-        currentOpportunity[key as keyof typeof currentOpportunity] !== ''
-      ).length} campos com dados`);
-
       // Mover para a nova fase preservando todos os dados existentes
       const opportunity = await storage.moveOpportunityToPhase(id, phase);
 
       if (!opportunity) {
         return res.status(404).json({ message: "Erro ao mover oportunidade" });
       }
-
-      console.log(`✅ Oportunidade movida com sucesso. Dados preservados na nova fase.`);
       res.json(opportunity);
     } catch (error: any) {
       // If it's a validation error from storage layer, return 400 with the message
@@ -426,9 +412,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Oportunidade não encontrada" });
       }
 
-      console.log(`💔 Movendo oportunidade ${id} da fase "${currentOpportunity.phase}" para "perdido"`);
-      console.log(`📝 Motivo: ${lossReason}`);
-      console.log(`📄 Observação: ${lossObservation.substring(0, 100)}...`);
+
 
       // Criar descrição composta para o card
       const lossDescription = `[Perdido] ${lossReason} — ${lossObservation}`;
@@ -450,7 +434,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Erro ao mover oportunidade para perdido" });
       }
 
-      console.log(`✅ Oportunidade movida para perdido com sucesso. Motivo registrado.`);
+
       res.json(opportunity);
     } catch (error: any) {
       if (error.name === "ZodError") {
@@ -466,65 +450,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { id } = req.params;
 
-      console.log(`🗑️  Tentativa de exclusão da oportunidade ${id} pelo usuário ${req.session.user!.name} (${req.session.user!.role})`);
-
       // Busca a oportunidade existente para verificar permissões
       const existingOpportunity = await storage.getOpportunity(id);
       if (!existingOpportunity) {
-        console.log(`❌ Oportunidade ${id} não encontrada`);
         return res.status(404).json({ message: "Oportunidade não encontrada" });
       }
-
-      console.log(`📋 Oportunidade encontrada: ${existingOpportunity.company} - Importado: ${existingOpportunity.isImported}`);
 
       const userRole = req.session.user!.role;
       const userName = req.session.user!.name;
 
       // Admins podem excluir QUALQUER card
-      if (userRole === 'admin') {
-        console.log(`✅ Admin pode excluir qualquer card`);
-      }
-      // Gerentes podem excluir QUALQUER card
-      else if (userRole === 'gerente') {
-        console.log(`✅ Gerente pode excluir qualquer card`);
-      }
-      // Usuários/Vendedores têm permissões limitadas
-      else if (userRole === 'usuario' || userRole === 'vendedor') {
-        // Para cards importados, apenas se for o vendedor responsável
-        if (existingOpportunity.isImported) {
-          const isAssignedSalesperson = existingOpportunity.salesperson === userName;
-          if (!isAssignedSalesperson) {
-            console.log(`❌ Usuário ${userName} não é o vendedor responsável pelo card importado`);
-            return res.status(403).json({ message: "Apenas administradores, gerentes ou o vendedor responsável podem excluir cards importados" });
-          }
-          console.log(`✅ Usuário ${userName} é o vendedor responsável pelo card importado`);
+        if (userRole === 'admin') {
+          // Admin permissions - no additional checks needed
         }
-        // Para cards normais, se foi criado por ele ou se é o vendedor responsável
-        else {
-          const canDelete = existingOpportunity.createdBy === userName || 
-                           existingOpportunity.salesperson === userName;
-          
-          if (!canDelete) {
-            console.log(`❌ Usuário ${userName} não tem permissão para excluir este card`);
-            return res.status(403).json({ message: "Você só pode excluir suas próprias oportunidades" });
-          }
-          console.log(`✅ Usuário ${userName} pode excluir este card`);
+        // Gerentes podem excluir QUALQUER card
+        else if (userRole === 'gerente') {
+          // Manager permissions - no additional checks needed
         }
-      }
+        // Usuários/Vendedores têm permissões limitadas
+        else if (userRole === 'usuario' || userRole === 'vendedor') {
+          // Para cards importados, apenas se for o vendedor responsável
+          if (existingOpportunity.isImported) {
+            const isAssignedSalesperson = existingOpportunity.salesperson === userName;
+            if (!isAssignedSalesperson) {
+              return res.status(403).json({ message: "Apenas administradores, gerentes ou o vendedor responsável podem excluir cards importados" });
+            }
+          }
+          // Para cards normais, se foi criado por ele ou se é o vendedor responsável
+          else {
+            const canDelete = existingOpportunity.createdBy === userName || 
+                             existingOpportunity.salesperson === userName;
+            
+            if (!canDelete) {
+              return res.status(403).json({ message: "Você só pode excluir suas próprias oportunidades" });
+            }
+          }
+        }
 
-      // Tentar excluir
-      console.log(`🗑️  Executando exclusão da oportunidade ${id}`);
-      const deleted = await storage.deleteOpportunity(id);
+        // Tentar excluir
+        const deleted = await storage.deleteOpportunity(id);
 
-      if (!deleted) {
-        console.log(`❌ Falha ao excluir oportunidade ${id} - storage retornou false`);
-        return res.status(500).json({ message: "Erro interno ao excluir oportunidade" });
-      }
-
-      console.log(`✅ Oportunidade ${id} excluída com sucesso`);
+        if (!deleted) {
+          return res.status(500).json({ message: "Erro interno ao excluir oportunidade" });
+        }
       res.status(204).send();
     } catch (error: any) {
-      console.error(`❌ Erro ao excluir oportunidade ${id}:`, error);
+      console.error(`❌ Erro ao excluir oportunidade:`, error);
       res.status(500).json({ message: `Erro ao excluir oportunidade: ${error?.message || 'Erro desconhecido'}` });
     }
   });
@@ -1314,11 +1285,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           'text/plain'
         ];
 
-        console.log('File upload attempt:', {
-          originalname: file.originalname,
-          mimetype: file.mimetype,
-          size: file.size
-        });
+        if (process.env.NODE_ENV !== 'production') {
+          console.log('File upload attempt:', {
+            originalname: file.originalname,
+            mimetype: file.mimetype,
+            size: file.size
+          });
+        }
 
         if (allowedTypes.includes(file.mimetype)) {
           cb(null, true);
@@ -1723,7 +1696,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // SEMPRE aplicar targetPhase se fornecido
     if (targetPhase !== undefined && targetPhase !== null && targetPhase !== '') {
       transformed.phase = targetPhase;
-      console.log(`🎯 OVERRIDE: Aplicando targetPhase "${targetPhase}"`);
+      if (process.env.NODE_ENV !== 'production') {
+        console.log(`🎯 OVERRIDE: Aplicando targetPhase "${targetPhase}"`);
+      }
     }
 
     // FALLBACKS FINAIS para garantir dados válidos
@@ -1765,7 +1740,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!transformed.cpf || transformed.cpf === '') transformed.cpf = null;
     if (!transformed.cnpj || transformed.cnpj === '') transformed.cnpj = null;
 
-    console.log(`✅ Card transformado com sucesso - ${transformed.contact} | ${transformed.company}`);
+    if (process.env.NODE_ENV !== 'production') {
+        console.log(`✅ Card transformado com sucesso - ${transformed.contact} | ${transformed.company}`);
+      }
     return transformed;
   }
 
@@ -1907,7 +1884,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get preview of first 10 processed records
       const previewData = data.slice(0, 10).map((row: any, index: number) => {
         // Pass targetPhase to transformRow - SEMPRE usar a fase selecionada
-        console.log(`🔍 Preview - usando targetPhase: ${targetPhase} para linha ${index + 1}`);
+        if (process.env.NODE_ENV !== 'production') {
+          console.log(`🔍 Preview - usando targetPhase: ${targetPhase} para linha ${index + 1}`);
+        }
         const transformed = transformRow(row, mapping, req.session.userId!, targetPhase); 
         const rowErrors = validateRow(row, mapping, index);
         return {
@@ -1983,10 +1962,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           let failed = 0;
           const errors: any[] = [];
 
-          console.log(`Starting import for user ${userId}, processing ${data.length} rows`);
-          console.log(`Mapping:`, JSON.stringify(mapping, null, 2));
-          console.log(`Target Phase: ${targetPhase}`); // Log target phase
-          console.log(`Fase selecionada será aplicada a TODOS os registros: ${targetPhase}`);
+          if (process.env.NODE_ENV !== 'production') {
+            console.log(`Starting import for user ${userId}, processing ${data.length} rows`);
+            console.log(`Mapping:`, JSON.stringify(mapping, null, 2));
+            console.log(`Target Phase: ${targetPhase}`); // Log target phase
+            console.log(`Fase selecionada será aplicada a TODOS os registros: ${targetPhase}`);
+          }
 
           for (let i = 0; i < data.length; i++) {
             const row = data[i];
@@ -1996,15 +1977,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
               // NUNCA pular linhas - validar apenas para logs
               const rowErrors = validateRow(row, mapping, i);
               if (rowErrors.length > 0) {
-                console.log(`⚠️ Warnings na linha ${i + 1}:`, rowErrors.length);
+                if (process.env.NODE_ENV !== 'production') {
+                  console.log(`⚠️ Warnings na linha ${i + 1}:`, rowErrors.length);
+                }
                 errors.push(...rowErrors);
               }
 
               // Transform row SEMPRE, independente de erros
-              console.log(`🚀 Processando linha ${i + 1} - targetPhase: "${targetPhase}"`);
+              if (process.env.NODE_ENV !== 'production') {
+                console.log(`🚀 Processando linha ${i + 1} - targetPhase: "${targetPhase}"`);
+              }
               const transformedData = transformRow(row, mapping, userId, targetPhase);
 
-              console.log(`✅ Linha ${i + 1} transformada - Fase: "${transformedData.phase}"`);
+              if (process.env.NODE_ENV !== 'production') {
+                console.log(`✅ Linha ${i + 1} transformada - Fase: "${transformedData.phase}"`);
+              }
 
               // Validate with Zod schema com MÚLTIPLOS FALLBACKS
               let validatedData = null;
@@ -2056,7 +2043,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
                     };
                     validatedData = insertOpportunitySchema.parse(minimalData);
                   }
-                  console.log(`✅ Linha ${i + 1} validada na tentativa ${attempt}`);
+                  if (process.env.NODE_ENV !== 'production') {
+                    console.log(`✅ Linha ${i + 1} validada na tentativa ${attempt}`);
+                  }
                 } catch (zodError: any) {
                   console.error(`❌ Tentativa ${attempt} falhou para linha ${i + 1}:`, zodError.errors);
                   if (attempt === maxAttempts) {
@@ -2070,7 +2059,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 try {
                   await storage.createOpportunity(validatedData);
                   created++;
-                  console.log(`✅ Linha ${i + 1} importada com sucesso`);
+                  if (process.env.NODE_ENV !== 'production') {
+                    console.log(`✅ Linha ${i + 1} importada com sucesso`);
+                  }
                 } catch (dbError: any) {
                   console.error(`❌ Erro no banco para linha ${i + 1}:`, dbError.message);
                   
@@ -2097,7 +2088,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
                     const emergencyValidated = insertOpportunitySchema.parse(emergencyData);
                     await storage.createOpportunity(emergencyValidated);
                     created++;
-                    console.log(`🚨 Linha ${i + 1} importada como dados de emergência`);
+                    if (process.env.NODE_ENV !== 'production') {
+                      console.log(`🚨 Linha ${i + 1} importada como dados de emergência`);
+                    }
                   } catch (emergencyError: any) {
                     console.error(`🚨 Falha total na linha ${i + 1}:`, emergencyError.message);
                     failed++;
@@ -2143,7 +2136,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 const fallbackValidated = insertOpportunitySchema.parse(fallbackData);
                 await storage.createOpportunity(fallbackValidated);
                 created++;
-                console.log(`🔄 Linha ${i + 1} importada como fallback após erro`);
+                if (process.env.NODE_ENV !== 'production') {
+                    console.log(`🔄 Linha ${i + 1} importada como fallback após erro`);
+                  }
               } catch (fallbackError: any) {
                 failed++;
                 console.error(`🚨 Fallback final falhou para linha ${i + 1}:`, fallbackError.message);

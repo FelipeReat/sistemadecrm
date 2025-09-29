@@ -2,6 +2,7 @@ import React from 'react';
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
 import type { Opportunity } from '@shared/schema';
+import { config } from '@/lib/config';
 
 // Tipos para o WebSocket
 export interface OpportunityChangeNotification {
@@ -101,10 +102,8 @@ export const useKanbanStore = create<KanbanStore>()(subscribeWithSelector((set, 
     }
     
     try {
-      // Determinar URL do WebSocket baseado no ambiente
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const host = window.location.host;
-      const wsUrl = `${protocol}//${host}/ws`;
+      // Usar configuração centralizada para WebSocket
+      const wsUrl = config.websocket.getUrl();
       
       console.log('🔌 Conectando ao WebSocket:', wsUrl);
       
