@@ -2246,6 +2246,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Sync endpoints for WebSocket state recovery
+  app.get("/api/sync/opportunities", isAuthenticated, async (req, res) => {
+    try {
+      const opportunities = await storage.getOpportunities();
+      res.json({
+        success: true,
+        data: opportunities,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error: any) {
+      console.error('Sync opportunities error:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: "Erro ao sincronizar oportunidades",
+        error: error.message 
+      });
+    }
+  });
+
+  app.get("/api/sync/opportunity/:id", isAuthenticated, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const opportunity = await storage.getOpportunityById(id);
+      
+      if (!opportunity) {
+        return res.status(404).json({ 
+          success: false, 
+          message: "Oportunidade não encontrada" 
+        });
+      }
+
+      res.json({
+        success: true,
+        data: opportunity,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error: any) {
+      console.error('Sync opportunity error:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: "Erro ao sincronizar oportunidade",
+        error: error.message 
+      });
+    }
+  });
+
+  app.post("/api/sync/heartbeat", isAuthenticated, (req, res) => {
+    res.json({
+      success: true,
+      timestamp: new Date().toISOString(),
+      server: 'online'
+    });
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

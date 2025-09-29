@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useKanbanStore, useWebSocketConnection, useWebSocketHeartbeat } from "@/hooks/useKanbanStore";
+import SyncStatus from "@/components/sync-status";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -39,6 +41,20 @@ import {
 export default function CrmDashboard() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  
+  // Zustand store para gerenciamento de estado
+  const { 
+    opportunities: storeOpportunities, 
+    isLoading: storeIsLoading, 
+    error: storeError,
+    setOpportunities,
+    setLoading,
+    setError 
+  } = useKanbanStore();
+  
+  // Hooks para WebSocket
+  const syncStatus = useWebSocketConnection();
+  useWebSocketHeartbeat();
   const [isNewOpportunityModalOpen, setIsNewOpportunityModalOpen] = useState(false);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
@@ -59,10 +75,28 @@ export default function CrmDashboard() {
   const [sortBy, setSortBy] = useState<string>('createdAt');
   const [sortOrder, setSortOrder] = useState<string>('desc');
 
-  // Fetch all opportunities
-  const { data: opportunities = [], isLoading: isLoadingOpportunities } = useQuery<Opportunity[]>({
+  // Fetch all opportunities (React Query como fallback)
+  const { data: queryOpportunities = [], isLoading: isLoadingOpportunities, error: queryError } = useQuery<Opportunity[]>({
     queryKey: ["/api/opportunities"],
+    staleTime: syncStatus.connected ? Infinity : 30000, // Se WebSocket conectado, não refetch automaticamente
   });
+  
+  // Usar dados do store se disponível, senão usar React Query
+  const opportunities = storeOpportunities.length > 0 ? storeOpportunities : queryOpportunities;
+  const isLoading = storeIsLoading || isLoadingOpportunities;
+  
+  // Sincronizar dados do React Query com o store
+  useEffect(() => {
+    if (queryOpportunities.length > 0 && storeOpportunities.length === 0) {
+      setOpportunities(queryOpportunities);
+    }
+  }, [queryOpportunities, storeOpportunities.length, setOpportunities]);
+  
+  // Gerenciar estado de loading e erro
+  useEffect(() => {
+    setLoading(isLoadingOpportunities);
+    setError(queryError ? 'Erro ao carregar oportunidades' : null);
+  }, [isLoadingOpportunities, queryError, setLoading, setError]);
 
   // Fetch stats
   const { data: stats = {} } = useQuery({
@@ -305,6 +339,7 @@ export default function CrmDashboard() {
               </h1>
             </div>
             <div className="flex items-center space-x-4">
+              <SyncStatus />
               <Button
                 onClick={() => setIsNewOpportunityModalOpen(true)}
                 data-testid="button-new-opportunity"

@@ -3,6 +3,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { schedulerService } from "./scheduler";
+import { RealtimeService } from "./realtime-service";
 
 const app = express();
 app.use(express.json({ limit: "50mb" }));
@@ -40,6 +41,28 @@ app.use((req, res, next) => {
 
 (async () => {
   const server = await registerRoutes(app);
+
+  // Inicializar serviço de tempo real
+  let realtimeService: RealtimeService | null = null;
+  try {
+    // Determinar qual variável de ambiente usar baseado no NODE_ENV
+    const isProduction = process.env.NODE_ENV === "production";
+    const dbUrl = isProduction 
+      ? process.env.PROD_DATABASE_URL 
+      : process.env.DEV_DATABASE_URL || process.env.DATABASE_URL;
+    
+    if (dbUrl) {
+      log("🚀 Inicializando serviço de tempo real...");
+      realtimeService = new RealtimeService(server, dbUrl);
+      await realtimeService.initialize();
+      log("✅ Serviço de tempo real ativo");
+    } else {
+      log("⚠️ URL do banco não configurada, serviço de tempo real desabilitado");
+    }
+  } catch (error) {
+    log("❌ Erro ao inicializar serviço de tempo real:", error);
+    log("⚠️ Continuando sem funcionalidades de tempo real");
+  }
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     // Evitar múltiplas respostas
@@ -88,6 +111,26 @@ app.use((req, res, next) => {
     },
     () => {
       log(`serving on host ${host} port ${port}`);
+      if (realtimeService) {
+        log(`🔌 WebSocket disponível em ws://${host}:${port}/ws`);
+      }
     },
   );
+
+  // Graceful shutdown
+  process.on('SIGTERM', async () => {
+    log('🔌 Recebido SIGTERM, desligando servidor...');
+    if (realtimeService) {
+      await realtimeService.shutdown();
+    }
+    process.exit(0);
+  });
+
+  process.on('SIGINT', async () => {
+    log('🔌 Recebido SIGINT, desligando servidor...');
+    if (realtimeService) {
+      await realtimeService.shutdown();
+    }
+    process.exit(0);
+  });
 })();

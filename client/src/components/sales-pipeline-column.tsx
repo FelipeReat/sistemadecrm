@@ -6,6 +6,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useReportsSync } from "@/hooks/useReportsSync";
 import { useAuth } from "@/hooks/useAuth";
+import { useKanbanStore } from "@/hooks/useKanbanStore";
 import type { Opportunity } from "@shared/schema";
 import {
   AlertDialog,
@@ -170,6 +171,7 @@ export default function SalesPipelineColumn({ phase, opportunities, isLoading, o
   const queryClient = useQueryClient();
   const { invalidateAllData } = useReportsSync();
   const { user } = useAuth();
+  const { updateOpportunity, sendMessage } = useKanbanStore();
   const [opportunityToDelete, setOpportunityToDelete] = useState<Opportunity | null>(null);
   const [lossReasonModalOpen, setLossReasonModalOpen] = useState(false);
   const [pendingLossData, setPendingLossData] = useState<{opportunityId: string; opportunity: Opportunity} | null>(null);
@@ -194,7 +196,19 @@ export default function SalesPipelineColumn({ phase, opportunities, isLoading, o
   const moveOpportunityMutation = useMutation({
     mutationFn: ({ opportunityId, newPhase }: { opportunityId: string; newPhase: string }) =>
       apiRequest("PATCH", `/api/opportunities/${opportunityId}/move/${newPhase}`),
-    onSuccess: () => {
+    onSuccess: (updatedOpportunity, { opportunityId, newPhase }) => {
+      // Atualizar no store local
+      const opportunity = opportunities.find(opp => opp.id === opportunityId);
+      if (opportunity) {
+        updateOpportunity(opportunityId, { ...opportunity, phase: newPhase });
+      }
+      
+      // Enviar notificação via WebSocket
+      sendMessage({
+        type: 'opportunity:moved',
+        data: { opportunityId, newPhase, userId: user?.id }
+      });
+      
       invalidateAllData(); // Sincroniza dashboard e relatórios
       toast({
         title: "Sucesso",
