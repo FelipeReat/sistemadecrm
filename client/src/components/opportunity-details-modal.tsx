@@ -276,8 +276,14 @@ export default function OpportunityDetailsModal({
   const updateOpportunityMutation = useMutation({
     mutationFn: (data: any & { id: string }) =>
       apiRequest("PATCH", `/api/opportunities/${data.id}`, data),
-    onSuccess: () => {
-      invalidateAllData(); // Sincroniza dashboard e relatórios
+    onSuccess: (updatedOpportunity) => {
+      // CORREÇÃO: Forçar invalidação e refetch imediato do React Query
+      queryClient.invalidateQueries({ queryKey: ["/api/opportunities"] });
+      queryClient.refetchQueries({ queryKey: ["/api/opportunities"] });
+      
+      // Também invalidar outros dados relacionados
+      invalidateAllData();
+      
       toast({
         title: "Sucesso",
         description: "Oportunidade atualizada com sucesso!",

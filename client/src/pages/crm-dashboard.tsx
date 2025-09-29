@@ -78,19 +78,27 @@ export default function CrmDashboard() {
   // Fetch all opportunities (React Query como fallback)
   const { data: queryOpportunities = [], isLoading: isLoadingOpportunities, error: queryError } = useQuery<Opportunity[]>({
     queryKey: ["/api/opportunities"],
-    staleTime: syncStatus.connected ? Infinity : 30000, // Se WebSocket conectado, não refetch automaticamente
+    staleTime: syncStatus.connected ? 30000 : 5000, // Reduzir staleTime mesmo quando conectado
   });
   
-  // Usar dados do store se disponível, senão usar React Query
-  const opportunities = storeOpportunities.length > 0 ? storeOpportunities : queryOpportunities;
+  // CORREÇÃO: Usar React Query como fonte primária, WebSocket como otimização
+  // Se o store tem dados E está conectado, usar store; senão usar React Query
+  const opportunities = (storeOpportunities.length > 0 && syncStatus.connected) 
+    ? storeOpportunities 
+    : queryOpportunities;
   const isLoading = storeIsLoading || isLoadingOpportunities;
   
-  // Sincronizar dados do React Query com o store
+  // Sincronizar dados do React Query com o store quando necessário
   useEffect(() => {
-    if (queryOpportunities.length > 0 && storeOpportunities.length === 0) {
-      setOpportunities(queryOpportunities);
+    // Sempre sincronizar quando React Query tem dados novos
+    if (queryOpportunities.length > 0) {
+      // Se store está vazio OU se não está conectado via WebSocket, sincronizar
+      if (storeOpportunities.length === 0 || !syncStatus.connected) {
+        console.log('🔄 Dashboard: Sincronizando dados do React Query para o store');
+        setOpportunities(queryOpportunities);
+      }
     }
-  }, [queryOpportunities, storeOpportunities.length, setOpportunities]);
+  }, [queryOpportunities, storeOpportunities.length, syncStatus.connected, setOpportunities]);
   
   // Gerenciar estado de loading e erro
   useEffect(() => {
