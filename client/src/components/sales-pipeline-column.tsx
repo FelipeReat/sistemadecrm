@@ -49,7 +49,7 @@ const canMoveOpportunity = (opportunity: Opportunity, targetPhase: string): { ca
     return { canMove: true };
   }
 
-  const currentIndex = phaseSequence.indexOf(currentPhase);
+  const currentIndex = phaseSequence.indexOf(currentPhase || '');
   const targetIndex = phaseSequence.indexOf(targetPhase);
 
   // Permitir mover de "visita-tecnica" de volta para "em-atendimento"

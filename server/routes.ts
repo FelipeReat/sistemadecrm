@@ -557,11 +557,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const totalOpportunities = opportunities.length;
       const wonOpportunities = opportunities.filter(o => o.phase === 'ganho').length;
       const activeOpportunities = opportunities.filter(o => 
-        !['ganho', 'perdido'].includes(o.phase)
+        o.phase && !['ganho', 'perdido'].includes(o.phase)
       ).length;
 
       const projectedRevenue = opportunities
-        .filter(o => o.budget && ['proposta', 'negociacao', 'ganho'].includes(o.phase))
+        .filter(o => o.budget && o.phase && ['proposta', 'negociacao', 'ganho'].includes(o.phase))
         .reduce((sum, o) => sum + parseFloat(o.budget!.toString()), 0);
 
       // Calculate total value from won opportunities (only from "ganho" phase)
@@ -696,7 +696,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const lostOpportunitiesArray = opportunities.filter(o => o.phase === 'perdido');
       const lostOpportunities = lostOpportunitiesArray.length;
       const activeOpportunities = opportunities.filter(o => 
-        !['ganho', 'perdido'].includes(o.phase)
+        o.phase && !['ganho', 'perdido'].includes(o.phase)
       ).length;
 
       // Receita total
@@ -724,8 +724,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ? opportunities
             .filter(o => o.phase === 'ganho')
             .reduce((sum, opp) => {
-              const created = new Date(opp.createdAt);
-              const updated = new Date(opp.updatedAt);
+              const created = opp.createdAt ? new Date(opp.createdAt) : new Date();
+              const updated = opp.updatedAt ? new Date(opp.updatedAt) : new Date();
               const cycleDays = Math.floor((updated.getTime() - created.getTime()) / (1000 * 60 * 60 * 24));
               return sum + Math.max(cycleDays, 1); // Mínimo 1 dia
             }, 0) / wonOpportunities
@@ -733,7 +733,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Distribuição por fase
       const phaseCounts = opportunities.reduce((acc, opp) => {
-        acc[opp.phase] = (acc[opp.phase] || 0) + 1;
+        if (opp.phase) {
+          acc[opp.phase] = (acc[opp.phase] || 0) + 1;
+        }
         return acc;
       }, {} as Record<string, number>);
 

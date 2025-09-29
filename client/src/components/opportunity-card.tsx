@@ -137,7 +137,7 @@ export default function OpportunityCard({ opportunity, onViewDetails }: Opportun
             {opportunity.contact}
           </h4>
           {/* Indicador de status da fase */}
-          {!['ganho', 'perdido'].includes(opportunity.phase) && (
+          {opportunity.phase && !['ganho', 'perdido'].includes(opportunity.phase) && (
             <div className="flex items-center flex-shrink-0" title={phaseValidation.isComplete ? 'Fase completa' : `Campos faltando: ${phaseValidation.missingFields?.join(', ')}`}>
               {phaseValidation.isComplete ? (
                 <CheckCircle className="h-4 w-4 text-green-500" />
@@ -219,12 +219,6 @@ export default function OpportunityCard({ opportunity, onViewDetails }: Opportun
       {/* Informações específicas da fase */}
       <div className="space-y-1 text-sm text-muted-foreground">
 
-        {opportunity.phase === "prospeccao" && opportunity.nextActivityDate && (
-          <div className="flex items-center">
-            <Calendar className="h-3 w-3 text-muted-foreground mr-2" />
-            <span>Próxima atividade: {new Date(opportunity.nextActivityDate).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" })}</span>
-          </div>
-        )}
 
         {opportunity.phase === "visita-tecnica" && opportunity.visitSchedule && (
           <div className="flex items-center">
@@ -295,7 +289,7 @@ export default function OpportunityCard({ opportunity, onViewDetails }: Opportun
         {opportunity.phase === "ganho" && (
           <div className="flex items-center">
             <Calendar className="h-3 w-3 text-muted-foreground mr-2" />
-            <span>Fechado {formatDate(opportunity.updatedAt)}</span>
+            <span>Fechado {opportunity.updatedAt ? formatDate(opportunity.updatedAt) : 'Data não informada'}</span>
           </div>
         )}
 
@@ -322,7 +316,7 @@ export default function OpportunityCard({ opportunity, onViewDetails }: Opportun
         {opportunity.phase === "perdido" && (
           <div className="flex items-center">
             <Calendar className="h-3 w-3 text-muted-foreground mr-2" />
-            <span>Perdido {formatDate(opportunity.updatedAt)}</span>
+            <span>Perdido {opportunity.updatedAt ? formatDate(opportunity.updatedAt) : 'Data não informada'}</span>
           </div>
         )}
       </div>
@@ -331,15 +325,18 @@ export default function OpportunityCard({ opportunity, onViewDetails }: Opportun
       <div className="mt-3 border-t pt-2">
         <div className="flex flex-col text-xs text-muted-foreground space-y-1">
           <span data-testid={`opportunity-created-${opportunity.id}`}>
-            Criado {formatDate(opportunity.createdAt)}
+            Criado {opportunity.createdAt ? formatDate(opportunity.createdAt) : 'Data não informada'}
           </span>
           <span data-testid={`opportunity-phase-time-${opportunity.id}`} className="text-primary font-medium">
-            Nesta fase {formatDate(opportunity.phaseUpdatedAt || opportunity.updatedAt)}
+            Nesta fase {(() => {
+              const date = opportunity.phaseUpdatedAt || opportunity.updatedAt;
+              return date ? formatDate(date) : 'Data não informada';
+            })()}
           </span>
         </div>
 
         {/* Indicador de campos faltando */}
-        {!phaseValidation.isComplete && !['ganho', 'perdido'].includes(opportunity.phase) && (
+        {!phaseValidation.isComplete && opportunity.phase && !['ganho', 'perdido'].includes(opportunity.phase) && (
           <div className="mt-2 p-2 bg-orange-50 border border-orange-200 rounded text-orange-700">
             <div className="flex items-center space-x-1">
               <AlertCircle className="h-3 w-3" />
@@ -351,7 +348,7 @@ export default function OpportunityCard({ opportunity, onViewDetails }: Opportun
           </div>
         )}
 
-        {phaseValidation.isComplete && !['ganho', 'perdido'].includes(opportunity.phase) && (
+        {phaseValidation.isComplete && opportunity.phase && !['ganho', 'perdido'].includes(opportunity.phase) && (
           <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded text-green-700">
             <div className="flex items-center space-x-1">
               <CheckCircle className="h-3 w-3" />
