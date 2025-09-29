@@ -201,62 +201,46 @@ export class PostgresStorage implements IStorage {
         };
 
         // Convert date fields to proper format for PostgreSQL
-        // Drizzle expects Date objects to be converted to ISO strings for postgres driver
-        if (updatedData.visitDate) {
-          if (typeof updatedData.visitDate === 'string') {
+        // Drizzle with postgres driver needs Date objects, not ISO strings
+        const convertToDate = (value: any): Date | null => {
+          if (!value) return null;
+          if (value instanceof Date) return value;
+          if (typeof value === 'string') {
             try {
-              const dateObj = new Date(updatedData.visitDate);
-              updatedData.visitDate = dateObj.toISOString();
+              const date = new Date(value);
+              return isNaN(date.getTime()) ? null : date;
             } catch (e) {
-              updatedData.visitDate = null;
+              return null;
             }
-          } else if (updatedData.visitDate instanceof Date) {
-            updatedData.visitDate = updatedData.visitDate.toISOString();
+          }
+          return null;
+        };
+
+        // Convert all date fields
+        if (updatedData.visitDate !== undefined) {
+          updatedData.visitDate = convertToDate(updatedData.visitDate);
+        }
+
+        if (updatedData.createdAt !== undefined) {
+          const convertedDate = convertToDate(updatedData.createdAt);
+          if (convertedDate) {
+            updatedData.createdAt = convertedDate;
+          } else {
+            delete updatedData.createdAt;
           }
         }
 
-        if (updatedData.createdAt) {
-          if (typeof updatedData.createdAt === 'string') {
-            try {
-              const dateObj = new Date(updatedData.createdAt);
-              updatedData.createdAt = dateObj.toISOString();
-            } catch (e) {
-              delete updatedData.createdAt;
-            }
-          } else if (updatedData.createdAt instanceof Date) {
-            updatedData.createdAt = updatedData.createdAt.toISOString();
-          }
+        if (updatedData.validityDate !== undefined) {
+          updatedData.validityDate = convertToDate(updatedData.validityDate);
         }
 
-        if (updatedData.validityDate) {
-          if (typeof updatedData.validityDate === 'string') {
-            try {
-              const dateObj = new Date(updatedData.validityDate);
-              updatedData.validityDate = dateObj.toISOString();
-            } catch (e) {
-              updatedData.validityDate = null;
-            }
-          } else if (updatedData.validityDate instanceof Date) {
-            updatedData.validityDate = updatedData.validityDate.toISOString();
-          }
+        if (updatedData.phaseUpdatedAt !== undefined) {
+          updatedData.phaseUpdatedAt = convertToDate(updatedData.phaseUpdatedAt);
         }
 
-        if (updatedData.phaseUpdatedAt) {
-          if (typeof updatedData.phaseUpdatedAt === 'string') {
-            try {
-              const dateObj = new Date(updatedData.phaseUpdatedAt);
-              updatedData.phaseUpdatedAt = dateObj.toISOString();
-            } catch (e) {
-              updatedData.phaseUpdatedAt = null;
-            }
-          } else if (updatedData.phaseUpdatedAt instanceof Date) {
-            updatedData.phaseUpdatedAt = updatedData.phaseUpdatedAt.toISOString();
-          }
-        }
-
-        // Convert updatedAt Date to ISO string
-        if (updatedData.updatedAt instanceof Date) {
-          updatedData.updatedAt = updatedData.updatedAt.toISOString();
+        // Ensure updatedAt is a proper Date object
+        if (updatedData.updatedAt && !(updatedData.updatedAt instanceof Date)) {
+          updatedData.updatedAt = new Date(updatedData.updatedAt);
         }
 
         // Remove undefined values
