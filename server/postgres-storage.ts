@@ -201,44 +201,62 @@ export class PostgresStorage implements IStorage {
         };
 
         // Convert date fields to proper format for PostgreSQL
+        // Drizzle expects Date objects to be converted to ISO strings for postgres driver
         if (updatedData.visitDate) {
           if (typeof updatedData.visitDate === 'string') {
             try {
-              updatedData.visitDate = new Date(updatedData.visitDate);
+              const dateObj = new Date(updatedData.visitDate);
+              updatedData.visitDate = dateObj.toISOString();
             } catch (e) {
               updatedData.visitDate = null;
             }
+          } else if (updatedData.visitDate instanceof Date) {
+            updatedData.visitDate = updatedData.visitDate.toISOString();
           }
         }
 
         if (updatedData.createdAt) {
           if (typeof updatedData.createdAt === 'string') {
             try {
-              updatedData.createdAt = new Date(updatedData.createdAt);
+              const dateObj = new Date(updatedData.createdAt);
+              updatedData.createdAt = dateObj.toISOString();
             } catch (e) {
               delete updatedData.createdAt;
             }
+          } else if (updatedData.createdAt instanceof Date) {
+            updatedData.createdAt = updatedData.createdAt.toISOString();
           }
         }
 
         if (updatedData.validityDate) {
           if (typeof updatedData.validityDate === 'string') {
             try {
-              updatedData.validityDate = new Date(updatedData.validityDate);
+              const dateObj = new Date(updatedData.validityDate);
+              updatedData.validityDate = dateObj.toISOString();
             } catch (e) {
               updatedData.validityDate = null;
             }
+          } else if (updatedData.validityDate instanceof Date) {
+            updatedData.validityDate = updatedData.validityDate.toISOString();
           }
         }
 
         if (updatedData.phaseUpdatedAt) {
           if (typeof updatedData.phaseUpdatedAt === 'string') {
             try {
-              updatedData.phaseUpdatedAt = new Date(updatedData.phaseUpdatedAt);
+              const dateObj = new Date(updatedData.phaseUpdatedAt);
+              updatedData.phaseUpdatedAt = dateObj.toISOString();
             } catch (e) {
               updatedData.phaseUpdatedAt = null;
             }
+          } else if (updatedData.phaseUpdatedAt instanceof Date) {
+            updatedData.phaseUpdatedAt = updatedData.phaseUpdatedAt.toISOString();
           }
+        }
+
+        // Convert updatedAt Date to ISO string
+        if (updatedData.updatedAt instanceof Date) {
+          updatedData.updatedAt = updatedData.updatedAt.toISOString();
         }
 
         // Remove undefined values
