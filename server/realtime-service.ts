@@ -36,16 +36,10 @@ export class RealtimeService {
     }
 
     // Criar mensagem WebSocket baseada na notificação
+    // IMPORTANTE: O frontend espera type: 'opportunity:change' e data com a notificação completa
     const wsMessage: WebSocketMessage = {
-      type: `opportunity:${notification.operation.toLowerCase()}`,
-      data: {
-        operation: notification.operation,
-        opportunity: notification.data,
-        oldOpportunity: notification.old_data,
-        phaseChanged: notification.phase_changed,
-        userId: notification.user_id,
-        table: notification.table
-      },
+      type: 'opportunity:change',
+      data: notification, // Enviar a notificação completa como data
       timestamp: notification.timestamp
     };
 
@@ -54,6 +48,7 @@ export class RealtimeService {
 
     if (process.env.NODE_ENV !== 'production') {
       console.log(`📡 Broadcasted ${notification.operation} para clientes WebSocket`);
+      console.log('📦 Dados enviados:', JSON.stringify(wsMessage, null, 2));
     }
   }
 

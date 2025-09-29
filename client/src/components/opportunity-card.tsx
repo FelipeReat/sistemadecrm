@@ -5,6 +5,7 @@ import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { Opportunity } from "@shared/schema";
 import { formatters } from "@/lib/formatters";
+import { useEffect } from "react";
 
 // Função para validar se uma fase está completa
 const validatePhaseCompletion = (opportunity: Opportunity): { isComplete: boolean; missingFields?: string[] } => {
@@ -57,6 +58,11 @@ interface OpportunityCardProps {
 
 export default function OpportunityCard({ opportunity, onViewDetails }: OpportunityCardProps) {
   const phaseValidation = validatePhaseCompletion(opportunity);
+
+  // Log para monitorar re-renderizações do card
+  useEffect(() => {
+    console.log(`🎯 OpportunityCard: Re-renderizando card da oportunidade ${opportunity.id} - ${opportunity.contact} (${opportunity.company}) (Fase: ${opportunity.phase})`);
+  }, [opportunity.id, opportunity.contact, opportunity.company, opportunity.phase, opportunity.updatedAt]);
 
   const handleDragStart = (e: React.DragEvent) => {
     // Passar tanto o ID quanto o objeto completo da oportunidade para validação

@@ -445,13 +445,19 @@ export default function SalesPipelineColumn({ phase, opportunities, isLoading, o
               <p className="text-sm text-gray-500 dark:text-gray-300">Nenhuma oportunidade nesta fase</p>
             </div>
           ) : (
-            opportunities.map((opportunity) => (
-              <OpportunityCard
-                key={opportunity.id}
-                opportunity={opportunity}
-                onViewDetails={onViewDetails}
-              />
-            ))
+            <>
+              {console.log(`🔄 Coluna ${phase.key}: Renderizando ${opportunities.length} oportunidades`)}
+              {opportunities.map((opportunity) => {
+                console.log(`📋 Coluna ${phase.key}: Renderizando oportunidade ${opportunity.id} - ${opportunity.contact} (${opportunity.company})`);
+                return (
+                  <OpportunityCard
+                    key={opportunity.id}
+                    opportunity={opportunity}
+                    onViewDetails={onViewDetails}
+                  />
+                );
+              })}
+            </>
           )}
         </div>
 

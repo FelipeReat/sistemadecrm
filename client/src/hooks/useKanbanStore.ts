@@ -75,19 +75,32 @@ export const useKanbanStore = create<KanbanStore>()(subscribeWithSelector((set, 
   // Ações para oportunidades
   setOpportunities: (opportunities) => set({ opportunities }),
   
-  addOpportunity: (opportunity) => set((state) => ({
-    opportunities: [...state.opportunities, opportunity],
-  })),
+  addOpportunity: (opportunity) => set((state) => {
+    console.log('🔄 Store: Adicionando oportunidade:', opportunity.id, opportunity.title);
+    console.log('📊 Store: Estado antes da adição:', state.opportunities.length, 'oportunidades');
+    const newState = [...state.opportunities, opportunity];
+    console.log('📊 Store: Estado após adição:', newState.length, 'oportunidades');
+    return { opportunities: newState };
+  }),
   
-  updateOpportunity: (id, updates) => set((state) => ({
-    opportunities: state.opportunities.map(opp => 
+  updateOpportunity: (id, updates) => set((state) => {
+    console.log('🔄 Store: Atualizando oportunidade:', id, updates);
+    console.log('📊 Store: Estado antes da atualização:', state.opportunities.length, 'oportunidades');
+    const newState = state.opportunities.map(opp => 
       opp.id === id ? { ...opp, ...updates } : opp
-    ),
-  })),
+    );
+    console.log('📊 Store: Estado após atualização:', newState.length, 'oportunidades');
+    console.log('📋 Store: Oportunidade atualizada encontrada:', newState.find(o => o.id === id) ? 'SIM' : 'NÃO');
+    return { opportunities: newState };
+  }),
   
-  removeOpportunity: (id) => set((state) => ({
-    opportunities: state.opportunities.filter(opp => opp.id !== id),
-  })),
+  removeOpportunity: (id) => set((state) => {
+    console.log('🔄 Store: Removendo oportunidade:', id);
+    console.log('📊 Store: Estado antes da remoção:', state.opportunities.length, 'oportunidades');
+    const newState = state.opportunities.filter(opp => opp.id !== id);
+    console.log('📊 Store: Estado após remoção:', newState.length, 'oportunidades');
+    return { opportunities: newState };
+  }),
   
   setLoading: (loading) => set({ isLoading: loading }),
   setError: (error) => set({ error }),
@@ -98,6 +111,7 @@ export const useKanbanStore = create<KanbanStore>()(subscribeWithSelector((set, 
     
     // Evitar múltiplas conexões
     if (ws && ws.readyState === WebSocket.OPEN) {
+      console.log('🔌 WebSocket já conectado, ignorando nova conexão');
       return;
     }
     
@@ -110,7 +124,7 @@ export const useKanbanStore = create<KanbanStore>()(subscribeWithSelector((set, 
       const newWs = new WebSocket(wsUrl);
       
       newWs.onopen = () => {
-        console.log('✅ WebSocket conectado');
+        console.log('✅ WebSocket conectado com sucesso');
         set({ 
           ws: newWs,
           syncStatus: {
@@ -123,19 +137,25 @@ export const useKanbanStore = create<KanbanStore>()(subscribeWithSelector((set, 
         });
         
         // Subscrever às atualizações de oportunidades
-        newWs.send(JSON.stringify({
+        const subscribeMessage = {
           type: 'subscribe:opportunities',
           timestamp: new Date().toISOString(),
-        }));
+        };
+        console.log('📡 Enviando subscrição:', subscribeMessage);
+        newWs.send(JSON.stringify(subscribeMessage));
       };
       
       newWs.onmessage = (event) => {
+        console.log('📨 Mensagem WebSocket recebida:', event.data);
         try {
           const message: WebSocketMessage = JSON.parse(event.data);
+          console.log('📋 Mensagem parseada:', message);
           
           if (message.type === 'opportunity:change' && message.data) {
+            console.log('🔄 Processando mudança de oportunidade:', message.data);
             get().handleWebSocketMessage(message.data);
           } else if (message.type === 'pong') {
+            console.log('🏓 Pong recebido');
             // Resposta ao ping - atualizar lastSync
             set((state) => ({
               syncStatus: {
@@ -143,6 +163,12 @@ export const useKanbanStore = create<KanbanStore>()(subscribeWithSelector((set, 
                 lastSync: new Date(),
               }
             }));
+          } else if (message.type === 'connection:established') {
+            console.log('✅ Conexão estabelecida:', message.data?.message);
+          } else if (message.type === 'subscription:confirmed') {
+            console.log('✅ Subscrição confirmada para canal:', message.data?.channel);
+          } else {
+            console.log('📨 Tipo de mensagem não reconhecido:', message.type);
           }
         } catch (error) {
           console.error('❌ Erro ao processar mensagem WebSocket:', error);
@@ -220,33 +246,50 @@ export const useKanbanStore = create<KanbanStore>()(subscribeWithSelector((set, 
   
   handleWebSocketMessage: (notification) => {
     console.log('📨 Notificação recebida:', notification);
+    console.log('📋 Detalhes da notificação:', {
+      operation: notification.operation,
+      table: notification.table,
+      hasData: !!notification.data,
+      hasOldData: !!notification.old_data,
+      phaseChanged: notification.phase_changed,
+      timestamp: notification.timestamp
+    });
     
     const { operation, data, old_data } = notification;
     
     switch (operation) {
       case 'INSERT':
         if (data) {
+          console.log('➕ Adicionando oportunidade ao store:', data.id);
           get().addOpportunity(data);
-          console.log('➕ Oportunidade adicionada:', data.id);
+          console.log('✅ Oportunidade adicionada com sucesso');
+        } else {
+          console.warn('⚠️ INSERT sem dados');
         }
         break;
         
       case 'UPDATE':
         if (data) {
+          console.log('✏️ Atualizando oportunidade no store:', data.id);
           get().updateOpportunity(data.id, data);
-          console.log('✏️ Oportunidade atualizada:', data.id);
+          console.log('✅ Oportunidade atualizada com sucesso');
           
           // Log especial para mudanças de fase
           if (notification.phase_changed && old_data) {
             console.log(`🔄 Fase alterada: ${old_data.phase} → ${data.phase}`);
           }
+        } else {
+          console.warn('⚠️ UPDATE sem dados');
         }
         break;
         
       case 'DELETE':
         if (old_data) {
+          console.log('🗑️ Removendo oportunidade do store:', old_data.id);
           get().removeOpportunity(old_data.id);
-          console.log('🗑️ Oportunidade removida:', old_data.id);
+          console.log('✅ Oportunidade removida com sucesso');
+        } else {
+          console.warn('⚠️ DELETE sem old_data');
         }
         break;
         
@@ -261,6 +304,10 @@ export const useKanbanStore = create<KanbanStore>()(subscribeWithSelector((set, 
         lastSync: new Date(),
       }
     }));
+    
+    // Log do estado atual do store após a atualização
+    const currentOpportunities = get().opportunities;
+    console.log(`📊 Estado atual do store: ${currentOpportunities.length} oportunidades`);
   },
   
   setSyncStatus: (status) => set((state) => ({

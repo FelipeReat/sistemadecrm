@@ -10,11 +10,17 @@ export const config = {
     getUrl(): string {
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       
-      // Usar a mesma lógica do servidor para determinar a porta
-      // Desenvolvimento: PORT=5000 (padrão do .env.development)
-      // Produção: PORT=5501 (definido no .env)
-      const port = config.isDevelopment ? 5000 : 5501;
+      // Usar a mesma porta que o servidor está rodando
+      const port = window.location.port || (config.isDevelopment ? '5501' : '5501');
       const host = `${window.location.hostname}:${port}`;
+      
+      console.log('🔧 Configuração WebSocket:', {
+        protocol,
+        hostname: window.location.hostname,
+        port,
+        host,
+        isDevelopment: config.isDevelopment
+      });
       
       return `${protocol}//${host}/ws`;
     }
