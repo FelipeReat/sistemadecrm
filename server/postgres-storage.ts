@@ -1,4 +1,4 @@
-import { type Opportunity, type InsertOpportunity, type Automation, type InsertAutomation, type User, type InsertUser, type UpdateUser, type SavedReport, type InsertSavedReport, type UserSettings, type InsertUserSettings, type EmailTemplate, type InsertEmailTemplate, type AuditLog, type SalesReport, type SystemBackup } from "@shared/schema";
+import { type Opportunity, type InsertOpportunity, type Automation, type InsertAutomation, type User, type UpdateUser, type SavedReport, type InsertSavedReport, type UserSettings, type InsertUserSettings, type EmailTemplate, type InsertEmailTemplate, type AuditLog, type SalesReport, type SystemBackup } from "@shared/schema";
 import { db } from './db';
 import { opportunities, automations, users, savedReports, userSettings, emailTemplates, auditLogs, salesReports, systemBackups, emailLogs } from '@shared/schema';
 import { eq, desc, and, count, sum } from 'drizzle-orm';
@@ -193,28 +193,46 @@ export class PostgresStorage implements IStorage {
   }
 
   async updateOpportunity(id: string, updates: Partial<InsertOpportunity>): Promise<Opportunity | undefined> {
-    try {
-      const existing = await this.getOpportunity(id);
-      if (!existing) return undefined;
+    for (let retries = 3; retries > 0; retries--) {
+      try {
+        const updatedData = {
+          ...updates,
+          updatedAt: new Date()
+        };
 
-      // Preservar dados existentes e aplicar atualizações
-      const updatedData = {
-        ...updates,
-        updatedAt: new Date(),
-        phaseUpdatedAt: updates.phase && updates.phase !== existing.phase ? new Date() : existing.phaseUpdatedAt
-      };
+        // Convert date fields to Date objects if they're strings
+        if (updatedData.visitDate && typeof updatedData.visitDate === 'string') {
+          updatedData.visitDate = new Date(updatedData.visitDate);
+        }
+        if (updatedData.createdAt && typeof updatedData.createdAt === 'string') {
+          updatedData.createdAt = new Date(updatedData.createdAt);
+        }
 
-      const result = await db
-        .update(opportunities)
-        .set(updatedData)
-        .where(eq(opportunities.id, id))
-        .returning();
+        // Remove undefined values
+        Object.keys(updatedData).forEach(key => {
+          if (updatedData[key] === undefined) {
+            delete updatedData[key];
+          }
+        });
 
-      return result[0] || undefined;
-    } catch (error) {
-      console.error('Error updating opportunity:', error);
-      return undefined;
+        const result = await db
+          .update(opportunities)
+          .set(updatedData)
+          .where(eq(opportunities.id, id))
+          .returning();
+
+        return result[0] || undefined;
+      } catch (error: any) {
+        console.error('Error updating opportunity, attempt', 4 - retries, ':', error);
+
+        if (retries > 0 && (error?.code === 'ECONNRESET' || error?.code === 'ENOTFOUND' || error?.code === 'ETIMEDOUT')) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          continue;
+        }
+        throw error;
+      }
     }
+    return undefined;
   }
 
   async deleteOpportunity(id: string): Promise<boolean> {
@@ -228,10 +246,10 @@ export class PostgresStorage implements IStorage {
       const result = await db
         .delete(opportunities)
         .where(eq(opportunities.id, id));
-      
+
       // Para Drizzle ORM, verificar se o resultado é truthy ou se existe rowCount
       const wasDeleted = result && (typeof result.rowCount === 'number' ? result.rowCount > 0 : true);
-      
+
       return wasDeleted;
     } catch (error: any) {
       console.error(`❌ PostgresStorage: Erro ao excluir oportunidade:`, error?.message || error);
