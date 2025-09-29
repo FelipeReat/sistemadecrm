@@ -200,12 +200,45 @@ export class PostgresStorage implements IStorage {
           updatedAt: new Date()
         };
 
-        // Convert date fields to Date objects if they're strings
-        if (updatedData.visitDate && typeof updatedData.visitDate === 'string') {
-          updatedData.visitDate = new Date(updatedData.visitDate);
+        // Convert date fields to proper format for PostgreSQL
+        if (updatedData.visitDate) {
+          if (typeof updatedData.visitDate === 'string') {
+            try {
+              updatedData.visitDate = new Date(updatedData.visitDate);
+            } catch (e) {
+              updatedData.visitDate = null;
+            }
+          }
         }
-        if (updatedData.createdAt && typeof updatedData.createdAt === 'string') {
-          updatedData.createdAt = new Date(updatedData.createdAt);
+
+        if (updatedData.createdAt) {
+          if (typeof updatedData.createdAt === 'string') {
+            try {
+              updatedData.createdAt = new Date(updatedData.createdAt);
+            } catch (e) {
+              delete updatedData.createdAt;
+            }
+          }
+        }
+
+        if (updatedData.validityDate) {
+          if (typeof updatedData.validityDate === 'string') {
+            try {
+              updatedData.validityDate = new Date(updatedData.validityDate);
+            } catch (e) {
+              updatedData.validityDate = null;
+            }
+          }
+        }
+
+        if (updatedData.phaseUpdatedAt) {
+          if (typeof updatedData.phaseUpdatedAt === 'string') {
+            try {
+              updatedData.phaseUpdatedAt = new Date(updatedData.phaseUpdatedAt);
+            } catch (e) {
+              updatedData.phaseUpdatedAt = null;
+            }
+          }
         }
 
         // Remove undefined values
