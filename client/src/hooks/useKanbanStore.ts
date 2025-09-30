@@ -84,13 +84,9 @@ export const useKanbanStore = create<KanbanStore>()(subscribeWithSelector((set, 
   }),
   
   updateOpportunity: (id, updates) => set((state) => {
-    console.log('🔄 Store: Atualizando oportunidade:', id, updates);
-    console.log('📊 Store: Estado antes da atualização:', state.opportunities.length, 'oportunidades');
     const newState = state.opportunities.map(opp => 
       opp.id === id ? { ...opp, ...updates } : opp
     );
-    console.log('📊 Store: Estado após atualização:', newState.length, 'oportunidades');
-    console.log('📋 Store: Oportunidade atualizada encontrada:', newState.find(o => o.id === id) ? 'SIM' : 'NÃO');
     return { opportunities: newState };
   }),
   

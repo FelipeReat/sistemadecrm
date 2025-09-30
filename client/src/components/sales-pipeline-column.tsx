@@ -197,10 +197,15 @@ export default function SalesPipelineColumn({ phase, opportunities, isLoading, o
     mutationFn: ({ opportunityId, newPhase }: { opportunityId: string; newPhase: string }) =>
       apiRequest("PATCH", `/api/opportunities/${opportunityId}/move/${newPhase}`),
     onSuccess: (updatedOpportunity, { opportunityId, newPhase }) => {
-      // Atualizar no store local
-      const opportunity = opportunities.find(opp => opp.id === opportunityId);
-      if (opportunity) {
-        updateOpportunity(opportunityId, { ...opportunity, phase: newPhase });
+      // Atualizar no store local com os dados retornados da API
+      if (updatedOpportunity && updatedOpportunity.id) {
+        updateOpportunity(updatedOpportunity.id, updatedOpportunity);
+      } else {
+        // Fallback: atualizar apenas a fase se não houver dados completos
+        const opportunity = opportunities.find(opp => opp.id === opportunityId);
+        if (opportunity) {
+          updateOpportunity(opportunityId, { ...opportunity, phase: newPhase });
+        }
       }
       
       // Enviar notificação via WebSocket

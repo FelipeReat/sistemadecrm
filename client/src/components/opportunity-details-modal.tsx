@@ -31,6 +31,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useReportsSync } from "@/hooks/useReportsSync";
 import { useAuth } from "@/hooks/useAuth";
+import { useKanbanStore } from "@/hooks/useKanbanStore";
 import type { Opportunity } from "@shared/schema";
 import { masks } from "@/lib/masks";
 import { formatters } from "@/lib/formatters";
@@ -117,6 +118,9 @@ export default function OpportunityDetailsModal({
   const queryClient = useQueryClient();
   const { invalidateAllData } = useReportsSync();
   const { user } = useAuth();
+  
+  // CORREÇÃO: Usar o hook corretamente para obter as funções do store
+  const { updateOpportunity, removeOpportunity } = useKanbanStore();
 
   // Funções auxiliares para formatação
   const formatBudgetForDisplay = (value: string | number | null | undefined): string => {
@@ -309,10 +313,15 @@ export default function OpportunityDetailsModal({
   const updateOpportunityMutation = useMutation({
     mutationFn: (data: any & { id: string }) =>
       apiRequest("PATCH", `/api/opportunities/${data.id}`, data),
-    onSuccess: (updatedOpportunity) => {
-      // CORREÇÃO: Forçar invalidação e refetch imediato do React Query
-      queryClient.invalidateQueries({ queryKey: ["/api/opportunities"] });
-      queryClient.refetchQueries({ queryKey: ["/api/opportunities"] });
+    onSuccess: async (updatedOpportunity) => {
+      // CORREÇÃO: Invalidação mais agressiva e sincronização com store
+      await queryClient.invalidateQueries({ queryKey: ["/api/opportunities"] });
+      await queryClient.refetchQueries({ queryKey: ["/api/opportunities"] });
+      
+      // CORREÇÃO: Usar as funções do hook diretamente
+      if (updatedOpportunity && updatedOpportunity.id) {
+        updateOpportunity(updatedOpportunity.id, updatedOpportunity);
+      }
       
       // Também invalidar outros dados relacionados
       invalidateAllData();
@@ -324,6 +333,7 @@ export default function OpportunityDetailsModal({
       onOpenChange(false);
     },
     onError: (error: any) => {
+      console.error('❌ Modal: Erro na mutation updateOpportunity:', error);
       const errorMessage = error?.response?.data?.message || error?.message || "Erro ao atualizar oportunidade.";
       toast({
         title: "Erro",
@@ -339,7 +349,16 @@ export default function OpportunityDetailsModal({
   const moveToNextPhaseMutation = useMutation({
     mutationFn: ({ opportunityId, newPhase }: { opportunityId: string; newPhase: string }) =>
       apiRequest("PATCH", `/api/opportunities/${opportunityId}/move/${newPhase}`),
-    onSuccess: () => {
+    onSuccess: async (updatedOpportunity) => {
+      // CORREÇÃO: Invalidação mais agressiva e sincronização com store
+      await queryClient.invalidateQueries({ queryKey: ["/api/opportunities"] });
+      await queryClient.refetchQueries({ queryKey: ["/api/opportunities"] });
+      
+      // CORREÇÃO: Usar as funções do hook diretamente
+      if (updatedOpportunity && updatedOpportunity.id) {
+        updateOpportunity(updatedOpportunity.id, updatedOpportunity);
+      }
+      
       invalidateAllData(); // Sincroniza dashboard e relatórios
       toast({
         title: "Sucesso",
@@ -347,7 +366,8 @@ export default function OpportunityDetailsModal({
       });
       onOpenChange(false);
     },
-    onError: () => {
+    onError: (error) => {
+      console.error('❌ Modal: Erro na mutation moveToNextPhase:', error);
       toast({
         title: "Erro",
         description: "Erro ao mover oportunidade.",
@@ -361,11 +381,20 @@ export default function OpportunityDetailsModal({
 
   const deleteOpportunityMutation = useMutation({
     mutationFn: (opportunityId: string) => {
-      console.log(`🗑️  Cliente: Iniciando exclusão da oportunidade ${opportunityId}`);
+      console.log(`🗑️  Modal: Iniciando exclusão da oportunidade ${opportunityId}`);
       return apiRequest("DELETE", `/api/opportunities/${opportunityId}`);
     },
-    onSuccess: () => {
-      console.log(`✅ Cliente: Exclusão bem-sucedida`);
+    onSuccess: async (_, opportunityId) => {
+      console.log(`✅ Modal: Exclusão bem-sucedida para oportunidade ${opportunityId}`);
+      
+      // CORREÇÃO: Invalidação mais agressiva e sincronização com store
+      await queryClient.invalidateQueries({ queryKey: ["/api/opportunities"] });
+      await queryClient.refetchQueries({ queryKey: ["/api/opportunities"] });
+      
+      // CORREÇÃO: Usar as funções do hook diretamente
+      console.log('🗑️ Modal: Removendo do store Zustand:', opportunityId);
+      removeOpportunity(opportunityId);
+      
       invalidateAllData(); // Sincroniza dashboard e relatórios
       toast({
         title: "Sucesso",
@@ -374,9 +403,9 @@ export default function OpportunityDetailsModal({
       onOpenChange(false);
     },
     onError: (error: any) => {
-      console.error(`❌ Cliente: Erro na exclusão:`, error);
+      console.error(`❌ Modal: Erro na exclusão:`, error);
       const errorMessage = error?.response?.data?.message || error?.message || "Erro ao excluir oportunidade.";
-      console.error(`❌ Cliente: Mensagem de erro:`, errorMessage);
+      console.error(`❌ Modal: Mensagem de erro:`, errorMessage);
       toast({
         title: "Erro",
         description: errorMessage,
@@ -534,6 +563,8 @@ export default function OpportunityDetailsModal({
 
       // Remove o campo budgetFile que é específico do form (já foi processado acima)
       delete cleanedData.budgetFile;
+
+
 
       // Apenas atualiza os dados da oportunidade
       await updateOpportunityMutation.mutateAsync({ ...cleanedData, id: opportunity.id });

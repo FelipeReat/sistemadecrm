@@ -88,13 +88,19 @@ export default function CrmDashboard() {
     : queryOpportunities;
   const isLoading = storeIsLoading || isLoadingOpportunities;
   
-  // Sincronizar dados do React Query com o store quando necessário
+  // CORREÇÃO: Sincronização mais agressiva entre React Query e store
   useEffect(() => {
     // Sempre sincronizar quando React Query tem dados novos
     if (queryOpportunities.length > 0) {
       // Se store está vazio OU se não está conectado via WebSocket, sincronizar
       if (storeOpportunities.length === 0 || !syncStatus.connected) {
         console.log('🔄 Dashboard: Sincronizando dados do React Query para o store');
+        setOpportunities(queryOpportunities);
+      }
+      // NOVO: Também sincronizar se há diferença no número de oportunidades
+      else if (storeOpportunities.length !== queryOpportunities.length) {
+        console.log('🔄 Dashboard: Sincronizando devido a diferença no número de oportunidades');
+        console.log(`Store: ${storeOpportunities.length}, Query: ${queryOpportunities.length}`);
         setOpportunities(queryOpportunities);
       }
     }
