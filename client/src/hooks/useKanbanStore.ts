@@ -201,9 +201,18 @@ export const useKanbanStore = create<KanbanStore>()(subscribeWithSelector((set, 
       
       newWs.onerror = (error) => {
         console.error('❌ Erro no WebSocket:', error);
+        console.error('🔍 Detalhes do erro:', {
+          type: error.type,
+          target: error.target,
+          readyState: newWs.readyState,
+          url: newWs.url,
+          protocol: newWs.protocol,
+          extensions: newWs.extensions
+        });
         set((state) => ({
           syncStatus: {
             ...state.syncStatus,
+            connected: false,
             error: 'Erro de conexão WebSocket',
           }
         }));
