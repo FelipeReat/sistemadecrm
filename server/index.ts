@@ -110,7 +110,12 @@ app.use((req, res, next) => {
     () => {
       log(`serving on host ${host} port ${port}`);
       if (realtimeService) {
-        log(`🔌 WebSocket disponível em ws://${host}:${port}/ws`);
+        const protocol = process.env.NODE_ENV === "production" ? "wss" : "ws";
+        log(`🔌 WebSocket disponível em ${protocol}://${host}:${port}/ws`);
+        
+        // Log adicional para debug
+        const status = realtimeService.getStatus();
+        log(`📊 Status do serviço realtime:`, JSON.stringify(status, null, 2));
       }
     },
   );

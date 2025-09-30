@@ -14,12 +14,25 @@ export class WebSocketManager extends EventEmitter {
 
   constructor(server: Server) {
     super();
+    console.log('🔌 Iniciando WebSocket Server no path /ws');
     this.wss = new WebSocketServer({ server, path: '/ws' });
     this.setupWebSocketServer();
+    
+    // Log quando o servidor WebSocket estiver pronto
+    this.wss.on('listening', () => {
+      console.log('✅ WebSocket Server está escutando');
+    });
+    
+    this.wss.on('error', (error) => {
+      console.error('❌ Erro no WebSocket Server:', error);
+    });
   }
 
   private setupWebSocketServer() {
     this.wss.on('connection', (ws: WebSocket, req) => {
+      console.log('🔗 Nova conexão WebSocket estabelecida');
+      console.log(`📍 Cliente conectado de: ${req.socket.remoteAddress}`);
+      console.log(`📋 Headers: ${JSON.stringify(req.headers, null, 2)}`);
       
       // Adicionar cliente à lista
       this.clients.add(ws);
