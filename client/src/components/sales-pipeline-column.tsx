@@ -247,11 +247,11 @@ export default function SalesPipelineColumn({ phase, opportunities, isLoading, o
 
   const deleteOpportunityMutation = useMutation({
     mutationFn: (opportunityId: string) => {
-      console.log(`🗑️  Coluna: Iniciando exclusão da oportunidade ${opportunityId}`);
+      //console.log(`🗑️  Coluna: Iniciando exclusão da oportunidade ${opportunityId}`);
       return apiRequest("DELETE", `/api/opportunities/${opportunityId}`);
     },
     onSuccess: () => {
-      console.log(`✅ Coluna: Exclusão bem-sucedida`);
+      //console.log(`✅ Coluna: Exclusão bem-sucedida`);
       invalidateAllData(); // Sincroniza dashboard e relatórios
       toast({
         title: "Sucesso",
@@ -446,9 +446,9 @@ export default function SalesPipelineColumn({ phase, opportunities, isLoading, o
             </div>
           ) : (
             <>
-              {console.log(`🔄 Coluna ${phase.key}: Renderizando ${opportunities.length} oportunidades`)}
+              {/*console.log(`🔄 Coluna ${phase.key}: Renderizando ${opportunities.length} oportunidades`)*/}
               {opportunities.map((opportunity) => {
-                console.log(`📋 Coluna ${phase.key}: Renderizando oportunidade ${opportunity.id} - ${opportunity.contact} (${opportunity.company})`);
+                //console.log(`📋 Coluna ${phase.key}: Renderizando oportunidade ${opportunity.id} - ${opportunity.contact} (${opportunity.company})`);
                 return (
                   <OpportunityCard
                     key={opportunity.id}

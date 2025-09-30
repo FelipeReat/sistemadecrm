@@ -61,7 +61,7 @@ export default function OpportunityCard({ opportunity, onViewDetails }: Opportun
 
   // Log para monitorar re-renderizações do card
   useEffect(() => {
-    console.log(`🎯 OpportunityCard: Re-renderizando card da oportunidade ${opportunity.id} - ${opportunity.contact} (${opportunity.company}) (Fase: ${opportunity.phase})`);
+    //console.log(`🎯 OpportunityCard: Re-renderizando card da oportunidade ${opportunity.id} - ${opportunity.contact} (${opportunity.company}) (Fase: ${opportunity.phase})`);
   }, [opportunity.id, opportunity.contact, opportunity.company, opportunity.phase, opportunity.updatedAt]);
 
   const handleDragStart = (e: React.DragEvent) => {

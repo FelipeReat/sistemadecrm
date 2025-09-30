@@ -4,7 +4,7 @@
 export const config = {
   // Detectar ambiente baseado na URL ou outras características
   // Em Replit, sempre usar configuração de desenvolvimento para usar porta 5000
-  isDevelopment: window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.hostname.includes('replit.dev'),
+  isDevelopment: window.location.hostname.includes('replit.dev'),
   
   // Configurações de WebSocket
   websocket: {
