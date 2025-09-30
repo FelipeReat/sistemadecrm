@@ -216,11 +216,6 @@ export class PostgresStorage implements IStorage {
           return null;
         };
 
-        // Convert all date fields
-        if (updatedData.visitDate !== undefined) {
-          updatedData.visitDate = convertToDate(updatedData.visitDate);
-        }
-
         if (updatedData.createdAt !== undefined) {
           const convertedDate = convertToDate(updatedData.createdAt);
           if (convertedDate) {
