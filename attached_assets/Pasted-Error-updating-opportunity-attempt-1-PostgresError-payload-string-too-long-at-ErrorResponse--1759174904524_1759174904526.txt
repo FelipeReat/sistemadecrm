@@ -1,0 +1,44 @@
+Error updating opportunity, attempt 1 : PostgresError: payload string too long
+    at ErrorResponse (file:///C:/locador/webapps/crm/node_modules/.pnpm/postgres@3.4.7/node_modules/postgres/src/connection.js:794:26)
+    at handle (file:///C:/locador/webapps/crm/node_modules/.pnpm/postgres@3.4.7/node_modules/postgres/src/connection.js:480:6)
+    at TLSSocket.data (file:///C:/locador/webapps/crm/node_modules/.pnpm/postgres@3.4.7/node_modules/postgres/src/connection.js:315:9)
+    at TLSSocket.emit (node:events:518:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TLSWrap.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '22023',
+  where: 'SQL statement "SELECT pg_notify(\r\n' +
+    "    'opportunity_changes',\r\n" +
+    '    json_build_object(\r\n' +
+    "      'operation', TG_OP,\r\n" +
+    "      'table', TG_TABLE_NAME,\r\n" +
+    "      'data', CASE \r\n" +
+    "        WHEN TG_OP = 'DELETE' THEN row_to_json(OLD)\r\n" +
+    '        ELSE row_to_json(NEW)\r\n' +
+    '      END,\r\n' +
+    "      'old_data', CASE \r\n" +
+    "        WHEN TG_OP = 'UPDATE' THEN row_to_json(OLD)\r\n" +
+    '        ELSE NULL\r\n' +
+    '      END,\r\n' +
+    "      'timestamp', extract(epoch from now()),\r\n" +
+    "      'user_id', COALESCE(\r\n" +
+    '        CASE \r\n' +
+    "          WHEN TG_OP = 'DELETE' THEN OLD.created_by\r\n" +
+    '          ELSE NEW.created_by\r\n' +
+    '        END, \r\n' +
+    "        'system'\r\n" +
+    '      ),\r\n' +
+    "      'phase_changed', CASE \r\n" +
+    "        WHEN TG_OP = 'UPDATE' AND OLD.phase IS DISTINCT FROM NEW.phase THEN true\r\n" +
+    '        ELSE false\r\n' +
+    '      END\r\n' +
+    '    )::text\r\n' +
+    '  )"\n' +
+    'PL/pgSQL function notify_opportunity_change() line 4 at PERFORM',
+  file: 'async.c',
+  line: '621',
+  routine: 'Async_Notify'
+}
