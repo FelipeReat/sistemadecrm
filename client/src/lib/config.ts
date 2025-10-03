@@ -19,7 +19,7 @@ export const config = {
       // Para Replit, sempre usar o host atual da página
      /* const host = window.location.host;*/
      const currentPort = import.meta.env.PORT ?? window.location.port;
-     const port = currentPort || (config.isDevelopment ? 5000 : 5501);
+     const port = config.isDevelopment ? 5000 : 5501;
      const host = `${window.location.hostname}:${port}`;
      const wsUrl = `${protocol}//${host}/ws`;
      
