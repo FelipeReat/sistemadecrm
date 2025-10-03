@@ -28,6 +28,11 @@ export function useAuth() {
         return response.json();
       } catch (error) {
         console.error("Auth query error:", error);
+        // Tratamento específico para erros de conexão
+        if (error instanceof TypeError && error.message.includes('fetch')) {
+          console.warn("Erro de conexão detectado na verificação de autenticação");
+          // Retornamos null em vez de lançar erro para não bloquear a interface
+        }
         return null;
       }
     }
