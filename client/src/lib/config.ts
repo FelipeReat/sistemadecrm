@@ -17,9 +17,12 @@ export const config = {
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
 
       // Para Replit, sempre usar o host atual da página
-      const host = window.location.host;
-      const wsUrl = `${protocol}//${host}/ws`;
-
+     /* const host = window.location.host;*/
+     const currentPort = import.meta.env.PORT ?? window.location.port;
+     const port = currentPort || (config.isDevelopment ? 5000 : 5501);
+     const host = `${window.location.hostname}:${port}`;
+     const wsUrl = `${protocol}//${host}/ws`;
+     
       console.log('🔧 Configuração WebSocket:', {
         protocol,
         host,
