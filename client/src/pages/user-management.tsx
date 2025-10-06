@@ -41,7 +41,7 @@ export default function UserManagement() {
   const createUserMutation = useMutation({
     mutationFn: async (userData: InsertUser) => {
       const response = await apiRequest("POST", "/api/users", userData);
-      return response.json();
+      return response;
     },
     onSuccess: () => {
       toast({ title: "Sucesso", description: "Usuário criado com sucesso!" });
@@ -62,7 +62,7 @@ export default function UserManagement() {
   const updateUserMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: UpdateUser }) => {
       const response = await apiRequest("PATCH", `/api/users/${id}`, data);
-      return response.json();
+      return response;
     },
     onSuccess: () => {
       toast({ title: "Sucesso", description: "Usuário atualizado com sucesso!" });

@@ -178,19 +178,8 @@ export default function SalesPipelineColumn({ phase, opportunities, isLoading, o
 
   // Função para verificar se o usuário pode mover cards importados
   const canMoveImportedCard = (opportunity: Opportunity): boolean => {
-    if (!opportunity.isImported || !user) return true;
-    
-    // Admin e gerente podem mover qualquer card importado
-    if (user.role === 'admin' || user.role === 'gerente') {
-      return true;
-    }
-    
-    // Vendedor só pode mover se for o vendedor responsável
-    if (user.role === 'vendedor') {
-      return opportunity.salesperson === user.name;
-    }
-    
-    return false;
+    // Allow all users to move imported cards
+    return true;
   };
 
   const moveOpportunityMutation = useMutation({

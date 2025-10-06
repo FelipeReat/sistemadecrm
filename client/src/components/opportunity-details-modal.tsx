@@ -425,31 +425,13 @@ export default function OpportunityDetailsModal({
 
   // Check if user can edit/delete imported cards
   const canEditImportedCard = (opportunity: Opportunity): boolean => {
-    if (!opportunity?.isImported || !user) return true; // Non-imported cards or no user context
-    
-    const userRole = user.role;
-    const isAssignedSalesperson = opportunity.salesperson === user.name;
-    
-    // Managers and admins can always edit imported cards
-    if (userRole === 'gerente' || userRole === 'admin') {
-      return true;
-    }
-    
-    // Salespeople can only edit if they are assigned to the opportunity
-    if (userRole === 'vendedor' && isAssignedSalesperson) {
-      return true;
-    }
-    
-    return false;
+    // Allow all users to edit imported cards
+    return true;
   };
 
   const canDeleteImportedCard = (opportunity: Opportunity): boolean => {
-    if (!opportunity?.isImported || !user) return true; // Non-imported cards or no user context
-    
-    const userRole = user.role;
-    
-    // Only managers and admins can delete imported cards
-    return userRole === 'gerente' || userRole === 'admin';
+    // Allow all users to delete imported cards
+    return true;
   };
 
   const handleDelete = () => {

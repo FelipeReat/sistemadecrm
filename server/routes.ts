@@ -286,24 +286,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Oportunidade não encontrada" });
       }
 
-      // Check if this is an imported card and if editing is allowed
-      if (existingOpportunity.isImported) {
-        const systemSettings = await storage.getSystemSettings();
-        const allowEditing = systemSettings.find(s => s.settingKey === 'allow_imported_card_editing')?.settingValue === 'true';
-        
-        if (!allowEditing) {
-          return res.status(403).json({ message: "Edição de cards importados não está permitida" });
-        }
-
-        // For imported cards, only managers and admins can edit, unless user is the assigned salesperson
-        if (req.session.user!.role === 'usuario') {
-          const canEditImported = existingOpportunity.salesperson === req.session.user!.name;
-          if (!canEditImported) {
-            return res.status(403).json({ message: "Apenas gerentes, admins ou o vendedor responsável podem editar cards importados" });
-          }
-        }
-      } else {
-        // Usuários comuns só podem editar suas próprias oportunidades (non-imported)
+      // Allow all users to edit imported cards - no restrictions
+      if (!existingOpportunity.isImported) {
+        // For non-imported cards, keep existing permission logic
         if (req.session.user!.role === 'usuario') {
           // Se a oportunidade foi criada por este usuário ou ainda não tem vendedor atribuído, pode editar
           const canEdit = existingOpportunity.createdBy === req.session.user!.name || 
@@ -469,15 +454,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         // Usuários/Vendedores têm permissões limitadas
         else if (userRole === 'usuario' || userRole === 'vendedor') {
-          // Para cards importados, apenas se for o vendedor responsável
-          if (existingOpportunity.isImported) {
-            const isAssignedSalesperson = existingOpportunity.salesperson === userName;
-            if (!isAssignedSalesperson) {
-              return res.status(403).json({ message: "Apenas administradores, gerentes ou o vendedor responsável podem excluir cards importados" });
-            }
-          }
-          // Para cards normais, se foi criado por ele ou se é o vendedor responsável
-          else {
+          // Allow all users to delete imported cards - no restrictions
+          if (!existingOpportunity.isImported) {
+            // Para cards normais, se foi criado por ele ou se é o vendedor responsável
             const canDelete = existingOpportunity.createdBy === userName || 
                              existingOpportunity.salesperson === userName;
             
