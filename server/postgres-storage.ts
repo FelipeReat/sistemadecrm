@@ -801,11 +801,24 @@ export class PostgresStorage implements IStorage {
   // Audit Logs
   async getAuditLogs(limit: number = 100): Promise<AuditLog[]> {
     try {
-      return await db
+      const logs = await db
         .select()
         .from(auditLogs)
         .orderBy(desc(auditLogs.timestamp))
         .limit(limit);
+      
+      // Filter out admin actions from audit logs for non-admin users
+      // We need to check if the userId belongs to an admin user
+      const adminUsers = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(eq(users.role, 'admin'));
+      
+      const adminUserIds = adminUsers.map(admin => admin.id);
+      
+      return logs.filter(log => {
+        return !log.userId || !adminUserIds.includes(log.userId);
+      });
     } catch (error) {
       console.error('Error getting audit logs:', error);
       return [];
@@ -831,12 +844,24 @@ export class PostgresStorage implements IStorage {
 
   async getUserAuditLogs(userId: string, limit: number = 50): Promise<AuditLog[]> {
     try {
-      return await db
+      const logs = await db
         .select()
         .from(auditLogs)
         .where(eq(auditLogs.userId, userId))
         .orderBy(desc(auditLogs.timestamp))
         .limit(limit);
+      
+      // Filter out admin actions from user audit logs
+      const adminUsers = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(eq(users.role, 'admin'));
+      
+      const adminUserIds = adminUsers.map(admin => admin.id);
+      
+      return logs.filter(log => {
+        return !log.userId || !adminUserIds.includes(log.userId);
+      });
     } catch (error) {
       console.error('Error getting user audit logs:', error);
       return [];

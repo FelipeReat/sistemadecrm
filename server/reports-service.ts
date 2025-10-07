@@ -26,11 +26,11 @@ export async function generateSalesReports(period: 'daily' | 'monthly' | 'quarte
         break;
     }
 
-    // Get all salespeople
+    // Get all salespeople (exclude admin)
     const salespeople = await db
       .select()
       .from(users)
-      .where(eq(users.role, 'usuario'));
+      .where(and(eq(users.role, 'usuario'), eq(users.isActive, true)));
 
     // Generate reports for each salesperson
     for (const salesperson of salespeople) {

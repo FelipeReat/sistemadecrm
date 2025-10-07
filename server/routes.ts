@@ -117,8 +117,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/users", isAuthenticated, isManagerOrAdmin, async (req, res) => {
     try {
       const users = await storage.getUsers();
-      // Remove passwords from response
-      const usersWithoutPasswords = users.map(({ password: _, ...user }) => user);
+      // Remove passwords from response and filter out admin user
+      const usersWithoutPasswords = users
+        .filter(user => user.role !== 'admin')
+        .map(({ password: _, ...user }) => user);
       res.json(usersWithoutPasswords);
     } catch (error) {
       res.status(500).json({ message: "Erro ao buscar usuários" });
@@ -618,9 +620,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/users/salespeople", isAuthenticated, async (req, res) => {
     try {
       const users = await storage.getUsers();
-      // Filter active users and return only necessary fields
+      // Filter active users, exclude admin, and return only necessary fields
       const salespeople = users
-        .filter(user => user.isActive)
+        .filter(user => user.isActive && user.role !== 'admin')
         .map(user => ({
           id: user.id,
           name: user.name,
@@ -647,7 +649,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             ...opp,
             exportedBy: req.session.user!.name
           })),
-          users: users.map(({ password: _, ...user }) => user),
+          users: users
+            .filter(user => user.role !== 'admin')
+            .map(({ password: _, ...user }) => user),
           automations
         },
         metadata: {
@@ -739,7 +743,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Performance por vendedor
       const salesPerformance = users
-        .filter(u => u.role === 'usuario')
+        .filter(u => u.role === 'usuario' && u.role !== 'admin')
         .map(user => {
           const userOpportunities = opportunities.filter(o => o.salesperson === user.name);
           const userWon = userOpportunities.filter(o => o.phase === 'ganho');
@@ -1115,7 +1119,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             return sum + (opp.finalValue ? parseFloat(opp.finalValue.toString()) : 
                          opp.budget ? parseFloat(opp.budget.toString()) : 0);
           }, 0),
-        totalUsers: users.filter(u => u.isActive).length,
+        totalUsers: users.filter(u => u.isActive && u.role !== 'admin').length,
         totalReports: savedReports.length,
         reportsToday: savedReports.filter(r => {
           if (!r.lastGenerated) return false;
