@@ -27,25 +27,25 @@ export default function SyncStatus({ className = '' }: SyncStatusProps) {
   const getStatusBadge = () => {
     if (syncStatus.connected) {
       return (
-        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+        <Badge variant="outline" className="bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800">
           Conectado
         </Badge>
       );
     } else if (syncStatus.error) {
       return (
-        <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+        <Badge variant="outline" className="bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800">
           Erro
         </Badge>
       );
     } else if (syncStatus.reconnectAttempts > 0) {
       return (
-        <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
+        <Badge variant="outline" className="bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 border-yellow-200 dark:border-yellow-800">
           Reconectando...
         </Badge>
       );
     } else {
       return (
-        <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">
+        <Badge variant="outline" className="bg-gray-50 dark:bg-gray-900/30 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-800">
           Desconectado
         </Badge>
       );

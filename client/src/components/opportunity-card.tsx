@@ -91,19 +91,19 @@ export default function OpportunityCard({ opportunity, onViewDetails }: Opportun
   const getStatusBadge = () => {
     switch (opportunity.phase) {
       case "ganho":
-        return <Badge className="bg-green-100 text-green-800 text-xs font-medium">Ganho</Badge>;
+        return <Badge className="bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 text-xs font-medium">Ganho</Badge>;
       case "perdido":
-        return <Badge className="bg-red-100 text-red-800 text-xs font-medium">Perdido</Badge>;
+        return <Badge className="bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 text-xs font-medium">Perdido</Badge>;
       case "negociacao":
-        return <Badge className="bg-orange-100 text-orange-800 text-xs font-medium">Em negociação</Badge>;
+        return <Badge className="bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300 text-xs font-medium">Em negociação</Badge>;
       case "proposta":
         if (opportunity.budget) {
-          return <Badge className="bg-green-100 text-green-800 text-xs font-medium">{formatCurrency(opportunity.budget)}</Badge>;
+          return <Badge className="bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 text-xs font-medium">{formatCurrency(opportunity.budget)}</Badge>;
         }
         break;
       case "prospeccao":
         if (opportunity.opportunityNumber) {
-          return <Badge className="bg-blue-100 text-blue-800 text-xs font-medium">{opportunity.opportunityNumber}</Badge>;
+          return <Badge className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 text-xs font-medium">{opportunity.opportunityNumber}</Badge>;
         }
         break;
     }
@@ -113,7 +113,7 @@ export default function OpportunityCard({ opportunity, onViewDetails }: Opportun
   const getImportedBadge = () => {
     if (opportunity.isImported) {
       return (
-        <Badge className="bg-purple-100 text-purple-800 text-xs font-medium flex items-center gap-1" title={`Importado via ${opportunity.importSource || 'CSV'} - Lote: ${opportunity.importBatchId || 'N/A'}`}>
+        <Badge className="bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300 text-xs font-medium flex items-center gap-1" title={`Importado via ${opportunity.importSource || 'CSV'} - Lote: ${opportunity.importBatchId || 'N/A'}`}>
           <Download className="h-3 w-3" />
           Importado
         </Badge>
@@ -163,28 +163,28 @@ export default function OpportunityCard({ opportunity, onViewDetails }: Opportun
         {getImportedBadge()}
       </div>
 
-      <div className="space-y-1 text-sm text-muted-foreground">
+      <div className="space-y-1 text-sm text-gray-600 dark:text-gray-300">
         {opportunity.phone && (
           <div className="flex items-center">
-            <Phone className="h-3 w-3 text-muted-foreground mr-2" />
+            <Phone className="h-3 w-3 text-gray-500 dark:text-gray-400 mr-2" />
             <span data-testid={`opportunity-phone-${opportunity.id}`}>{opportunity.phone}</span>
           </div>
         )}
 
         {opportunity.cnpj && (
           <div className="flex items-center">
-            <Building className="h-3 w-3 text-muted-foreground mr-2" />
+            <Building className="h-3 w-3 text-gray-500 dark:text-gray-400 mr-2" />
             <span data-testid={`opportunity-cnpj-${opportunity.id}`}>{opportunity.cnpj}</span>
           </div>
         )}
 
         {opportunity.businessTemperature && (
           <div className="flex items-center">
-            <span className="h-3 w-3 text-muted-foreground mr-2">🌡️</span>
+            <span className="h-3 w-3 text-gray-500 dark:text-gray-400 mr-2">🌡️</span>
             <span className={`font-medium ${
-              opportunity.businessTemperature === 'quente' ? 'text-red-600' :
-              opportunity.businessTemperature === 'morno' ? 'text-yellow-600' :
-              'text-blue-600'
+              opportunity.businessTemperature === 'quente' ? 'text-red-600 dark:text-red-400' :
+              opportunity.businessTemperature === 'morno' ? 'text-yellow-600 dark:text-yellow-400' :
+              'text-blue-600 dark:text-blue-400'
             }`}>
               {opportunity.businessTemperature.charAt(0).toUpperCase() + opportunity.businessTemperature.slice(1)}
             </span>
@@ -193,8 +193,8 @@ export default function OpportunityCard({ opportunity, onViewDetails }: Opportun
 
         {opportunity.needCategory && (
           <div className="flex items-center">
-            <FileText className="h-3 w-3 text-muted-foreground mr-2" />
-            <span className="truncate" title={opportunity.needCategory}>
+            <FileText className="h-3 w-3 text-gray-500 dark:text-gray-400 mr-2" />
+            <span className="truncate text-gray-700 dark:text-gray-300" title={opportunity.needCategory}>
               {opportunity.needCategory}
             </span>
           </div>
@@ -202,8 +202,8 @@ export default function OpportunityCard({ opportunity, onViewDetails }: Opportun
 
         {opportunity.documents && opportunity.documents.length > 0 && (
           <div className="flex items-center">
-            <FileText className="h-3 w-3 text-muted-foreground mr-2" />
-            <span className="text-blue-600 font-medium">
+            <FileText className="h-3 w-3 text-gray-500 dark:text-gray-400 mr-2" />
+            <span className="text-blue-600 dark:text-blue-400 font-medium">
               {opportunity.documents.length} documento(s)
             </span>
           </div>
@@ -211,18 +211,18 @@ export default function OpportunityCard({ opportunity, onViewDetails }: Opportun
 
         {opportunity.salesperson && (
           <div className="flex items-center">
-            <User className="h-3 w-3 text-muted-foreground mr-2" />
-            <span>Vendedor: {opportunity.salesperson}</span>
+            <User className="h-3 w-3 text-gray-500 dark:text-gray-400 mr-2" />
+            <span className="text-gray-700 dark:text-gray-300">Vendedor: {opportunity.salesperson}</span>
           </div>
         )}</div>
 
       {/* Informações específicas da fase */}
-      <div className="space-y-1 text-sm text-muted-foreground">
+      <div className="space-y-1 text-sm text-gray-600 dark:text-gray-300">
 
 
         {opportunity.phase === "visita-tecnica" && opportunity.visitSchedule && (
           <div className="flex items-center">
-            <Calendar className="h-3 w-3 text-muted-foreground mr-2" />
+            <Calendar className="h-3 w-3 text-gray-500 dark:text-gray-400 mr-2" />
             <span>
               Agendado: {(() => {
                 try {
@@ -253,56 +253,56 @@ export default function OpportunityCard({ opportunity, onViewDetails }: Opportun
 
         {opportunity.phase === "visita-tecnica" && (
           <div className="flex items-center">
-            <MapPin className="h-3 w-3 text-muted-foreground mr-2" />
+            <MapPin className="h-3 w-3 text-gray-500 dark:text-gray-400 mr-2" />
             <span>Localização disponível</span>
           </div>
         )}
 
         {opportunity.phase === "proposta" && opportunity.budgetNumber && (
           <div className="flex items-center">
-            <FileText className="h-3 w-3 text-muted-foreground mr-2" />
+            <FileText className="h-3 w-3 text-gray-500 dark:text-gray-400 mr-2" />
             <span>Proposta {opportunity.budgetNumber}</span>
           </div>
         )}
 
         {opportunity.phase === "proposta" && opportunity.validityDate && (
           <div className="flex items-center">
-            <Calendar className="h-3 w-3 text-muted-foreground mr-2" />
+            <Calendar className="h-3 w-3 text-gray-500 dark:text-gray-400 mr-2" />
             <span>Válida até: {new Date(opportunity.validityDate).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" })}</span>
           </div>
         )}
 
         {opportunity.phase === "negociacao" && opportunity.finalValue && (
           <div className="flex items-center">
-            <DollarSign className="h-3 w-3 text-muted-foreground mr-2" />
+            <DollarSign className="h-3 w-3 text-gray-500 dark:text-gray-400 mr-2" />
             <span>Valor: {formatCurrency(opportunity.finalValue)}</span>
           </div>
         )}
 
         {opportunity.phase === "negociacao" && opportunity.negotiationInfo && (
           <div className="flex items-center">
-            <FileText className="h-3 w-3 text-muted-foreground mr-2" />
+            <FileText className="h-3 w-3 text-gray-500 dark:text-gray-400 mr-2" />
             <span>{opportunity.negotiationInfo}</span>
           </div>
         )}
 
         {opportunity.phase === "ganho" && (
           <div className="flex items-center">
-            <Calendar className="h-3 w-3 text-muted-foreground mr-2" />
+            <Calendar className="h-3 w-3 text-gray-500 dark:text-gray-400 mr-2" />
             <span>Fechado {opportunity.updatedAt ? formatDate(opportunity.updatedAt) : 'Data não informada'}</span>
           </div>
         )}
 
         {opportunity.phase === "perdido" && opportunity.lossReason && (
           <div className="flex items-center">
-            <TriangleAlert className="h-3 w-3 text-muted-foreground mr-2" />
+            <TriangleAlert className="h-3 w-3 text-gray-500 dark:text-gray-400 mr-2" />
             <span>Motivo: {opportunity.lossReason}</span>
           </div>
         )}
 
         {opportunity.phase === "perdido" && opportunity.lossObservation && (
           <div className="flex items-center">
-            <FileText className="h-3 w-3 text-muted-foreground mr-2" />
+            <FileText className="h-3 w-3 text-gray-500 dark:text-gray-400 mr-2" />
             <span 
               className="line-clamp-2 break-words" 
               title={opportunity.lossObservation}
@@ -315,7 +315,7 @@ export default function OpportunityCard({ opportunity, onViewDetails }: Opportun
 
         {opportunity.phase === "perdido" && (
           <div className="flex items-center">
-            <Calendar className="h-3 w-3 text-muted-foreground mr-2" />
+            <Calendar className="h-3 w-3 text-gray-500 dark:text-gray-400 mr-2" />
             <span>Perdido {opportunity.updatedAt ? formatDate(opportunity.updatedAt) : 'Data não informada'}</span>
           </div>
         )}
@@ -323,7 +323,7 @@ export default function OpportunityCard({ opportunity, onViewDetails }: Opportun
 
       {/* Seção de informações de tempo e status */}
       <div className="mt-3 border-t pt-2">
-        <div className="flex flex-col text-xs text-muted-foreground space-y-1">
+        <div className="flex flex-col text-xs text-gray-500 dark:text-gray-400 space-y-1">
           <span data-testid={`opportunity-created-${opportunity.id}`}>
             Criado {opportunity.createdAt ? formatDate(opportunity.createdAt) : 'Data não informada'}
           </span>
@@ -337,7 +337,7 @@ export default function OpportunityCard({ opportunity, onViewDetails }: Opportun
 
         {/* Indicador de campos faltando */}
         {!phaseValidation.isComplete && opportunity.phase && !['ganho', 'perdido'].includes(opportunity.phase) && (
-          <div className="mt-2 p-2 bg-orange-50 border border-orange-200 rounded text-orange-700">
+          <div className="mt-2 p-2 bg-orange-50 dark:bg-orange-900/30 border border-orange-200 dark:border-orange-800 rounded text-orange-700 dark:text-orange-300">
             <div className="flex items-center space-x-1">
               <AlertCircle className="h-3 w-3" />
               <span className="font-medium">Campos pendentes:</span>
@@ -349,7 +349,7 @@ export default function OpportunityCard({ opportunity, onViewDetails }: Opportun
         )}
 
         {phaseValidation.isComplete && opportunity.phase && !['ganho', 'perdido'].includes(opportunity.phase) && (
-          <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded text-green-700">
+          <div className="mt-2 p-2 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded text-green-700 dark:text-green-300">
             <div className="flex items-center space-x-1">
               <CheckCircle className="h-3 w-3" />
               <span className="text-xs font-medium">Fase completa - Pronto para avançar</span>

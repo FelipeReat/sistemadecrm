@@ -182,20 +182,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/users/:id", isAuthenticated, isAdmin, async (req, res) => {
     try {
       const { id } = req.params;
+      console.log(`[DEBUG] Recebida solicitação para excluir usuário com ID: ${id}`);
 
       // Prevent deleting the current user
       if (id === req.session.userId) {
+        console.log(`[DEBUG] Tentativa de excluir própria conta bloqueada para usuário: ${id}`);
         return res.status(400).json({ message: "Você não pode excluir sua própria conta" });
       }
 
+      console.log(`[DEBUG] Chamando storage.deleteUser para ID: ${id}`);
       const deleted = await storage.deleteUser(id);
+      console.log(`[DEBUG] Resultado do storage.deleteUser: ${deleted}`);
 
       if (!deleted) {
+        console.log(`[DEBUG] Usuário não encontrado ou não foi possível excluir: ${id}`);
         return res.status(404).json({ message: "Usuário não encontrado" });
       }
 
+      console.log(`[DEBUG] Usuário excluído com sucesso: ${id}`);
       res.status(204).send();
     } catch (error) {
+      console.error(`[DEBUG] Erro ao excluir usuário ${req.params.id}:`, error);
       res.status(500).json({ message: "Erro ao excluir usuário" });
     }
   });

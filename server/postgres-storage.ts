@@ -478,11 +478,40 @@ export class PostgresStorage implements IStorage {
 
   async deleteUser(id: string): Promise<boolean> {
     try {
+      console.log(`[DEBUG] Tentando excluir usuário com ID: ${id}`);
+      
+      // Primeiro, verificar se o usuário existe
+      const existingUser = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, id))
+        .limit(1);
+
+      if (existingUser.length === 0) {
+        console.log(`[DEBUG] Usuário com ID ${id} não encontrado`);
+        return false;
+      }
+
+      console.log(`[DEBUG] Usuário encontrado: ${existingUser[0].name} (${existingUser[0].email})`);
+
+      // Executar a exclusão
       const result = await db
         .delete(users)
         .where(eq(users.id, id));
 
-      return result.rowCount > 0;
+      console.log(`[DEBUG] Resultado da exclusão:`, result);
+      
+      // Verificar se a exclusão foi bem-sucedida verificando se o usuário ainda existe
+      const userAfterDelete = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, id))
+        .limit(1);
+
+      const wasDeleted = userAfterDelete.length === 0;
+      console.log(`[DEBUG] Usuário foi excluído com sucesso: ${wasDeleted}`);
+      
+      return wasDeleted;
     } catch (error) {
       console.error('Error deleting user:', error);
       return false;

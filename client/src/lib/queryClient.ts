@@ -21,7 +21,12 @@ export async function apiRequest(
 
   await throwIfResNotOk(res);
   
-  // Parse JSON response for all successful requests
+  // Only parse JSON if response has content (not 204 No Content)
+  if (res.status === 204) {
+    return null; // No content to parse
+  }
+  
+  // Parse JSON response for all other successful requests
   const responseData = await res.json();
   return responseData;
 }
