@@ -30,6 +30,34 @@ export default function ReportsDashboard() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedPhase, setSelectedPhase] = useState("all");
   const [selectedTemperature, setSelectedTemperature] = useState("all");
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  });
+
+  // Generate last 12 months
+  const getLastTwelveMonths = () => {
+    const months = [];
+    const now = new Date();
+    
+    for (let i = 0; i < 12; i++) {
+      const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const year = date.getFullYear();
+      const month = date.getMonth() + 1;
+      const monthKey = `${year}-${String(month).padStart(2, '0')}`;
+      const monthName = date.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+      const capitalizedMonthName = monthName.charAt(0).toUpperCase() + monthName.slice(1);
+      
+      months.push({
+        key: monthKey,
+        label: capitalizedMonthName
+      });
+    }
+    
+    return months;
+  };
+
+  const monthOptions = getLastTwelveMonths();
 
   // Fetch opportunities
   const { data: opportunities = [], isLoading: opportunitiesLoading, refetch } = useQuery<Opportunity[]>({
@@ -45,6 +73,17 @@ export default function ReportsDashboard() {
   // Filter opportunities
   const filteredOpportunities = useMemo(() => {
     let filtered = opportunities;
+
+    // Filter by month
+    if (selectedMonth) {
+      const [year, month] = selectedMonth.split('-');
+      filtered = filtered.filter(opp => {
+        if (!opp.createdAt) return false;
+        const oppDate = new Date(opp.createdAt);
+        return oppDate.getFullYear() === parseInt(year) && 
+               oppDate.getMonth() + 1 === parseInt(month);
+      });
+    }
 
     if (selectedPhase !== "all") {
       filtered = filtered.filter(opp => opp.phase === selectedPhase);
@@ -62,7 +101,7 @@ export default function ReportsDashboard() {
     }
 
     return filtered;
-  }, [opportunities, selectedPhase, selectedTemperature, searchTerm]);
+  }, [opportunities, selectedMonth, selectedPhase, selectedTemperature, searchTerm]);
 
   // Calculate metrics
   const metrics = useMemo(() => {
@@ -247,6 +286,19 @@ export default function ReportsDashboard() {
               className="pl-10"
             />
           </div>
+          <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+            <SelectTrigger className="w-48">
+              <Calendar className="h-4 w-4 mr-2" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {monthOptions.map((month) => (
+                <SelectItem key={month.key} value={month.key}>
+                  {month.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Select value={selectedPhase} onValueChange={setSelectedPhase}>
             <SelectTrigger className="w-48">
               <Filter className="h-4 w-4 mr-2" />
@@ -440,7 +492,7 @@ export default function ReportsDashboard() {
         </div>
 
         <div className="mt-8 text-center text-sm text-muted-foreground">
-          Mostrando {filteredOpportunities.length} de {opportunities.length} oportunidades
+          Mostrando {filteredOpportunities.length} oportunidades de {monthOptions.find(m => m.key === selectedMonth)?.label || 'Mês selecionado'}
         </div>
       </div>
     </div>

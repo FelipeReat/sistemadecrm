@@ -221,7 +221,18 @@ export default function SalesPipelineColumn({ phase, opportunities, isLoading, o
   const moveToLossMutation = useMutation({
     mutationFn: ({ opportunityId, lossData }: { opportunityId: string; lossData: LossReasonData }) =>
       apiRequest("PATCH", `/api/opportunities/${opportunityId}/move-to-loss`, lossData),
-    onSuccess: () => {
+    onSuccess: (updatedOpportunity, { opportunityId }) => {
+      // Atualizar no store local com os dados retornados da API
+      if (updatedOpportunity && updatedOpportunity.id) {
+        updateOpportunity(updatedOpportunity.id, updatedOpportunity);
+      }
+      
+      // Enviar notificação via WebSocket
+      sendMessage({
+        type: 'opportunity:moved',
+        data: { opportunityId, newPhase: 'perdido', userId: user?.id }
+      });
+      
       invalidateAllData();
       toast({
         title: "Sucesso",
