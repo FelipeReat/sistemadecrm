@@ -241,6 +241,37 @@ export default function ReportsDashboard() {
       .sort((a, b) => b.value - a.value);
   }, [filteredOpportunities, users]);
 
+  // Performance by card creator
+  const performanceByCreator = useMemo(() => {
+    const creators = users.reduce((acc, user) => {
+      acc[user.name] = { name: user.name, total: 0, won: 0, value: 0 };
+      return acc;
+    }, {} as Record<string, { name: string; total: number; won: number; value: number }>);
+
+    filteredOpportunities.forEach(opp => {
+      const creator = opp.createdBy || 'Sistema';
+      if (!creators[creator]) {
+        creators[creator] = { name: creator, total: 0, won: 0, value: 0 };
+      }
+
+      creators[creator].total++;
+      if (opp.phase === 'ganho') {
+        creators[creator].won++;
+        const value = parseFloat(opp.finalValue?.toString() || opp.budget?.toString() || '0');
+        creators[creator].value += isNaN(value) ? 0 : value;
+      }
+    });
+
+    return Object.values(creators)
+      .filter(c => c.total > 0)
+      .map(c => ({
+        ...c,
+        conversionRate: c.total > 0 ? (c.won / c.total) * 100 : 0,
+        avgTicket: c.won > 0 ? c.value / c.won : 0
+      }))
+      .sort((a, b) => b.value - a.value);
+  }, [filteredOpportunities, users]);
+
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", {
       style: "currency",
@@ -457,7 +488,7 @@ export default function ReportsDashboard() {
           </Card>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Average Time Per Phase */}
           <Card>
             <CardHeader>
@@ -503,6 +534,32 @@ export default function ReportsDashboard() {
                   </div>
                   <div className="text-right">
                     <div className="text-sm font-bold">{formatCurrency(salesperson.value)}</div>
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+
+          {/* Performance by Card Creator */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Award className="h-5 w-5" />
+                <span>Performance por Criador do Card</span>
+              </CardTitle>
+              <CardDescription>Ranking de criadores por valor gerado</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {performanceByCreator.slice(0, 5).map((creator) => (
+                <div key={creator.name} className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <div className="text-sm font-medium">{creator.name}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {creator.won}/{creator.total} • {creator.conversionRate.toFixed(1)}% • Ticket: {formatCurrency(creator.avgTicket)}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-sm font-bold">{formatCurrency(creator.value)}</div>
                   </div>
                 </div>
               ))}
