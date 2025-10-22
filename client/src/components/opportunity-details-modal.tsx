@@ -101,12 +101,26 @@ const perdidoSchema = z.object({
   lossObservation: z.string().trim().min(1, "Observação é obrigatória"),
 });
 
+// Schema para o formulário de informações essenciais
+const essentialInfoSchema = z.object({
+  contact: z.string().min(1, "Nome do contato é obrigatório"),
+  company: z.string().min(1, "Nome da empresa é obrigatório"),
+  phone: z.string().min(1, "Telefone é obrigatório"),
+  cpf: z.string().optional(),
+  cnpj: z.string().optional(),
+  proposalOrigin: z.string().optional(),
+  businessTemperature: z.string().optional(),
+  needCategory: z.string().optional(),
+  clientNeeds: z.string().optional(),
+});
+
 type ProspeccaoFormData = z.infer<typeof prospeccaoSchema>;
 type EmAtendimentoFormData = z.infer<typeof emAtendimentoSchema>;
 type VisitaTecnicaFormData = z.infer<typeof visitaTecnicaSchema>;
 type PropostaFormData = z.infer<typeof propostaSchema>;
 type NegociacaoFormData = z.infer<typeof negociacaoSchema>;
 type PerdidoFormData = z.infer<typeof perdidoSchema>;
+type EssentialInfoFormData = z.infer<typeof essentialInfoSchema>;
 
 export default function OpportunityDetailsModal({
   opportunity,
@@ -226,6 +240,21 @@ export default function OpportunityDetailsModal({
     },
   });
 
+  const essentialInfoForm = useForm<EssentialInfoFormData>({
+    resolver: zodResolver(essentialInfoSchema),
+    defaultValues: {
+      contact: opportunity?.contact || "",
+      company: opportunity?.company || "",
+      phone: opportunity?.phone || "",
+      cpf: opportunity?.cpf || "",
+      cnpj: opportunity?.cnpj || "",
+      proposalOrigin: opportunity?.proposalOrigin || "",
+      businessTemperature: opportunity?.businessTemperature || "",
+      needCategory: opportunity?.needCategory || "",
+      clientNeeds: opportunity?.clientNeeds || "",
+    },
+  });
+
   // Resetar todos os formulários quando o modal abrir ou a oportunidade mudar
   useEffect(() => {
     if (open && opportunity) {
@@ -270,6 +299,18 @@ export default function OpportunityDetailsModal({
       perdidoForm.reset({
         lossReason: opportunity.lossReason || "",
         lossObservation: opportunity.lossObservation || "",
+      });
+
+      essentialInfoForm.reset({
+        contact: opportunity.contact || "",
+        company: opportunity.company || "",
+        phone: opportunity.phone || "",
+        cpf: opportunity.cpf || "",
+        cnpj: opportunity.cnpj || "",
+        proposalOrigin: opportunity.proposalOrigin || "",
+        businessTemperature: opportunity.businessTemperature || "",
+        needCategory: opportunity.needCategory || "",
+        clientNeeds: opportunity.clientNeeds || "",
       });
     } else if (open && !opportunity) {
       // Limpar todos os formulários quando abrir sem oportunidade
@@ -1412,105 +1453,290 @@ export default function OpportunityDetailsModal({
           <div className="space-y-6">
             {/* Informações Essenciais - Sempre Visíveis */}
             <div className="mb-6 p-3 bg-gray-50 border border-gray-200 rounded-lg">
-              <h3 className="text-base font-semibold text-gray-900 mb-3 flex items-center">
-                <FileText className="h-4 w-4 mr-2" />
-                Informações Essenciais
-              </h3>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-base font-semibold text-gray-900 flex items-center">
+                  <FileText className="h-4 w-4 mr-2" />
+                  Informações Essenciais
+                </h3>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setEditingPhase(editingPhase === 'essential-info' ? null : 'essential-info')}
+                  className="h-6 w-6 p-0 text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+                  title="Editar informações essenciais"
+                >
+                  <Edit className="h-3 w-3" />
+                </Button>
+              </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
-              <div>
-                <span className="font-medium text-gray-700">Empresa:</span>
-                <span className="ml-2 text-gray-900">{opportunity.company || "Não informado"}</span>
-              </div>
-              <div>
-                <span className="font-medium text-gray-700">Contato:</span>
-                <span className="ml-2 text-gray-900">{opportunity.contact || "Não informado"}</span>
-              </div>
-              <div>
-                <span className="font-medium text-gray-700">Telefone:</span>
-                <span className="ml-2 text-gray-900">{opportunity.phone || "Não informado"}</span>
-              </div>
-              <div>
-                <span className="font-medium text-gray-700">Temperatura:</span>
-                <span className={`ml-2 font-medium ${
-                  opportunity.businessTemperature === 'quente' ? 'text-red-600' :
-                  opportunity.businessTemperature === 'morno' ? 'text-yellow-600' :
-                  opportunity.businessTemperature === 'frio' ? 'text-blue-600' : 'text-gray-900'
-                }`}>
-                  {opportunity.businessTemperature ? 
-                    opportunity.businessTemperature.charAt(0).toUpperCase() + opportunity.businessTemperature.slice(1) : 
-                    "Não informado"
-                  }
-                </span>
-              </div>
-              <div>
-                <span className="font-medium text-gray-700">Categoria:</span>
-                <span className="ml-2 text-gray-900">{opportunity.needCategory || "Não informado"}</span>
-              </div>
-              {opportunity.cpf && (
-                <div>
-                  <span className="font-medium text-gray-700">CPF:</span>
-                  <span className="ml-2 text-gray-900">{opportunity.cpf}</span>
-                </div>
-              )}
-              {opportunity.cnpj && (
-                <div>
-                  <span className="font-medium text-gray-700">CNPJ:</span>
-                  <span className="ml-2 text-gray-900">{opportunity.cnpj}</span>
-                </div>
-              )}
-              {opportunity.proposalOrigin && (
-                <div>
-                  <span className="font-medium text-gray-700">Origem:</span>
-                  <span className="ml-2 text-gray-900">{opportunity.proposalOrigin}</span>
-                </div>
-              )}
-              {opportunity.documents && opportunity.documents.length > 0 && (
-                <div className="md:col-span-3">
-                  <span className="font-medium text-gray-700">Documentos ({opportunity.documents.length}):</span>
-                  <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2">
-                    {opportunity.documents.map((doc, index) => {
-                      // Parse document if it's a JSON string
-                      let parsedDoc;
-                      try {
-                        parsedDoc = typeof doc === 'string' ? JSON.parse(doc) : doc;
-                      } catch {
-                        // If parsing fails, treat as legacy format
-                        parsedDoc = { name: `Documento ${index + 1}`, url: doc };
-                      }
-
-                      return (
-                        <div key={index} className="flex items-center space-x-2 p-2 bg-gray-50 rounded border">
-                          <FileText className="h-4 w-4 text-gray-500 flex-shrink-0" />
-                          <div className="flex-1 min-w-0">
-                            <a
-                              href={parsedDoc.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-blue-600 hover:text-blue-800 hover:underline text-sm block truncate"
-                              title={`Abrir ${parsedDoc.name}`}
-                              download={parsedDoc.name}
-                            >
-                              {parsedDoc.name || `Documento ${index + 1}`}
-                            </a>
-                            {parsedDoc.size && (
-                              <span className="text-xs text-gray-500">
-                                ({(parsedDoc.size / 1024 / 1024).toFixed(2)} MB)
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
+            {editingPhase === 'essential-info' ? (
+              <Form {...essentialInfoForm}>
+                <form onSubmit={essentialInfoForm.handleSubmit(handleSubmit)} className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField
+                      control={essentialInfoForm.control}
+                      name="company"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Empresa *</FormLabel>
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={essentialInfoForm.control}
+                      name="contact"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Contato *</FormLabel>
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={essentialInfoForm.control}
+                      name="phone"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Telefone *</FormLabel>
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={essentialInfoForm.control}
+                      name="businessTemperature"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Temperatura</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Selecione a temperatura" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="frio">Frio</SelectItem>
+                              <SelectItem value="morno">Morno</SelectItem>
+                              <SelectItem value="quente">Quente</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={essentialInfoForm.control}
+                      name="needCategory"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Categoria</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Selecione a categoria" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="Andaimes">Andaimes</SelectItem>
+                              <SelectItem value="Escoras">Escoras</SelectItem>
+                              <SelectItem value="Painel de Escoramento">Painel de Escoramento</SelectItem>
+                              <SelectItem value="Ferramentas">Ferramentas</SelectItem>
+                              <SelectItem value="Plataformas Elevatórias">Plataformas Elevatórias</SelectItem>
+                              <SelectItem value="Imóveis">Imóveis</SelectItem>
+                              <SelectItem value="Veículos">Veículos</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={essentialInfoForm.control}
+                      name="proposalOrigin"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Origem da Proposta</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Selecione a origem" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="Redes Sociais">Redes Sociais</SelectItem>
+                              <SelectItem value="Indicação">Indicação</SelectItem>
+                              <SelectItem value="Busca ativa">Busca ativa</SelectItem>
+                              <SelectItem value="Visita em Obra">Visita em Obra</SelectItem>
+                              <SelectItem value="Indicação de Diretoria">Indicação de Diretoria</SelectItem>
+                              <SelectItem value="SDR">SDR</SelectItem>
+                              <SelectItem value="Renovação">Renovação</SelectItem>
+                              <SelectItem value="Whatsapp">Whatsapp</SelectItem>
+                              <SelectItem value="Dropdesk">Dropdesk</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={essentialInfoForm.control}
+                      name="cpf"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>CPF</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder="000.000.000-00" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={essentialInfoForm.control}
+                      name="cnpj"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>CNPJ</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder="00.000.000/0000-00" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                   </div>
+                  <FormField
+                    control={essentialInfoForm.control}
+                    name="clientNeeds"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Necessidades do Cliente</FormLabel>
+                        <FormControl>
+                          <Textarea {...field} rows={3} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <div className="flex justify-end space-x-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setEditingPhase(null)}
+                    >
+                      Cancelar
+                    </Button>
+                    <Button type="submit">
+                      Salvar
+                    </Button>
+                  </div>
+                </form>
+              </Form>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+                <div>
+                  <span className="font-medium text-gray-700">Empresa:</span>
+                  <span className="ml-2 text-gray-900">{opportunity.company || "Não informado"}</span>
                 </div>
-              )}</div>
-            </div>
+                <div>
+                  <span className="font-medium text-gray-700">Contato:</span>
+                  <span className="ml-2 text-gray-900">{opportunity.contact || "Não informado"}</span>
+                </div>
+                <div>
+                  <span className="font-medium text-gray-700">Telefone:</span>
+                  <span className="ml-2 text-gray-900">{opportunity.phone || "Não informado"}</span>
+                </div>
+                <div>
+                  <span className="font-medium text-gray-700">Temperatura:</span>
+                  <span className={`ml-2 font-medium ${
+                    opportunity.businessTemperature === 'quente' ? 'text-red-600' :
+                    opportunity.businessTemperature === 'morno' ? 'text-yellow-600' :
+                    opportunity.businessTemperature === 'frio' ? 'text-blue-600' : 'text-gray-900'
+                  }`}>
+                    {opportunity.businessTemperature ? 
+                      opportunity.businessTemperature.charAt(0).toUpperCase() + opportunity.businessTemperature.slice(1) : 
+                      "Não informado"
+                    }
+                  </span>
+                </div>
+                <div>
+                  <span className="font-medium text-gray-700">Categoria:</span>
+                  <span className="ml-2 text-gray-900">{opportunity.needCategory || "Não informado"}</span>
+                </div>
+                {opportunity.cpf && (
+                  <div>
+                    <span className="font-medium text-gray-700">CPF:</span>
+                    <span className="ml-2 text-gray-900">{opportunity.cpf}</span>
+                  </div>
+                )}
+                {opportunity.cnpj && (
+                  <div>
+                    <span className="font-medium text-gray-700">CNPJ:</span>
+                    <span className="ml-2 text-gray-900">{opportunity.cnpj}</span>
+                  </div>
+                )}
+                {opportunity.proposalOrigin && (
+                  <div>
+                    <span className="font-medium text-gray-700">Origem:</span>
+                    <span className="ml-2 text-gray-900">{opportunity.proposalOrigin}</span>
+                  </div>
+                )}
+                {opportunity.clientNeeds && (
+                  <div className="md:col-span-3">
+                    <span className="font-medium text-gray-700">Necessidades do Cliente:</span>
+                    <span className="ml-2 text-gray-900">{opportunity.clientNeeds}</span>
+                  </div>
+                )}
+                {opportunity.documents && opportunity.documents.length > 0 && (
+                  <div className="md:col-span-3">
+                    <span className="font-medium text-gray-700">Documentos ({opportunity.documents.length}):</span>
+                    <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2">
+                      {opportunity.documents.map((doc, index) => {
+                        // Parse document if it's a JSON string
+                        let parsedDoc;
+                        try {
+                          parsedDoc = typeof doc === 'string' ? JSON.parse(doc) : doc;
+                        } catch {
+                          // If parsing fails, treat as legacy format
+                          parsedDoc = { name: `Documento ${index + 1}`, url: doc };
+                        }
 
-            {opportunity.clientNeeds && (
-              <div className="mt-3 pt-3 border-t border-gray-200">
-                <span className="font-medium text-gray-700 dark:text-gray-900">Necessidades:</span>
-                <p className="mt-1 text-gray-900 dark:text-gray-900 text-sm">{opportunity.clientNeeds}</p>
+                        return (
+                          <div key={index} className="flex items-center space-x-2 p-2 bg-gray-50 rounded border">
+                            <FileText className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <a
+                                href={parsedDoc.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-600 hover:text-blue-800 hover:underline text-sm block truncate"
+                                title={`Abrir ${parsedDoc.name}`}
+                                download={parsedDoc.name}
+                              >
+                                {parsedDoc.name || `Documento ${index + 1}`}
+                              </a>
+                              {parsedDoc.size && (
+                                <span className="text-xs text-gray-500">
+                                  ({(parsedDoc.size / 1024 / 1024).toFixed(2)} MB)
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -2314,7 +2540,8 @@ export default function OpportunityDetailsModal({
             {/* Formulário específico da fase */}
             {renderPhaseForm()}
           </div>
-        </DialogContent>
-      </Dialog>
-    );
-  }
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
