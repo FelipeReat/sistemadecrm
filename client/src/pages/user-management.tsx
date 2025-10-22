@@ -161,13 +161,13 @@ export default function UserManagement() {
     }
   };
 
-  if (currentUser?.role !== "admin") {
+  if (!['admin', 'gerente'].includes(currentUser?.role)) {
     return (
       <div className="container mx-auto py-8">
         <Card>
           <CardContent className="pt-6">
             <p className="text-center text-muted-foreground">
-              Você não tem permissão para acessar esta página. Apenas administradores podem gerenciar usuários.
+              Você não tem permissão para acessar esta página. Apenas administradores e gerentes podem gerenciar usuários.
             </p>
           </CardContent>
         </Card>

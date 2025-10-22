@@ -30,6 +30,7 @@ export default function ReportsDashboard() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedPhase, setSelectedPhase] = useState("all");
   const [selectedTemperature, setSelectedTemperature] = useState("all");
+  const [selectedUser, setSelectedUser] = useState("all");
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -93,6 +94,10 @@ export default function ReportsDashboard() {
       filtered = filtered.filter(opp => opp.businessTemperature === selectedTemperature);
     }
 
+    if (selectedUser !== "all") {
+      filtered = filtered.filter(opp => opp.salesperson === selectedUser);
+    }
+
     if (searchTerm) {
       filtered = filtered.filter(opp => 
         opp.contact.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -101,7 +106,7 @@ export default function ReportsDashboard() {
     }
 
     return filtered;
-  }, [opportunities, selectedMonth, selectedPhase, selectedTemperature, searchTerm]);
+  }, [opportunities, selectedMonth, selectedPhase, selectedTemperature, selectedUser, searchTerm]);
 
   // Calculate metrics
   const metrics = useMemo(() => {
@@ -327,6 +332,20 @@ export default function ReportsDashboard() {
               <SelectItem value="frio">Frio</SelectItem>
             </SelectContent>
           </Select>
+          <Select value={selectedUser} onValueChange={setSelectedUser}>
+            <SelectTrigger className="w-48">
+              <Users className="h-4 w-4 mr-2" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os usuários</SelectItem>
+              {users.map((user) => (
+                <SelectItem key={user.id} value={user.name}>
+                  {user.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Summary Cards */}
@@ -492,7 +511,7 @@ export default function ReportsDashboard() {
         </div>
 
         <div className="mt-8 text-center text-sm text-muted-foreground">
-          Mostrando {filteredOpportunities.length} oportunidades de {monthOptions.find(m => m.key === selectedMonth)?.label || 'Mês selecionado'}
+          Mostrando {filteredOpportunities.length} oportunidades{selectedUser !== 'all' ? ` de ${selectedUser}` : ''} em {monthOptions.find(m => m.key === selectedMonth)?.label || 'Mês selecionado'}
         </div>
       </div>
     </div>
