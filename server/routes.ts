@@ -127,7 +127,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/users", isAuthenticated, isAdmin, async (req, res) => {
+  app.post("/api/users", isAuthenticated, isManagerOrAdmin, async (req, res) => {
     try {
       const validatedData = insertUserSchema.parse(req.body);
 
@@ -149,7 +149,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/users/:id", isAuthenticated, isAdmin, async (req, res) => {
+  app.patch("/api/users/:id", isAuthenticated, isManagerOrAdmin, async (req, res) => {
     try {
       const { id } = req.params;
       const validatedData = updateUserSchema.parse(req.body);
@@ -179,7 +179,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/users/:id", isAuthenticated, isAdmin, async (req, res) => {
+  app.delete("/api/users/:id", isAuthenticated, isManagerOrAdmin, async (req, res) => {
     try {
       const { id } = req.params;
       console.log(`[DEBUG] Recebida solicitação para excluir usuário com ID: ${id}`);
@@ -295,20 +295,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Oportunidade não encontrada" });
       }
 
-      // Allow all users to edit imported cards - no restrictions
-      if (!existingOpportunity.isImported) {
-        // For non-imported cards, keep existing permission logic
-        if (req.session.user!.role === 'usuario') {
-          // Se a oportunidade foi criada por este usuário ou ainda não tem vendedor atribuído, pode editar
-          const canEdit = existingOpportunity.createdBy === req.session.user!.name || 
-                         existingOpportunity.salesperson === req.session.user!.name ||
-                         !existingOpportunity.salesperson;
-
-          if (!canEdit) {
-            return res.status(403).json({ message: "Você só pode editar suas próprias oportunidades" });
-          }
-        }
-      }
+      // Allow all authenticated users to edit any opportunity
+      // No restrictions based on who created the opportunity or user role
 
       // Preserve existing documents and visitPhotos if not being updated
       const updateData = { ...req.body };
@@ -537,8 +525,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Stats endpoint - apenas Admin e Gerente podem ver estatísticas completas
-  app.get("/api/stats", isAuthenticated, canViewReports, async (req, res) => {
+  // Stats endpoint - todos os usuários autenticados podem ver estatísticas básicas
+  app.get("/api/stats", isAuthenticated, async (req, res) => {
     try {
       const opportunities = await storage.getOpportunities();
 

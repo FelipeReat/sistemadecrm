@@ -25,7 +25,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Button } from "@/components/ui/button";
-import { Calendar, FileText, Handshake, MapPin, DollarSign, Upload, User, X, Trash2, TriangleAlert, Image } from "lucide-react";
+import { Calendar, FileText, Handshake, MapPin, DollarSign, Upload, User, X, Trash2, TriangleAlert, Image, Edit, Save, XCircle } from "lucide-react";
 import { FileUpload } from "@/components/ui/file-upload";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -114,6 +114,7 @@ export default function OpportunityDetailsModal({
   onOpenChange,
 }: OpportunityDetailsModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editingPhase, setEditingPhase] = useState<string | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { invalidateAllData } = useReportsSync();
@@ -185,9 +186,11 @@ export default function OpportunityDetailsModal({
     resolver: zodResolver(visitaTecnicaSchema),
     defaultValues: {
       visitSchedule: opportunity?.visitSchedule || "",
-      visitDate: opportunity?.visitRealization || "",
+      visitDate: opportunity?.visitDate || "",
       visitDescription: opportunity?.visitDescription || "",
-      visitPhotos: opportunity?.visitPhotos || [],
+      visitPhotos: Array.isArray(opportunity?.visitPhotos) ? opportunity.visitPhotos.map(photo => 
+        typeof photo === 'string' ? { id: '', name: photo, size: 0, type: '', url: photo } : photo
+      ) : [],
     },
   });
 
@@ -240,13 +243,15 @@ export default function OpportunityDetailsModal({
       visitaTecnicaForm.reset({
         visitSchedule: opportunity.visitSchedule || "",
         visitDate: opportunity.visitDate || "",
-        visitPhotos: opportunity.visitPhotos || [],
+        visitPhotos: Array.isArray(opportunity.visitPhotos) ? opportunity.visitPhotos.map(photo => 
+          typeof photo === 'string' ? { id: '', name: photo, size: 0, type: '', url: photo } : photo
+        ) : [],
       });
 
       propostaForm.reset({
         discount: formatDiscountForDisplay(opportunity.discount),
         discountDescription: opportunity.discountDescription || "",
-        validityDate: formatDateForDisplay(opportunity.validityDate),
+        validityDate: opportunity.validityDate ? formatDateForDisplay(opportunity.validityDate) : "",
         budgetNumber: opportunity.budgetNumber || opportunity.opportunityNumber || "",
         budget: formatBudgetForDisplay(opportunity.budget),
         salesperson: opportunity.salesperson || "",
@@ -309,6 +314,70 @@ export default function OpportunityDetailsModal({
       });
     }
   }, [open, opportunity, prospeccaoForm, emAtendimentoForm, visitaTecnicaForm, propostaForm, negociacaoForm, perdidoForm]);
+
+  // Função para renderizar documentos da proposta
+  const renderProposalDocuments = () => {
+    if (!opportunity.documents || opportunity.documents.length === 0) return null;
+    
+    // Filter documents to show only those added during proposal phase
+    // We'll identify proposal documents by checking if they have documentType: 'proposal' 
+    // or if they were added after the opportunity reached proposal phase
+    const proposalDocs = opportunity.documents.filter((doc) => {
+      let parsedDoc;
+      try {
+        parsedDoc = typeof doc === 'string' ? JSON.parse(doc) : doc;
+      } catch {
+        return false; // Skip malformed documents
+      }
+      
+      // Check if document was marked as proposal document or has proposal metadata
+      return parsedDoc.documentType === 'proposal' || 
+             parsedDoc.phaseAdded === 'proposta' ||
+             (parsedDoc.name && parsedDoc.name.toLowerCase().includes('orcamento')) ||
+             (parsedDoc.name && parsedDoc.name.toLowerCase().includes('proposta'));
+    });
+
+    if (proposalDocs.length === 0) return null;
+
+    return (
+      <div className="md:col-span-2">
+        <span className="font-medium text-gray-700 dark:text-gray-900">Documentos da proposta:</span>
+        <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2">
+          {proposalDocs.map((doc, index) => {
+            let parsedDoc;
+            try {
+              parsedDoc = typeof doc === 'string' ? JSON.parse(doc) : doc;
+            } catch {
+              parsedDoc = { name: `Documento ${index + 1}`, url: doc };
+            }
+
+            return (
+              <div key={index} className="flex items-center space-x-2 p-2 bg-gray-50 rounded border">
+                <FileText className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <a
+                    href={parsedDoc.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:text-blue-800 hover:underline text-sm block truncate"
+                    title={`Abrir ${parsedDoc.name}`}
+                    download={parsedDoc.name}
+                  >
+                    {parsedDoc.name || `Documento ${index + 1}`}
+                  </a>
+                  {parsedDoc.size && (
+                    <span className="text-xs text-gray-500">
+                      ({(parsedDoc.size / 1024 / 1024).toFixed(2)} MB)
+                    </span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
 
   const updateOpportunityMutation = useMutation({
     mutationFn: (data: any & { id: string }) =>
@@ -607,7 +676,7 @@ export default function OpportunityDetailsModal({
                         <SelectContent>
                           {isLoadingSalespeople ? (
                             <SelectItem value="loading" disabled>Carregando vendedores...</SelectItem>
-                          ) : salespeople && salespeople.length > 0 ? (
+                          ) : salespeople && Array.isArray(salespeople) && salespeople.length > 0 ? (
                             salespeople.map((user: any) => (
                               <SelectItem key={user.id} value={user.name}>
                                 {user.name} ({user.role === 'admin' ? 'Admin' : user.role === 'gerente' ? 'Gerente' : 'Vendedor'})
@@ -656,7 +725,7 @@ export default function OpportunityDetailsModal({
                   type="button"
                   variant="destructive"
                   onClick={handleDelete}
-                  disabled={isSubmitting || deleteOpportunityMutation.isPending || (opportunity?.isImported && !canDeleteImportedCard(opportunity))}
+                  disabled={isSubmitting || deleteOpportunityMutation.isPending || (opportunity?.isImported === true && !canDeleteImportedCard(opportunity))}
                   data-testid="button-delete-opportunity"
                   title={opportunity?.isImported && !canDeleteImportedCard(opportunity) ? "Você não tem permissão para excluir cards importados" : "Excluir oportunidade"}
                   aria-label="Excluir oportunidade"
@@ -723,7 +792,7 @@ export default function OpportunityDetailsModal({
                   type="button"
                   variant="destructive"
                   onClick={handleDelete}
-                  disabled={isSubmitting || deleteOpportunityMutation.isPending || (opportunity?.isImported && !canDeleteImportedCard(opportunity))}
+                  disabled={isSubmitting || deleteOpportunityMutation.isPending || (opportunity?.isImported === true && !canDeleteImportedCard(opportunity))}
                   data-testid="button-delete-opportunity"
                   title={opportunity?.isImported && !canDeleteImportedCard(opportunity) ? "Você não tem permissão para excluir cards importados" : "Excluir oportunidade"}
                   aria-label="Excluir oportunidade"
@@ -742,7 +811,7 @@ export default function OpportunityDetailsModal({
                   </Button>
                   <Button
                     type="submit"
-                    disabled={isSubmitting || (opportunity?.isImported && !canEditImportedCard(opportunity))}
+                    disabled={isSubmitting || (opportunity?.isImported === true && !canEditImportedCard(opportunity))}
                     className="bg-blue-600 hover:bg-blue-700"
                     title={opportunity?.isImported && !canEditImportedCard(opportunity) ? "Você não tem permissão para editar cards importados" : undefined}
                   >
@@ -765,7 +834,7 @@ export default function OpportunityDetailsModal({
                 </h4>
 
                 <FormField
-                  control={visitaTecnicaForm.control}
+                  control={visitaTecnicaForm.control as any}
                   name="visitSchedule"
                   render={({ field }) => (
                     <FormItem>
@@ -794,7 +863,7 @@ export default function OpportunityDetailsModal({
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Data de realização da visita</Label>
                 <FormField
-                  control={visitaTecnicaForm.control}
+                  control={visitaTecnicaForm.control as any}
                   name="visitDate"
                   render={({ field }) => (
                     <FormItem>
@@ -820,7 +889,7 @@ export default function OpportunityDetailsModal({
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Descrição da visita</Label>
                 <FormField
-                  control={visitaTecnicaForm.control}
+                  control={visitaTecnicaForm.control as any}
                   name="visitDescription"
                   render={({ field }) => (
                     <FormItem>
@@ -839,7 +908,7 @@ export default function OpportunityDetailsModal({
 
 
                 <FormField
-                  control={visitaTecnicaForm.control}
+                  control={visitaTecnicaForm.control as any}
                   name="visitPhotos"
                   render={({ field }) => (
                     <FormItem>
@@ -867,7 +936,7 @@ export default function OpportunityDetailsModal({
                   type="button"
                   variant="destructive"
                   onClick={handleDelete}
-                  disabled={isSubmitting || deleteOpportunityMutation.isPending || (opportunity?.isImported && !canDeleteImportedCard(opportunity))}
+                  disabled={isSubmitting || deleteOpportunityMutation.isPending || (opportunity?.isImported === true && !canDeleteImportedCard(opportunity))}
                   data-testid="button-delete-opportunity"
                   title={opportunity?.isImported && !canDeleteImportedCard(opportunity) ? "Você não tem permissão para excluir cards importados" : "Excluir oportunidade"}
                   aria-label="Excluir oportunidade"
@@ -886,7 +955,7 @@ export default function OpportunityDetailsModal({
                   </Button>
                   <Button
                     type="submit"
-                    disabled={isSubmitting || (opportunity?.isImported && !canEditImportedCard(opportunity))}
+                    disabled={isSubmitting || (opportunity?.isImported === true && !canEditImportedCard(opportunity))}
                     className="bg-blue-600 hover:bg-blue-700"
                     title={opportunity?.isImported && !canEditImportedCard(opportunity) ? "Você não tem permissão para editar cards importados" : undefined}
                   >
@@ -910,7 +979,7 @@ export default function OpportunityDetailsModal({
 
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
-                    control={propostaForm.control}
+                    control={propostaForm.control as any}
                     name="budgetNumber"
                     render={({ field }) => {
                       // Verifica se o número do orçamento foi preenchido automaticamente
@@ -932,7 +1001,7 @@ export default function OpportunityDetailsModal({
                             <Input
                               placeholder="ORC-001"
                               {...field}
-                              disabled={isAutoFilled}
+                              disabled={isAutoFilled === true}
                               className={isAutoFilled ? "bg-gray-100 cursor-not-allowed" : ""}
                               onChange={(e) => field.onChange(masks.cnpjOrCpf(e.target.value))}
                             />
@@ -944,7 +1013,7 @@ export default function OpportunityDetailsModal({
                   />
 
                   <FormField
-                    control={propostaForm.control}
+                    control={propostaForm.control as any}
                     name="budget"
                     render={({ field }) => (
                       <FormItem>
@@ -970,7 +1039,7 @@ export default function OpportunityDetailsModal({
 
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
-                    control={propostaForm.control}
+                    control={propostaForm.control as any}
                     name="discount"
                     render={({ field }) => (
                       <FormItem>
@@ -984,7 +1053,7 @@ export default function OpportunityDetailsModal({
                   />
 
                   <FormField
-                    control={propostaForm.control}
+                    control={propostaForm.control as any}
                     name="validityDate"
                     render={({ field }) => (
                       <FormItem>
@@ -1011,7 +1080,7 @@ export default function OpportunityDetailsModal({
                 </div>
 
                 <FormField
-                  control={propostaForm.control}
+                  control={propostaForm.control as any}
                   name="salesperson"
                   render={({ field }) => (
                     <FormItem>
@@ -1028,7 +1097,7 @@ export default function OpportunityDetailsModal({
                         <SelectContent>
                           {isLoadingSalespeople ? (
                             <SelectItem value="loading" disabled>Carregando vendedores...</SelectItem>
-                          ) : salespeople && salespeople.length > 0 ? (
+                          ) : salespeople && Array.isArray(salespeople) && salespeople.length > 0 ? (
                             salespeople.map((user: any) => (
                               <SelectItem key={user.id} value={user.name}>
                                 {user.name} ({user.role === 'admin' ? 'Admin' : user.role === 'gerente' ? 'Gerente' : 'Vendedor'})
@@ -1045,7 +1114,7 @@ export default function OpportunityDetailsModal({
                 />
 
                 <FormField
-                  control={propostaForm.control}
+                  control={propostaForm.control as any}
                   name="discountDescription"
                   render={({ field }) => (
                     <FormItem>
@@ -1340,12 +1409,13 @@ export default function OpportunityDetailsModal({
         </DialogHeader>
 
         <div className="py-4">
-          {/* Informações Essenciais - Sempre Visíveis */}
-          <div className="mb-6 p-3 bg-gray-50 border border-gray-200 rounded-lg">
-            <h3 className="text-base font-semibold text-gray-900 mb-3 flex items-center">
-              <FileText className="h-4 w-4 mr-2" />
-              Informações Essenciais
-            </h3>
+          <div className="space-y-6">
+            {/* Informações Essenciais - Sempre Visíveis */}
+            <div className="mb-6 p-3 bg-gray-50 border border-gray-200 rounded-lg">
+              <h3 className="text-base font-semibold text-gray-900 mb-3 flex items-center">
+                <FileText className="h-4 w-4 mr-2" />
+                Informações Essenciais
+              </h3>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
               <div>
@@ -1456,101 +1526,336 @@ export default function OpportunityDetailsModal({
               {/* Prospecção */}
               {(opportunity.opportunityNumber || opportunity.salesperson || opportunity.requiresVisit !== undefined) && (
                 <div className="border-l-4 border-orange-400 pl-4">
-                  <h4 className="font-semibold text-orange-700 mb-2">📈 Prospecção</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                    {opportunity.opportunityNumber && (
-                      <div>
-                        <span className="font-medium text-gray-700 dark:text-gray-900">Número do orçamento:</span>
-                        <span className="ml-2 text-gray-900 dark:text-gray-900">{opportunity.opportunityNumber}</span>
-                      </div>
-                    )}
-                    {opportunity.salesperson && (
-                      <div>
-                        <span className="font-medium text-gray-700 dark:text-gray-900">Vendedor responsável:</span>
-                        <span className="ml-2 text-gray-900 dark:text-gray-900">{opportunity.salesperson}</span>
-                      </div>
-                    )}
-                    {opportunity.requiresVisit !== undefined && (
-                      <div>
-                        <span className="font-medium text-gray-700 dark:text-gray-900">Requer visita:</span>
-                        <span className="ml-2 text-gray-900 dark:text-gray-900">{opportunity.requiresVisit ? 'Sim' : 'Não'}</span>
-                      </div>
-                    )}
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="font-semibold text-orange-700">📈 Prospecção</h4>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setEditingPhase(editingPhase === 'prospeccao' ? null : 'prospeccao')}
+                      className="h-6 w-6 p-0 text-orange-600 hover:text-orange-800 hover:bg-orange-50"
+                      title="Editar informações da fase de Prospecção"
+                    >
+                      <Edit className="h-3 w-3" />
+                    </Button>
                   </div>
+                  {editingPhase === 'prospeccao' ? (
+                    <Form {...prospeccaoForm}>
+                      <form onSubmit={prospeccaoForm.handleSubmit(handleSubmit)} className="space-y-4">
+                        <FormField
+                          control={prospeccaoForm.control}
+                          name="opportunityNumber"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Número do orçamento</FormLabel>
+                              <FormControl>
+                                <Input placeholder="#9999" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={prospeccaoForm.control}
+                          name="salesperson"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Vendedor responsável</FormLabel>
+                              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Selecione o vendedor" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {isLoadingSalespeople ? (
+                                    <SelectItem value="loading" disabled>Carregando vendedores...</SelectItem>
+                                  ) : salespeople && salespeople.length > 0 ? (
+                                    salespeople.map((user: any) => (
+                                      <SelectItem key={user.id} value={user.name}>
+                                        {user.name} ({user.role === 'admin' ? 'Admin' : user.role === 'gerente' ? 'Gerente' : 'Vendedor'})
+                                      </SelectItem>
+                                    ))
+                                  ) : (
+                                    <SelectItem value="no-salespeople" disabled>Nenhum vendedor encontrado</SelectItem>
+                                  )}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={prospeccaoForm.control}
+                          name="requiresVisit"
+                          render={({ field }) => (
+                            <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+                              <FormControl>
+                                <input
+                                  type="checkbox"
+                                  checked={field.value}
+                                  onChange={field.onChange}
+                                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                                />
+                              </FormControl>
+                              <FormLabel className="text-sm font-normal">
+                                Requer visita técnica
+                              </FormLabel>
+                            </FormItem>
+                          )}
+                        />
+
+                        <div className="flex space-x-2 pt-4">
+                          <Button type="submit" size="sm" disabled={isSubmitting}>
+                            <Save className="h-3 w-3 mr-1" />
+                            Salvar
+                          </Button>
+                          <Button 
+                            type="button" 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => setEditingPhase(null)}
+                          >
+                            <XCircle className="h-3 w-3 mr-1" />
+                            Cancelar
+                          </Button>
+                        </div>
+                      </form>
+                    </Form>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                      {opportunity.opportunityNumber && (
+                        <div>
+                          <span className="font-medium text-gray-700 dark:text-gray-900">Número do orçamento:</span>
+                          <span className="ml-2 text-gray-900 dark:text-gray-900">{opportunity.opportunityNumber}</span>
+                        </div>
+                      )}
+                      {opportunity.salesperson && (
+                        <div>
+                          <span className="font-medium text-gray-700 dark:text-gray-900">Vendedor responsável:</span>
+                          <span className="ml-2 text-gray-900 dark:text-gray-900">{opportunity.salesperson}</span>
+                        </div>
+                      )}
+                      {opportunity.requiresVisit !== undefined && (
+                        <div>
+                          <span className="font-medium text-gray-700 dark:text-gray-900">Requer visita:</span>
+                          <span className="ml-2 text-gray-900 dark:text-gray-900">{opportunity.requiresVisit ? 'Sim' : 'Não'}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
 
               {/* Em Atendimento */}
               {opportunity.statement && (
                 <div className="border-l-4 border-purple-400 pl-4">
-                  <h4 className="font-semibold text-purple-700 mb-2">🎧 Em Atendimento</h4>
-                  <div className="text-sm">
-                    <span className="font-medium text-gray-700 dark:text-gray-900">Declaração/Observações:</span>
-                    <p className="mt-1 text-gray-900 dark:text-gray-900 bg-white p-2 rounded border">{opportunity.statement}</p>
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="font-semibold text-purple-700">🎧 Em Atendimento</h4>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setEditingPhase(editingPhase === 'em-atendimento' ? null : 'em-atendimento')}
+                      className="h-6 w-6 p-0 text-purple-600 hover:text-purple-800 hover:bg-purple-50"
+                      title="Editar informações da fase de Em Atendimento"
+                    >
+                      <Edit className="h-3 w-3" />
+                    </Button>
                   </div>
+                  {editingPhase === 'em-atendimento' ? (
+                    <Form {...emAtendimentoForm}>
+                      <form onSubmit={emAtendimentoForm.handleSubmit(handleSubmit)} className="space-y-4">
+                        <FormField
+                          control={emAtendimentoForm.control}
+                          name="statement"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Declaração/Observações</FormLabel>
+                              <FormControl>
+                                <Textarea 
+                                  placeholder="Descreva as observações do atendimento..."
+                                  className="min-h-[100px]"
+                                  {...field} 
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <div className="flex space-x-2 pt-4">
+                          <Button type="submit" size="sm" disabled={isSubmitting}>
+                            <Save className="h-3 w-3 mr-1" />
+                            Salvar
+                          </Button>
+                          <Button 
+                            type="button" 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => setEditingPhase(null)}
+                          >
+                            <XCircle className="h-3 w-3 mr-1" />
+                            Cancelar
+                          </Button>
+                        </div>
+                      </form>
+                    </Form>
+                  ) : (
+                    <div className="text-sm">
+                      <span className="font-medium text-gray-700 dark:text-gray-900">Declaração/Observações:</span>
+                      <p className="mt-1 text-gray-900 dark:text-gray-900 bg-white p-2 rounded border">{opportunity.statement}</p>
+                    </div>
+                  )}
                 </div>
               )}
 
               {/* Visita Técnica */}
               {(opportunity.visitSchedule || opportunity.visitDate || opportunity.visitDescription || (opportunity.visitPhotos && opportunity.visitPhotos.length > 0)) && (
                 <div className="border-l-4 border-blue-400 pl-4">
-                  <h4 className="font-semibold text-blue-700 mb-2">🔧 Visita Técnica</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                    {opportunity.visitSchedule && (
-                      <div>
-                        <span className="font-medium text-gray-700 dark:text-gray-900">Data agendada:</span>
-                        <span className="ml-2 text-gray-900 dark:text-gray-900">{opportunity.visitSchedule}</span>
-                      </div>
-                    )}
-                    {opportunity.visitDate && (
-                      <div>
-                        <span className="font-medium text-gray-700 dark:text-gray-900">Data realizada:</span>
-                        <span className="ml-2 text-gray-900 dark:text-gray-900">{opportunity.visitDate}</span>
-                      </div>
-                    )}
-                    {opportunity.visitDescription && (
-                      <div className="md:col-span-2">
-                        <span className="font-medium text-gray-700 dark:text-gray-900">Descrição:</span>
-                        <p className="mt-1 text-gray-900 dark:text-gray-900 bg-white p-2 rounded border">{opportunity.visitDescription}</p>
-                      </div>
-                    )}
-                    {opportunity.visitPhotos && opportunity.visitPhotos.length > 0 && (
-                      <div className="md:col-span-2">
-                        <span className="font-medium text-gray-700 dark:text-gray-900">Fotos da visita:</span>
-                        <div className="ml-2 space-y-1">
-                          {opportunity.visitPhotos.map((photo, index) => {
-                            // Parse photo if it's a JSON string
-                            let parsedPhoto;
-                            try {
-                              parsedPhoto = typeof photo === 'string' ? JSON.parse(photo) : photo;
-                            } catch {
-                              // If parsing fails, treat as legacy format
-                              parsedPhoto = { name: `Foto ${index + 1}`, url: photo };
-                            }
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="font-semibold text-blue-700">🔧 Visita Técnica</h4>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setEditingPhase(editingPhase === 'visita-tecnica' ? null : 'visita-tecnica')}
+                      className="h-6 w-6 p-0 text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+                      title="Editar informações da fase de Visita Técnica"
+                    >
+                      <Edit className="h-3 w-3" />
+                    </Button>
+                  </div>
+                  {editingPhase === 'visita-tecnica' ? (
+                    <Form {...visitaTecnicaForm}>
+                      <form onSubmit={visitaTecnicaForm.handleSubmit(handleSubmit)} className="space-y-4">
+                        <FormField
+                          control={visitaTecnicaForm.control}
+                          name="visitSchedule"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Data de agendamento da visita *</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  type="date"
+                                  {...field} 
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
 
-                            return (
-                              <div key={index} className="flex items-center space-x-2">
-                                <Image className="h-4 w-4 text-gray-500" />
-                                <a
-                                  href={parsedPhoto.url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-blue-600 hover:text-blue-800 hover:underline text-sm"
-                                  title={`Visualizar ${parsedPhoto.name}`}
-                                >
-                                  {parsedPhoto.name || `Foto ${index + 1}`}
-                                </a>
-                                {parsedPhoto.size && (
-                                  <span className="text-xs text-gray-500">
-                                    ({(parsedPhoto.size / 1024 / 1024).toFixed(2)} MB)
-                                  </span>
-                                )}
-                              </div>
-                            );
-                          })}
+                        <FormField
+                          control={visitaTecnicaForm.control}
+                          name="visitDate"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Data de realização da visita</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  type="date"
+                                  {...field} 
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={visitaTecnicaForm.control}
+                          name="visitDescription"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Descrição da visita</FormLabel>
+                              <FormControl>
+                                <Textarea 
+                                  placeholder="Descreva os detalhes da visita técnica..."
+                                  className="min-h-[100px]"
+                                  {...field} 
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <div className="flex space-x-2 pt-4">
+                          <Button type="submit" size="sm" disabled={isSubmitting}>
+                            <Save className="h-3 w-3 mr-1" />
+                            Salvar
+                          </Button>
+                          <Button 
+                            type="button" 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => setEditingPhase(null)}
+                          >
+                            <XCircle className="h-3 w-3 mr-1" />
+                            Cancelar
+                          </Button>
                         </div>
-                      </div>
-                    )}</div>
+                      </form>
+                    </Form>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                      {opportunity.visitSchedule && (
+                        <div>
+                          <span className="font-medium text-gray-700 dark:text-gray-900">Data agendada:</span>
+                          <span className="ml-2 text-gray-900 dark:text-gray-900">{opportunity.visitSchedule}</span>
+                        </div>
+                      )}
+                      {opportunity.visitDate && (
+                        <div>
+                          <span className="font-medium text-gray-700 dark:text-gray-900">Data realizada:</span>
+                          <span className="ml-2 text-gray-900 dark:text-gray-900">{opportunity.visitDate}</span>
+                        </div>
+                      )}
+                      {opportunity.visitDescription && (
+                        <div className="md:col-span-2">
+                          <span className="font-medium text-gray-700 dark:text-gray-900">Descrição:</span>
+                          <p className="mt-1 text-gray-900 dark:text-gray-900 bg-white p-2 rounded border">{opportunity.visitDescription}</p>
+                        </div>
+                      )}
+                      {opportunity.visitPhotos && opportunity.visitPhotos.length > 0 && (
+                        <div className="md:col-span-2">
+                          <span className="font-medium text-gray-700 dark:text-gray-900">Fotos da visita:</span>
+                          <div className="ml-2 space-y-1">
+                            {opportunity.visitPhotos.map((photo, index) => {
+                              // Parse photo if it's a JSON string
+                              let parsedPhoto;
+                              try {
+                                parsedPhoto = typeof photo === 'string' ? JSON.parse(photo) : photo;
+                              } catch {
+                                // If parsing fails, treat as legacy format
+                                parsedPhoto = { name: `Foto ${index + 1}`, url: photo };
+                              }
+
+                              return (
+                                <div key={index} className="flex items-center space-x-2">
+                                  <Image className="h-4 w-4 text-gray-500" />
+                                  <a
+                                    href={parsedPhoto.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-600 hover:text-blue-800 hover:underline text-sm"
+                                    title={`Visualizar ${parsedPhoto.name}`}
+                                  >
+                                    {parsedPhoto.name || `Foto ${index + 1}`}
+                                  </a>
+                                  {parsedPhoto.size && (
+                                    <span className="text-xs text-gray-500">
+                                      ({(parsedPhoto.size / 1024 / 1024).toFixed(2)} MB)
+                                    </span>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                   </div>
                 )}
 
@@ -1558,107 +1863,170 @@ export default function OpportunityDetailsModal({
                 {(opportunity.budgetNumber || opportunity.budget || opportunity.validityDate || opportunity.discount) && (
                   <>
                     <div className="border-l-4 border-pink-400 pl-4">
-                      <h4 className="font-semibold text-pink-700 mb-2">📄 Proposta</h4>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                        {opportunity.budgetNumber && (
-                          <div>
-                            <span className="font-medium text-gray-700 dark:text-gray-900">Número do orçamento:</span>
-                            <span className="ml-2 text-gray-900 dark:text-gray-900">{opportunity.budgetNumber}</span>
-                          </div>
-                        )}
-                        {opportunity.budget && (
-                          <div>
-                            <span className="font-medium text-gray-700 dark:text-gray-900">Valor do orçamento:</span>
-                            <span className="ml-2 text-gray-900 dark:text-gray-900 font-medium text-green-600">
-                              R$ {parseFloat(opportunity.budget.toString()).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                            </span>
-                          </div>
-                        )}
-                        {opportunity.validityDate && (
-                          <div>
-                            <span className="font-medium text-gray-700 dark:text-gray-900">Data de validade:</span>
-                            <span className="ml-2 text-gray-900 dark:text-gray-900">
-                              {new Date(opportunity.validityDate).toLocaleDateString('pt-BR')}
-                            </span>
-                          </div>
-                        )}
-                        {opportunity.discount && (
-                          <div>
-                            <span className="font-medium text-gray-700 dark:text-gray-900">Desconto:</span>
-                            <span className="ml-2 text-gray-900 dark:text-gray-900">{opportunity.discount}%</span>
-                          </div>
-                        )}
-                        {opportunity.discountDescription && (
-                          <div className="md:col-span-2">
-                            <span className="font-medium text-gray-700 dark:text-gray-900">Descrição do desconto:</span>
-                            <p className="mt-1 text-gray-900 dark:text-gray-900 bg-white p-2 rounded border">{opportunity.discountDescription}</p>
-                          </div>
-                        )}
-                        {/* Show proposal documents - only documents added during proposal phase */}
-                        {(() => {
-                          if (!opportunity.documents || opportunity.documents.length === 0) return null;
-                          
-                          // Filter documents to show only those added during proposal phase
-                          // We'll identify proposal documents by checking if they have documentType: 'proposal' 
-                          // or if they were added after the opportunity reached proposal phase
-                          const proposalDocs = opportunity.documents.filter((doc) => {
-                            let parsedDoc;
-                            try {
-                              parsedDoc = typeof doc === 'string' ? JSON.parse(doc) : doc;
-                            } catch {
-                              return false; // Skip malformed documents
-                            }
-                            
-                            // Check if document was marked as proposal document or has proposal metadata
-                            return parsedDoc.documentType === 'proposal' || 
-                                   parsedDoc.phaseAdded === 'proposta' ||
-                                   (parsedDoc.name && parsedDoc.name.toLowerCase().includes('orçamento')) ||
-                                   (parsedDoc.name && parsedDoc.name.toLowerCase().includes('orcamento')) ||
-                                   (parsedDoc.name && parsedDoc.name.toLowerCase().includes('proposta'));
-                          });
-
-                          if (proposalDocs.length === 0) return null;
-
-                          return (
-                            <div className="md:col-span-2">
-                              <span className="font-medium text-gray-700 dark:text-gray-900">Documentos da proposta:</span>
-                              <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2">
-                                {proposalDocs.map((doc, index) => {
-                                  let parsedDoc;
-                                  try {
-                                    parsedDoc = typeof doc === 'string' ? JSON.parse(doc) : doc;
-                                  } catch {
-                                    parsedDoc = { name: `Documento ${index + 1}`, url: doc };
-                                  }
-
-                                  return (
-                                    <div key={index} className="flex items-center space-x-2 p-2 bg-gray-50 rounded border">
-                                      <FileText className="h-4 w-4 text-gray-500 flex-shrink-0" />
-                                      <div className="flex-1 min-w-0">
-                                        <a
-                                          href={parsedDoc.url}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                          className="text-blue-600 hover:text-blue-800 hover:underline text-sm block truncate"
-                                          title={`Abrir ${parsedDoc.name}`}
-                                          download={parsedDoc.name}
-                                        >
-                                          {parsedDoc.name || `Documento ${index + 1}`}
-                                        </a>
-                                        {parsedDoc.size && (
-                                          <span className="text-xs text-gray-500">
-                                            ({(parsedDoc.size / 1024 / 1024).toFixed(2)} MB)
-                                          </span>
-                                        )}
-                                      </div>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                          );
-                        })()}
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="font-semibold text-pink-700">📄 Proposta</h4>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setEditingPhase(editingPhase === 'proposta' ? null : 'proposta')}
+                          className="h-6 w-6 p-0 text-pink-600 hover:text-pink-800 hover:bg-pink-50"
+                          title="Editar informações da fase de Proposta"
+                        >
+                          <Edit className="h-3 w-3" />
+                        </Button>
                       </div>
+                      {editingPhase === 'proposta' ? (
+                        <Form {...propostaForm}>
+                          <form onSubmit={propostaForm.handleSubmit(handleSubmit)} className="space-y-4">
+                            <FormField
+                              control={propostaForm.control}
+                              name="budgetNumber"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Número do orçamento *</FormLabel>
+                                  <FormControl>
+                                    <Input 
+                                      placeholder="Digite o número do orçamento"
+                                      {...field} 
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={propostaForm.control}
+                              name="budget"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Valor do orçamento *</FormLabel>
+                                  <FormControl>
+                                    <Input 
+                                      type="number"
+                                      step="0.01"
+                                      placeholder="0.00"
+                                      {...field} 
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={propostaForm.control}
+                              name="validityDate"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Data de validade *</FormLabel>
+                                  <FormControl>
+                                    <Input 
+                                      type="date"
+                                      {...field} 
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={propostaForm.control}
+                              name="discount"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Desconto (%)</FormLabel>
+                                  <FormControl>
+                                    <Input 
+                                      type="number"
+                                      step="0.01"
+                                      min="0"
+                                      max="100"
+                                      placeholder="0.00"
+                                      {...field} 
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={propostaForm.control}
+                              name="discountDescription"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Descrição do desconto</FormLabel>
+                                  <FormControl>
+                                    <Textarea 
+                                      placeholder="Descreva o motivo do desconto..."
+                                      className="min-h-[80px]"
+                                      {...field} 
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            <div className="flex space-x-2 pt-4">
+                              <Button type="submit" size="sm" disabled={isSubmitting}>
+                                <Save className="h-3 w-3 mr-1" />
+                                Salvar
+                              </Button>
+                              <Button 
+                                type="button" 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={() => setEditingPhase(null)}
+                              >
+                                <XCircle className="h-3 w-3 mr-1" />
+                                Cancelar
+                              </Button>
+                            </div>
+                          </form>
+                        </Form>
+                      ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                          {opportunity.budgetNumber && (
+                            <div>
+                              <span className="font-medium text-gray-700 dark:text-gray-900">Número do orçamento:</span>
+                              <span className="ml-2 text-gray-900 dark:text-gray-900">{opportunity.budgetNumber}</span>
+                            </div>
+                          )}
+                          {opportunity.budget && (
+                            <div>
+                              <span className="font-medium text-gray-700 dark:text-gray-900">Valor do orçamento:</span>
+                              <span className="ml-2 text-gray-900 dark:text-gray-900 font-medium text-green-600">
+                                R$ {parseFloat(opportunity.budget.toString()).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                              </span>
+                            </div>
+                          )}
+                          {opportunity.validityDate && (
+                            <div>
+                              <span className="font-medium text-gray-700 dark:text-gray-900">Data de validade:</span>
+                              <span className="ml-2 text-gray-900 dark:text-gray-900">
+                                {new Date(opportunity.validityDate).toLocaleDateString('pt-BR')}
+                              </span>
+                            </div>
+                          )}
+                          {opportunity.discount && (
+                            <div>
+                              <span className="font-medium text-gray-700 dark:text-gray-900">Desconto:</span>
+                              <span className="ml-2 text-gray-900 dark:text-gray-900">{opportunity.discount}%</span>
+                            </div>
+                          )}
+                          {opportunity.discountDescription && (
+                            <div className="md:col-span-2">
+                              <span className="font-medium text-gray-700 dark:text-gray-900">Descrição do desconto:</span>
+                              <p className="mt-1 text-gray-900 dark:text-gray-900 bg-white p-2 rounded border">{opportunity.discountDescription}</p>
+                            </div>
+                          )}
+                          {/* Show proposal documents - only documents added during proposal phase */}
+                          {renderProposalDocuments()}
+                        </div>
+                      )}
                     </div>
                   </>
                 )}
@@ -1666,62 +2034,267 @@ export default function OpportunityDetailsModal({
                 {/* Negociação */}
                 {(opportunity.status || opportunity.finalValue || opportunity.negotiationInfo || opportunity.contract || opportunity.invoiceNumber) && (
                   <div className="border-l-4 border-blue-500 pl-4">
-                    <h4 className="font-semibold text-blue-700 mb-2">🤝 Negociação</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                      {opportunity.status && (
-                        <div>
-                          <span className="font-medium text-gray-700 dark:text-gray-900">Status:</span>
-                          <span className="ml-2 text-gray-900 dark:text-gray-900">{opportunity.status}</span>
-                        </div>
-                      )}
-                      {opportunity.finalValue && (
-                        <div>
-                          <span className="font-medium text-gray-700 dark:text-gray-900">Valor final:</span>
-                          <span className="ml-2 text-gray-900 dark:text-gray-900 font-medium text-green-600">
-                            R$ {parseFloat(opportunity.finalValue.toString()).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                          </span>
-                        </div>
-                      )}
-                      {opportunity.contract && (
-                        <div>
-                          <span className="font-medium text-gray-700 dark:text-gray-900">Contrato:</span>
-                          <span className="ml-2 text-gray-900 dark:text-gray-900">{opportunity.contract}</span>
-                        </div>
-                      )}
-                      {opportunity.invoiceNumber && (
-                        <div>
-                          <span className="font-medium text-gray-700 dark:text-gray-900">Número da danfe:</span>
-                          <span className="ml-2 text-gray-900 dark:text-gray-900">{opportunity.invoiceNumber}</span>
-                        </div>
-                      )}
-                      {opportunity.negotiationInfo && (
-                        <div className="md:col-span-2">
-                          <span className="font-medium text-gray-700 dark:text-gray-900">Informações da negociação:</span>
-                          <p className="mt-1 text-gray-900 dark:text-gray-900 bg-white p-2 rounded border">{opportunity.negotiationInfo}</p>
-                        </div>
-                      )}
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="font-semibold text-blue-700">🤝 Negociação</h4>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setEditingPhase(editingPhase === 'negociacao' ? null : 'negociacao')}
+                        className="h-6 w-6 p-0 text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+                        title="Editar informações da fase de Negociação"
+                      >
+                        <Edit className="h-3 w-3" />
+                      </Button>
                     </div>
+                    {editingPhase === 'negociacao' ? (
+                      <Form {...negociacaoForm}>
+                        <form onSubmit={negociacaoForm.handleSubmit(handleSubmit)} className="space-y-4">
+                          <FormField
+                            control={negociacaoForm.control}
+                            name="status"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Status da negociação *</FormLabel>
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                  <FormControl>
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Selecione o status" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    <SelectItem value="em-negociacao">Em negociação</SelectItem>
+                                    <SelectItem value="aguardando-aprovacao">Aguardando aprovação</SelectItem>
+                                    <SelectItem value="aprovado">Aprovado</SelectItem>
+                                    <SelectItem value="rejeitado">Rejeitado</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={negociacaoForm.control}
+                            name="finalValue"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Valor final negociado</FormLabel>
+                                <FormControl>
+                                  <Input 
+                                    type="number"
+                                    step="0.01"
+                                    placeholder="0.00"
+                                    {...field} 
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={negociacaoForm.control}
+                            name="contract"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Número do contrato</FormLabel>
+                                <FormControl>
+                                  <Input 
+                                    placeholder="Digite o número do contrato"
+                                    {...field} 
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={negociacaoForm.control}
+                            name="invoiceNumber"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Número da nota fiscal</FormLabel>
+                                <FormControl>
+                                  <Input 
+                                    placeholder="Digite o número da nota fiscal"
+                                    {...field} 
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={negociacaoForm.control}
+                            name="negotiationInfo"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Informações da negociação</FormLabel>
+                                <FormControl>
+                                  <Textarea 
+                                    placeholder="Descreva os detalhes da negociação..."
+                                    className="min-h-[100px]"
+                                    {...field} 
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <div className="flex space-x-2 pt-4">
+                            <Button type="submit" size="sm" disabled={isSubmitting}>
+                              <Save className="h-3 w-3 mr-1" />
+                              Salvar
+                            </Button>
+                            <Button 
+                              type="button" 
+                              variant="outline" 
+                              size="sm" 
+                              onClick={() => setEditingPhase(null)}
+                            >
+                              <XCircle className="h-3 w-3 mr-1" />
+                              Cancelar
+                            </Button>
+                          </div>
+                        </form>
+                      </Form>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                        {opportunity.status && (
+                          <div>
+                            <span className="font-medium text-gray-700 dark:text-gray-900">Status:</span>
+                            <span className="ml-2 text-gray-900 dark:text-gray-900">{opportunity.status}</span>
+                          </div>
+                        )}
+                        {opportunity.finalValue && (
+                          <div>
+                            <span className="font-medium text-gray-700 dark:text-gray-900">Valor final:</span>
+                            <span className="ml-2 text-gray-900 dark:text-gray-900 font-medium text-green-600">
+                              R$ {parseFloat(opportunity.finalValue.toString()).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                            </span>
+                          </div>
+                        )}
+                        {opportunity.contract && (
+                          <div>
+                            <span className="font-medium text-gray-700 dark:text-gray-900">Contrato:</span>
+                            <span className="ml-2 text-gray-900 dark:text-gray-900">{opportunity.contract}</span>
+                          </div>
+                        )}
+                        {opportunity.invoiceNumber && (
+                          <div>
+                            <span className="font-medium text-gray-700 dark:text-gray-900">Número da danfe:</span>
+                            <span className="ml-2 text-gray-900 dark:text-gray-900">{opportunity.invoiceNumber}</span>
+                          </div>
+                        )}
+                        {opportunity.negotiationInfo && (
+                          <div className="md:col-span-2">
+                            <span className="font-medium text-gray-700 dark:text-gray-900">Informações da negociação:</span>
+                            <p className="mt-1 text-gray-900 dark:text-gray-900 bg-white p-2 rounded border">{opportunity.negotiationInfo}</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
 
                 {/* Perdido */}
                 {(opportunity.lossReason || opportunity.lossObservation) && (
                   <div className="border-l-4 border-red-400 pl-4">
-                    <h4 className="font-semibold text-red-700 mb-2">❌ Oportunidade Perdida</h4>
-                    <div className="space-y-2 text-sm">
-                      {opportunity.lossReason && (
-                        <div>
-                          <span className="font-medium text-gray-700 dark:text-gray-900">Motivo da perda:</span>
-                          <span className="ml-2 text-gray-900 dark:text-gray-900">{opportunity.lossReason}</span>
-                        </div>
-                      )}
-                      {opportunity.lossObservation && (
-                        <div>
-                          <span className="font-medium text-gray-700 dark:text-gray-900">Observação detalhada:</span>
-                          <p className="mt-1 text-gray-900 dark:text-gray-900 bg-white p-2 rounded border">{opportunity.lossObservation}</p>
-                        </div>
-                      )}
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="font-semibold text-red-700">❌ Oportunidade Perdida</h4>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setEditingPhase(editingPhase === 'perdido' ? null : 'perdido')}
+                        className="h-6 w-6 p-0 text-red-600 hover:text-red-800 hover:bg-red-50"
+                        title="Editar informações da oportunidade perdida"
+                      >
+                        <Edit className="h-3 w-3" />
+                      </Button>
                     </div>
+                    {editingPhase === 'perdido' ? (
+                      <Form {...perdidoForm}>
+                        <form onSubmit={perdidoForm.handleSubmit(handleSubmit)} className="space-y-4">
+                          <FormField
+                            control={perdidoForm.control}
+                            name="lossReason"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Motivo da perda *</FormLabel>
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                  <FormControl>
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Selecione o motivo" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    <SelectItem value="preco">Preço</SelectItem>
+                                    <SelectItem value="prazo">Prazo</SelectItem>
+                                    <SelectItem value="concorrencia">Concorrência</SelectItem>
+                                    <SelectItem value="qualidade">Qualidade</SelectItem>
+                                    <SelectItem value="desistencia">Desistência do cliente</SelectItem>
+                                    <SelectItem value="outro">Outro</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={perdidoForm.control}
+                            name="lossObservation"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Observação detalhada</FormLabel>
+                                <FormControl>
+                                  <Textarea 
+                                    placeholder="Descreva os detalhes sobre a perda da oportunidade..."
+                                    className="min-h-[100px]"
+                                    {...field} 
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <div className="flex space-x-2 pt-4">
+                            <Button type="submit" size="sm" disabled={isSubmitting}>
+                              <Save className="h-3 w-3 mr-1" />
+                              Salvar
+                            </Button>
+                            <Button 
+                              type="button" 
+                              variant="outline" 
+                              size="sm" 
+                              onClick={() => setEditingPhase(null)}
+                            >
+                              <XCircle className="h-3 w-3 mr-1" />
+                              Cancelar
+                            </Button>
+                          </div>
+                        </form>
+                      </Form>
+                    ) : (
+                      <div className="space-y-2 text-sm">
+                        {opportunity.lossReason && (
+                          <div>
+                            <span className="font-medium text-gray-700 dark:text-gray-900">Motivo da perda:</span>
+                            <span className="ml-2 text-gray-900 dark:text-gray-900">{opportunity.lossReason}</span>
+                          </div>
+                        )}
+                        {opportunity.lossObservation && (
+                          <div>
+                            <span className="font-medium text-gray-700 dark:text-gray-900">Observação detalhada:</span>
+                            <p className="mt-1 text-gray-900 dark:text-gray-900 bg-white p-2 rounded border">{opportunity.lossObservation}</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -1740,6 +2313,7 @@ export default function OpportunityDetailsModal({
 
             {/* Formulário específico da fase */}
             {renderPhaseForm()}
+          </div>
         </DialogContent>
       </Dialog>
     );
