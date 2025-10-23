@@ -220,9 +220,11 @@ export default function OpportunityCard({ opportunity, onViewDetails }: Opportun
         )}
 
         {opportunity.createdByName && (
-          <div className="flex items-center">
-            <User className="h-3 w-3 text-blue-500 dark:text-blue-400 mr-2" />
-            <span className="text-blue-700 dark:text-blue-300 font-medium">Criado por: {opportunity.createdByName}</span>
+          <div className="flex items-center bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded-md">
+            <User className="h-3 w-3 text-blue-600 dark:text-blue-400 mr-2" />
+            <span className="text-blue-800 dark:text-blue-200 font-semibold text-xs">
+              Criado por: {opportunity.createdByName}
+            </span>
           </div>
         )}</div>
 

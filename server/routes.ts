@@ -248,14 +248,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Log dos dados recebidos para debug
       console.log('📞 Dados recebidos para criação de oportunidade:', JSON.stringify(req.body, null, 2));
       
+      // Verificar se a sessão do usuário está disponível
+      console.log('🔍 SESSION DEBUG - req.session:', !!req.session);
+      console.log('🔍 SESSION DEBUG - req.session.user:', !!req.session.user);
+      console.log('🔍 SESSION DEBUG - user name:', req.session.user?.name);
+      console.log('🔍 SESSION DEBUG - user email:', req.session.user?.email);
+      
       // Preservar todos os dados enviados e adicionar informações de auditoria
+      const userName = req.session.user?.name || req.session.user?.email || "Sistema";
       const dataToValidate = {
         ...req.body,
-        createdBy: req.session.user!.name || req.session.user!.email || "Usuário",
-        createdByName: req.session.user!.name || req.session.user!.email || "Usuário"
+        createdBy: userName,
+        createdByName: userName
       };
       
       console.log('📞 Dados após processamento inicial:', JSON.stringify(dataToValidate, null, 2));
+      console.log('🔍 CRITICAL - createdByName value:', dataToValidate.createdByName);
 
       // Ensure documents are properly formatted and persisted
       if (dataToValidate.documents && Array.isArray(dataToValidate.documents)) {
@@ -282,10 +290,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('🔍 CRITICAL DEBUG - validatedData.createdByName:', validatedData.createdByName);
       console.log('🔍 CRITICAL DEBUG - typeof validatedData.createdByName:', typeof validatedData.createdByName);
       
-      // Ensure createdByName is never null or undefined
-      if (!validatedData.createdByName) {
-        validatedData.createdByName = req.session.user!.name || req.session.user!.email || "Sistema";
+      // Ensure createdByName is never null or undefined with multiple fallbacks
+      if (!validatedData.createdByName || validatedData.createdByName.trim() === '') {
+        const fallbackName = req.session.user?.name || req.session.user?.email || "Sistema Anônimo";
+        validatedData.createdByName = fallbackName;
         console.log('🔧 FALLBACK - Set createdByName to:', validatedData.createdByName);
+      }
+      
+      // Final validation before database insert
+      if (!validatedData.createdByName || validatedData.createdByName.trim() === '') {
+        throw new Error('createdByName cannot be null or empty');
       }
       
       const opportunity = await storage.createOpportunity(validatedData);
@@ -1650,7 +1664,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       company: 'Empresa Importada',
       phone: null, // Permitir nulo explicitamente
       needCategory: null,
-      clientNeeds: null
+      clientNeeds: null,
+      // Initialize createdByName with logged user as fallback
+      createdByName: createdBy || 'Sistema'
     };
 
     // Process all field mappings - COM MÁXIMA TOLERÂNCIA
@@ -1718,6 +1734,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     }
 
+    // CRITICAL: Ensure createdByName is never null or empty
+    if (!transformed.createdByName || transformed.createdByName.trim() === '') {
+      transformed.createdByName = createdBy || 'Sistema';
+    }
+
     // Garantir que campos de texto não sejam muito longos
     if (transformed.contact && typeof transformed.contact === 'string') {
       transformed.contact = transformed.contact.slice(0, 255);
@@ -1730,6 +1751,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     if (transformed.needCategory && typeof transformed.needCategory === 'string') {
       transformed.needCategory = transformed.needCategory.slice(0, 500);
+    }
+    if (transformed.createdByName && typeof transformed.createdByName === 'string') {
+      transformed.createdByName = transformed.createdByName.slice(0, 255);
     }
 
     // FORÇAR phone como null SEMPRE para evitar qualquer erro de banco
@@ -1953,6 +1977,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       setImmediate(async () => {
         try {
           const userId = req.session.userId!;
+          
+          // Get user name for createdByName fallback
+          const user = await storage.getUser(userId);
+          const userName = user?.name || userId || 'Sistema';
+          
           let created = 0;
           let failed = 0;
           const errors: any[] = [];
@@ -1971,7 +2000,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               }
 
               // Transform row SEMPRE, independente de erros
-              const transformedData = transformRow(row, mapping, userId, targetPhase);
+              const transformedData = transformRow(row, mapping, userName, targetPhase);
 
               // Validate with Zod schema com MÚLTIPLOS FALLBACKS
               let validatedData = null;
@@ -1999,7 +2028,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
                       requiresVisit: false,
                       documents: [],
                       visitPhotos: [],
-                      createdBy: userId
+                      createdBy: userId,
+                      createdByName: transformedData.createdByName || userName
                     };
                     validatedData = insertOpportunitySchema.parse(basicData);
                   } else {
@@ -2017,6 +2047,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                       documents: [],
                       visitPhotos: [],
                       createdBy: userId,
+                      createdByName: userName,
                       isImported: true,
                       importBatchId: `emergency_${Date.now()}_${i}`,
                       importSource: 'csv_upload'
@@ -2100,6 +2131,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   documents: [],
                   visitPhotos: [],
                   createdBy: userId,
+                  createdByName: userName,
                   isImported: true,
                   importBatchId: `error_${Date.now()}_${i}`,
                   importSource: 'csv_upload_error'

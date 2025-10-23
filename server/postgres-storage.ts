@@ -208,14 +208,17 @@ export class PostgresStorage implements IStorage {
         company: opportunity.company
       }, null, 2));
       
-      // CRITICAL FIX: Explicitly map the field to ensure it's not lost
+      // CRITICAL FIX: Remove the JavaScript field and use only the database column name
+      const { createdByName, ...opportunityWithoutJSField } = opportunity;
+      
       const insertData = {
-        ...opportunity,
+        ...opportunityWithoutJSField,
+        // Map JavaScript field to database column explicitly
         created_by_name: opportunity.createdByName || 'Sistema Fallback Final'
       };
       
       console.log('🔍 FINAL INSERT DATA - created_by_name:', insertData.created_by_name);
-      console.log('🔍 FINAL INSERT DATA - createdByName:', insertData.createdByName);
+      console.log('🔍 FINAL INSERT DATA - removed createdByName field');
       
       const result = await db
         .insert(opportunities)
