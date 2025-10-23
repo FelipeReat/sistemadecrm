@@ -91,11 +91,10 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // ALWAYS serve the app on port 5000 in Replit
-  // Replit requires port 5000 for webview applications
-  // this serves both the API and the client.
-  const port = parseInt(process.env.PORT || "5000", 10);
-  log("Using fixed PORT:", port.toString());
+  // Configuração de porta para desenvolvimento local
+  // Backend usa porta 3000, frontend usa porta 5501
+  const port = parseInt(process.env.PORT || "3000", 10);
+  log("Using PORT:", port.toString());
 
   // Use configurable host binding with safe default
   // Default to 0.0.0.0 for accessibility in cloud environments like Replit
@@ -108,14 +107,18 @@ app.use((req, res, next) => {
       host,
     },
     () => {
-      log(`serving on host ${host} port ${port}`);
+      log(`🚀 Backend servidor rodando em http://${host}:${port}`);
       if (realtimeService) {
         const protocol = process.env.NODE_ENV === "production" ? "wss" : "ws";
         log(`🔌 WebSocket disponível em ${protocol}://${host}:${port}/ws`);
         
-        // Log adicional para debug
-        const status = realtimeService.getStatus();
-        log(`📊 Status do serviço realtime:`, JSON.stringify(status, null, 2));
+        // Log adicional para debug - versão segura
+        try {
+          const status = realtimeService.getStatus();
+          log(`📊 Status do serviço realtime:`, JSON.stringify(status, null, 2));
+        } catch (error) {
+          log(`📊 Status do serviço realtime: [Erro ao serializar status - ${error}]`);
+        }
       }
     },
   );

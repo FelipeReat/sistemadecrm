@@ -164,6 +164,9 @@ export default function OpportunityCard({ opportunity, onViewDetails }: Opportun
       </div>
 
       <div className="space-y-1 text-sm text-gray-600 dark:text-gray-300">
+        {/* Debug log para verificar o valor do telefone */}
+        {console.log(`[DEBUG] Opportunity ${opportunity.id} phone:`, opportunity.phone, typeof opportunity.phone)}
+        
         {opportunity.phone && (
           <div className="flex items-center">
             <Phone className="h-3 w-3 text-gray-500 dark:text-gray-400 mr-2" />

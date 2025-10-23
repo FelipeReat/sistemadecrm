@@ -245,11 +245,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create opportunity
   app.post("/api/opportunities", isAuthenticated, async (req, res) => {
     try {
+      // Log dos dados recebidos para debug
+      console.log('📞 Dados recebidos para criação de oportunidade:', JSON.stringify(req.body, null, 2));
+      
       // Preservar todos os dados enviados e adicionar informações de auditoria
       const dataToValidate = {
         ...req.body,
         createdBy: req.session.user!.name || req.session.user!.email || "Usuário"
       };
+      
+      console.log('📞 Dados após processamento inicial:', JSON.stringify(dataToValidate, null, 2));
 
       // Ensure documents are properly formatted and persisted
       if (dataToValidate.documents && Array.isArray(dataToValidate.documents)) {
@@ -272,7 +277,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const validatedData = insertOpportunitySchema.parse(dataToValidate);
+      console.log('📞 Dados após validação do schema:', JSON.stringify(validatedData, null, 2));
+      
       const opportunity = await storage.createOpportunity(validatedData);
+      console.log('📞 Oportunidade criada no banco:', JSON.stringify(opportunity, null, 2));
 
       res.status(201).json(opportunity);
     } catch (error: any) {

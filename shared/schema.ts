@@ -12,6 +12,7 @@ export const opportunities = pgTable("opportunities", {
   cnpj: text("cnpj"),
   phone: text("phone"),
   hasRegistration: boolean("has_registration").default(false),
+  cadastralUpdate: boolean("cadastral_update").default(false),
   proposalOrigin: text("proposal_origin"),
   businessTemperature: text("business_temperature"),
   needCategory: text("need_category"),
@@ -88,16 +89,23 @@ export const insertOpportunitySchema = createInsertSchema(opportunities, {
     return val.replace(/\D/g, '') || null;
   }),
   phone: z.any().optional().nullable().transform(val => {
-    // MÁXIMA PERMISSIVIDADE - aceita qualquer coisa e sempre retorna null se houver problema
+    // Aceita qualquer valor válido de telefone
     try {
       if (!val || val === '' || val === 'null' || val === 'undefined' || val === 'N/A') return null;
       if (typeof val === 'string') {
         const cleaned = val.replace(/\D/g, '');
-        return cleaned || null;
+        // Se tem pelo menos 10 dígitos, considera válido
+        if (cleaned && cleaned.length >= 10) {
+          return cleaned;
+        }
+        // Se tem menos de 10 dígitos mas não está vazio, preserva o valor original
+        if (val.trim()) {
+          return val.trim();
+        }
       }
       return null;
     } catch (error) {
-      return null; // SEMPRE retorna null se houver qualquer erro
+      return null;
     }
   }),
   hasRegistration: z.boolean().optional().default(false),

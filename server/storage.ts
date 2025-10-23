@@ -122,16 +122,16 @@ export class MemStorage implements IStorage {
     const now = new Date();
 
     // Preserve all essential information passed in the insert data
-    const opportunity: Opportunity = { 
-      id,
-      createdAt: now,
-      updatedAt: now,
-      phaseUpdatedAt: now,
-      // Core contact information - always preserve these
-      contact: insertOpportunity.contact || "Não informado",
-      company: insertOpportunity.company || "Não informado",
-      phone: insertOpportunity.phone || null,
-      cpf: insertOpportunity.cpf || null,
+      const opportunity: Opportunity = { 
+        id,
+        createdAt: now,
+        updatedAt: now,
+        phaseUpdatedAt: now,
+        // Core contact information - always preserve these
+        contact: insertOpportunity.contact || "Não informado",
+        company: insertOpportunity.company || "Não informado",
+        phone: insertOpportunity.phone || null,
+        cpf: insertOpportunity.cpf || null,
       cnpj: insertOpportunity.cnpj || null,
 
       // Business details - preserve all provided data

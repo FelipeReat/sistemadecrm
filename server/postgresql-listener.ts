@@ -126,11 +126,20 @@ export class PostgreSQLListener extends EventEmitter {
   }
 
   getStatus() {
-    return {
-      connected: this.isConnected,
-      reconnectAttempts: this.reconnectAttempts,
-      maxReconnectAttempts: this.maxReconnectAttempts
-    };
+    try {
+      return {
+        connected: this.isConnected,
+        reconnectAttempts: this.reconnectAttempts,
+        maxReconnectAttempts: this.maxReconnectAttempts
+      };
+    } catch (error) {
+      console.error('❌ Erro ao obter status do PostgreSQL Listener:', error);
+      return {
+        connected: false,
+        reconnectAttempts: 0,
+        maxReconnectAttempts: 5
+      };
+    }
   }
 
   // Método para testar a conexão

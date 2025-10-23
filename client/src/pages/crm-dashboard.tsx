@@ -90,6 +90,16 @@ export default function CrmDashboard() {
   
   // CORREÇÃO: Sincronização mais agressiva entre React Query e store
   useEffect(() => {
+    // Debug log para verificar dados das oportunidades
+    console.log('[DEBUG] Dashboard - Query opportunities:', queryOpportunities.length);
+    console.log('[DEBUG] Dashboard - Store opportunities:', storeOpportunities.length);
+    if (queryOpportunities.length > 0) {
+      console.log('[DEBUG] Dashboard - Sample opportunity from query:', queryOpportunities[0]);
+    }
+    if (storeOpportunities.length > 0) {
+      console.log('[DEBUG] Dashboard - Sample opportunity from store:', storeOpportunities[0]);
+    }
+    
     // Sempre sincronizar quando React Query tem dados novos
     if (queryOpportunities.length > 0) {
       // Se store está vazio OU se não está conectado via WebSocket, sincronizar

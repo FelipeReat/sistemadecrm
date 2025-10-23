@@ -1,8 +1,8 @@
-const fetch = require('node-fetch');
+// const fetch = require('node-fetch');
 
 async function testLogin() {
   try {
-    const response = await fetch('http://localhost:5501/api/auth/login', {
+    const response = await fetch('http://localhost:3000/api/auth/login', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'

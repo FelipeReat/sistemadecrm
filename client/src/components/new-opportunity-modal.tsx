@@ -46,6 +46,7 @@ const formSchema = insertOpportunitySchema.pick({
   cnpj: true,
   phone: true,
   hasRegistration: true,
+  cadastralUpdate: true,
   proposalOrigin: true,
   businessTemperature: true,
   needCategory: true,
@@ -58,6 +59,7 @@ const formSchema = insertOpportunitySchema.pick({
   cpf: z.string().nullable().optional(),
   cnpj: z.string().nullable().optional(),
   hasRegistration: z.boolean().nullable().optional(),
+  cadastralUpdate: z.boolean().nullable().optional(),
   proposalOrigin: z.string().nullable().optional(),
   businessTemperature: z.string().nullable().optional(),
 });
@@ -102,6 +104,7 @@ export default function NewOpportunityModal({ open, onOpenChange }: NewOpportuni
       cnpj: null,
       phone: "",
       hasRegistration: false,
+      cadastralUpdate: false,
       proposalOrigin: null,
       businessTemperature: null,
       needCategory: "",
@@ -286,17 +289,48 @@ export default function NewOpportunityModal({ open, onOpenChange }: NewOpportuni
               control={form.control}
               name="hasRegistration"
               render={({ field }) => (
-                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                  <FormControl>
-                    <Checkbox
-                      checked={field.value ?? false}
-                      onCheckedChange={field.onChange}
-                      data-testid="checkbox-has-registration"
-                    />
-                  </FormControl>
-                  <div className="space-y-1 leading-none">
-                    <FormLabel>Possui cadastro no Locador?</FormLabel>
-                  </div>
+                <FormItem>
+                  <FormLabel>Possui cadastro no Locador?</FormLabel>
+                  <Select 
+                    onValueChange={(value) => field.onChange(value === "true")} 
+                    value={field.value === true ? "true" : field.value === false ? "false" : ""}
+                  >
+                    <FormControl>
+                      <SelectTrigger data-testid="select-has-registration">
+                        <SelectValue placeholder="Selecione uma opção" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="true">Sim</SelectItem>
+                      <SelectItem value="false">Não</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="cadastralUpdate"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Atualização cadastral</FormLabel>
+                  <Select 
+                    onValueChange={(value) => field.onChange(value === "true")} 
+                    value={field.value === true ? "true" : field.value === false ? "false" : ""}
+                  >
+                    <FormControl>
+                      <SelectTrigger data-testid="select-cadastral-update">
+                        <SelectValue placeholder="Selecione uma opção" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="true">Sim</SelectItem>
+                      <SelectItem value="false">Não</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
                 </FormItem>
               )}
             />
