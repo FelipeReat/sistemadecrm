@@ -112,12 +112,23 @@ app.use((req, res, next) => {
         const protocol = process.env.NODE_ENV === "production" ? "wss" : "ws";
         log(`🔌 WebSocket disponível em ${protocol}://${host}:${port}/ws`);
         
-        // Log adicional para debug - versão segura
+        // Log adicional para debug - versão segura com timeout
+        const statusTimeout = setTimeout(() => {
+          log(`⏰ TIMEOUT: getStatus() demorou mais de 5 segundos - possível travamento detectado`);
+        }, 5000);
+        
         try {
+          log(`🔍 Iniciando coleta de status do realtime service...`);
           const status = realtimeService.getStatus();
-          log(`📊 Status do serviço realtime:`, JSON.stringify(status, null, 2));
+          clearTimeout(statusTimeout);
+          log(`🔍 Status coletado com sucesso, serializando...`);
+          const serializedStatus = JSON.stringify(status, null, 2);
+          log(`📊 Status do serviço realtime:`, serializedStatus);
+          log(`✅ Log de status concluído com sucesso`);
         } catch (error) {
-          log(`📊 Status do serviço realtime: [Erro ao serializar status - ${error}]`);
+          clearTimeout(statusTimeout);
+          log(`❌ Erro ao obter/serializar status: ${error}`);
+          log(`📊 Status do serviço realtime: [Erro - ${error}]`);
         }
       }
     },

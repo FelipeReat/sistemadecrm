@@ -150,6 +150,7 @@ export class MemStorage implements IStorage {
       // Phase and workflow
       phase: insertOpportunity.phase || 'prospeccao',
       createdBy: insertOpportunity.createdBy || 'system',
+      createdByName: insertOpportunity.createdByName || 'Sistema',
 
       // Prospection phase data
       opportunityNumber: insertOpportunity.opportunityNumber || null,

@@ -115,6 +115,12 @@ export class PostgresStorage implements IStorage {
       const id = randomUUID();
       const now = new Date();
 
+      console.log('🔍 DEBUG - insertOpportunity.createdByName:', insertOpportunity.createdByName);
+      console.log('🔍 DEBUG - insertOpportunity object keys:', Object.keys(insertOpportunity));
+      console.log('🔍 STORAGE DEBUG - typeof insertOpportunity.createdByName:', typeof insertOpportunity.createdByName);
+      console.log('🔍 STORAGE DEBUG - insertOpportunity.createdByName === null:', insertOpportunity.createdByName === null);
+      console.log('🔍 STORAGE DEBUG - insertOpportunity.createdByName === undefined:', insertOpportunity.createdByName === undefined);
+
       const opportunity: Opportunity = { 
         id,
         createdAt: now,
@@ -143,6 +149,7 @@ export class PostgresStorage implements IStorage {
         // Phase and workflow
         phase: insertOpportunity.phase || 'prospeccao',
         createdBy: insertOpportunity.createdBy || 'system',
+        createdByName: insertOpportunity.createdByName || 'Sistema',
 
         // Prospection phase data
         opportunityNumber: insertOpportunity.opportunityNumber || null,
@@ -180,10 +187,42 @@ export class PostgresStorage implements IStorage {
         importSource: insertOpportunity.importSource || null,
       };
 
+      console.log('🔍 DEBUG - opportunity object before insert:', JSON.stringify(opportunity, null, 2));
+      console.log('🔍 DRIZZLE DEBUG - opportunity.createdByName before insert:', opportunity.createdByName);
+      console.log('🔍 DRIZZLE DEBUG - typeof opportunity.createdByName:', typeof opportunity.createdByName);
+      
+      // Final safety check before insert
+      if (!opportunity.createdByName) {
+        opportunity.createdByName = 'Sistema Fallback';
+        console.log('🚨 EMERGENCY FALLBACK - Set createdByName to:', opportunity.createdByName);
+      }
+      
+      // Log the exact values being sent to Drizzle
+      console.log('🔍 DRIZZLE VALUES DEBUG - opportunity object keys:', Object.keys(opportunity));
+      console.log('🔍 DRIZZLE VALUES DEBUG - opportunity.createdByName value:', JSON.stringify(opportunity.createdByName));
+      console.log('🔍 DRIZZLE VALUES DEBUG - opportunity object for insert:', JSON.stringify({
+        id: opportunity.id,
+        createdBy: opportunity.createdBy,
+        createdByName: opportunity.createdByName,
+        contact: opportunity.contact,
+        company: opportunity.company
+      }, null, 2));
+      
+      // CRITICAL FIX: Explicitly map the field to ensure it's not lost
+      const insertData = {
+        ...opportunity,
+        created_by_name: opportunity.createdByName || 'Sistema Fallback Final'
+      };
+      
+      console.log('🔍 FINAL INSERT DATA - created_by_name:', insertData.created_by_name);
+      console.log('🔍 FINAL INSERT DATA - createdByName:', insertData.createdByName);
+      
       const result = await db
         .insert(opportunities)
-        .values(opportunity)
+        .values(insertData)
         .returning();
+
+      console.log('🔍 DEBUG - inserted opportunity result:', JSON.stringify(result[0], null, 2));
 
       return result[0];
     } catch (error) {
@@ -655,9 +694,9 @@ export class PostgresStorage implements IStorage {
   }
 
   async updateReportLastGenerated(id: string): Promise<SavedReport | null> {
-    const [updated] = await this.db
+    const [updated] = await db
       .update(savedReports)
-      .set({ lastGenerated: new Date().toISOString() })
+      .set({ lastGenerated: new Date() })
       .where(eq(savedReports.id, id))
       .returning();
     return updated || null;

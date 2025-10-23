@@ -251,7 +251,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Preservar todos os dados enviados e adicionar informações de auditoria
       const dataToValidate = {
         ...req.body,
-        createdBy: req.session.user!.name || req.session.user!.email || "Usuário"
+        createdBy: req.session.user!.name || req.session.user!.email || "Usuário",
+        createdByName: req.session.user!.name || req.session.user!.email || "Usuário"
       };
       
       console.log('📞 Dados após processamento inicial:', JSON.stringify(dataToValidate, null, 2));
@@ -278,6 +279,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const validatedData = insertOpportunitySchema.parse(dataToValidate);
       console.log('📞 Dados após validação do schema:', JSON.stringify(validatedData, null, 2));
+      console.log('🔍 CRITICAL DEBUG - validatedData.createdByName:', validatedData.createdByName);
+      console.log('🔍 CRITICAL DEBUG - typeof validatedData.createdByName:', typeof validatedData.createdByName);
+      
+      // Ensure createdByName is never null or undefined
+      if (!validatedData.createdByName) {
+        validatedData.createdByName = req.session.user!.name || req.session.user!.email || "Sistema";
+        console.log('🔧 FALLBACK - Set createdByName to:', validatedData.createdByName);
+      }
       
       const opportunity = await storage.createOpportunity(validatedData);
       console.log('📞 Oportunidade criada no banco:', JSON.stringify(opportunity, null, 2));
@@ -308,6 +317,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Preserve existing documents and visitPhotos if not being updated
       const updateData = { ...req.body };
+      
+      // Preserve createdByName - never allow it to be updated
+      if (updateData.createdByName) {
+        delete updateData.createdByName;
+      }
 
       // Ensure documents are properly formatted and preserved
       if (updateData.documents && Array.isArray(updateData.documents)) {
@@ -1480,6 +1494,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       required: false,
       transform: (value: any) => value?.toString().trim() || null
     },
+    createdByName: { 
+      displayName: 'Criado por', 
+      required: false,
+      transform: (value: any) => value?.toString().trim() || null
+    },
     phase: { 
       displayName: 'Fase', 
       required: false,
@@ -1535,6 +1554,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         mapping[header] = 'businessTemperature';
       } else if (lowerHeader.includes('vendedor') || lowerHeader.includes('salesperson')) {
         mapping[header] = 'salesperson';
+      } else if (lowerHeader.includes('criado por') || lowerHeader.includes('created by') || lowerHeader.includes('criador')) {
+        mapping[header] = 'createdByName';
       } else if (lowerHeader.includes('fase atual') || lowerHeader.includes('phase')) {
         mapping[header] = 'phase';
       }

@@ -217,6 +217,13 @@ export default function OpportunityCard({ opportunity, onViewDetails }: Opportun
             <User className="h-3 w-3 text-gray-500 dark:text-gray-400 mr-2" />
             <span className="text-gray-700 dark:text-gray-300">Vendedor: {opportunity.salesperson}</span>
           </div>
+        )}
+
+        {opportunity.createdByName && (
+          <div className="flex items-center">
+            <User className="h-3 w-3 text-blue-500 dark:text-blue-400 mr-2" />
+            <span className="text-blue-700 dark:text-blue-300 font-medium">Criado por: {opportunity.createdByName}</span>
+          </div>
         )}</div>
 
       {/* Informações específicas da fase */}

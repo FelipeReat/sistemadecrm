@@ -125,10 +125,21 @@ export class WebSocketManager extends EventEmitter {
   // Obter estatísticas
   public getStats() {
     try {
-      return {
-        connectedClients: this.clients.size,
-        serverRunning: false // Simplificado para evitar problemas de serialização
+      console.log('🔍 WebSocketManager.getStats() - Iniciando...');
+      
+      console.log('🔍 Coletando número de clientes conectados...');
+      const clientCount = this.clients.size;
+      
+      console.log('🔍 Verificando status do servidor...');
+      const serverStatus = this.wss ? true : false;
+      
+      const stats = {
+        connectedClients: clientCount,
+        serverRunning: serverStatus
       };
+      
+      console.log('🔍 WebSocketManager.getStats() - Concluído com sucesso');
+      return stats;
     } catch (error) {
       console.error('❌ Erro ao obter stats do WebSocket:', error);
       return {

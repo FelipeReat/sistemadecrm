@@ -51,6 +51,7 @@ export const opportunities = pgTable("opportunities", {
 
   // Auditoria
   createdBy: text("created_by"),
+  createdByName: text("created_by_name").notNull(),
 
   // Import tracking fields
   isImported: boolean("is_imported").default(false),
@@ -261,6 +262,10 @@ export const insertOpportunitySchema = createInsertSchema(opportunities, {
   // Auditoria
   createdBy: z.string().optional().nullable().transform(val => {
     if (!val || val.trim() === '') return "Sistema de Importação";
+    return val.trim();
+  }),
+  createdByName: z.string().min(1, "Nome do criador é obrigatório").transform(val => {
+    if (!val || val.trim() === '') return "Sistema";
     return val.trim();
   }),
 

@@ -1512,6 +1512,14 @@ export default function OpportunityDetailsModal({
                         </FormItem>
                       )}
                     />
+                    <div className="md:col-span-2">
+                      <Label className="text-sm font-medium text-gray-700">Criado por</Label>
+                      <Input 
+                        value={opportunity?.createdByName || "Sistema"} 
+                        readOnly 
+                        className="bg-gray-50 text-gray-600 cursor-not-allowed mt-2"
+                      />
+                    </div>
                     <FormField
                       control={essentialInfoForm.control}
                       name="businessTemperature"
@@ -1655,6 +1663,10 @@ export default function OpportunityDetailsModal({
                 <div>
                   <span className="font-medium text-gray-700">Telefone:</span>
                   <span className="ml-2 text-gray-900">{opportunity.phone || "Não informado"}</span>
+                </div>
+                <div>
+                  <span className="font-medium text-gray-700">Criado por:</span>
+                  <span className="ml-2 text-gray-900">{opportunity.createdByName || "Sistema"}</span>
                 </div>
                 <div>
                   <span className="font-medium text-gray-700">Temperatura:</span>

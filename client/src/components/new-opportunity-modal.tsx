@@ -31,6 +31,7 @@ import { UploadedFile } from "@/hooks/useFileUpload";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useReportsSync } from "@/hooks/useReportsSync";
+import { useAuth } from "@/hooks/useAuth";
 import { insertOpportunitySchema } from "@shared/schema";
 import { masks } from "@/lib/masks";
 
@@ -94,6 +95,7 @@ export default function NewOpportunityModal({ open, onOpenChange }: NewOpportuni
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { invalidateAllData } = useReportsSync();
+  const { user } = useAuth();
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -116,7 +118,8 @@ export default function NewOpportunityModal({ open, onOpenChange }: NewOpportuni
     mutationFn: (data: FormData) => apiRequest("POST", "/api/opportunities", {
       ...data,
       phase: "prospeccao",
-      documents: uploadedDocuments
+      documents: uploadedDocuments,
+      createdByName: user?.name || user?.email || "Usuário"
     }),
     onSuccess: () => {
       invalidateAllData(); // Sincroniza dashboard e relatórios

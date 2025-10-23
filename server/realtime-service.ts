@@ -102,11 +102,34 @@ export class RealtimeService {
 
   // Métodos públicos para status e controle
   getStatus() {
-    return {
-      initialized: this.isInitialized,
-      websocket: this.wsManager.getStats(),
-      postgresql: this.pgListener.getStatus()
-    };
+    try {
+      console.log('🔍 RealtimeService.getStatus() - Iniciando...');
+      
+      console.log('🔍 Coletando status de inicialização...');
+      const initialized = this.isInitialized;
+      
+      console.log('🔍 Coletando stats do WebSocket Manager...');
+      const websocketStats = this.wsManager.getStats();
+      
+      console.log('🔍 Coletando status do PostgreSQL Listener...');
+      const postgresqlStatus = this.pgListener.getStatus();
+      
+      const status = {
+        initialized,
+        websocket: websocketStats,
+        postgresql: postgresqlStatus
+      };
+      
+      console.log('🔍 RealtimeService.getStatus() - Concluído com sucesso');
+      return status;
+    } catch (error) {
+      console.error('❌ Erro em RealtimeService.getStatus():', error);
+      return {
+        initialized: false,
+        websocket: { error: 'Failed to get stats' },
+        postgresql: { error: 'Failed to get status' }
+      };
+    }
   }
 
   async testConnections(): Promise<{ websocket: boolean; postgresql: boolean }> {
