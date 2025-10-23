@@ -249,7 +249,7 @@ export default function ReportsDashboard() {
     }, {} as Record<string, { name: string; total: number; won: number; value: number }>);
 
     filteredOpportunities.forEach(opp => {
-      const creator = opp.createdBy || 'Sistema';
+      const creator = opp.createdByName || opp.createdBy || 'Sistema';
       if (!creators[creator]) {
         creators[creator] = { name: creator, total: 0, won: 0, value: 0 };
       }
