@@ -375,8 +375,7 @@ export class MemStorage implements IStorage {
 
   async validateUserPassword(email: string, password: string): Promise<User | null> {
     const user = await this.getUserByEmail(email);
-    // Removed admin login details from the login screen
-    if (!user || !user.isActive || user.role === 'admin') return null;
+    if (!user || !user.isActive) return null;
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
     return isPasswordValid ? user : null;

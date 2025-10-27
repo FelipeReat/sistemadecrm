@@ -371,7 +371,7 @@ export default function ReportsDashboard() {
             <SelectContent>
               <SelectItem value="all">Todos os usuários</SelectItem>
               {users.map((user) => (
-                <SelectItem key={user.id} value={user.name}>
+                <SelectItem key={user.id} value={user.id}>
                   {user.name}
                 </SelectItem>
               ))}

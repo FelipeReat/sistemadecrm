@@ -33,6 +33,11 @@ app.use((req, res, next) => {
       }
 
       log(logLine);
+      
+      // Force flush to ensure logs appear immediately
+      if (process.stdout.write) {
+        process.stdout.write('');
+      }
     }
   });
 

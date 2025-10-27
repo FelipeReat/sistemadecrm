@@ -1,7 +1,8 @@
 import session from "express-session";
-import type { Express, RequestHandler } from "express";
+import type { RequestHandler } from "express";
 import MemoryStore from "memorystore";
 import { storage } from "./storage";
+import { log } from "./vite";
 import type { User } from "@shared/schema";
 
 declare module 'express-session' {
@@ -37,37 +38,50 @@ export function getSession() {
 
 export const isAuthenticated: RequestHandler = async (req, res, next) => {
   try {
+    console.log("🚨 TESTE: Middleware isAuthenticated executado");
+    console.log(`🔍 Session userId: ${req.session.userId}`);
     if (!req.session.userId) {
-      console.log(`[AUTH] Tentativa de acesso não autorizado de IP: ${req.ip}`);
+      log("🚨 [AUTH] Sem userId na sessão - não autorizado", "auth");
       return res.status(401).json({ message: "Não autorizado" });
     }
 
+    // OTIMIZAÇÃO: Usar dados da sessão se disponíveis e válidos
+    if (req.session.user && req.session.user.isActive) {
+      // Verifica se a sessão não é muito antiga (se lastAccess existe)
+      if (req.session.lastAccess) {
+        const sessionAge = Date.now() - new Date(req.session.lastAccess).getTime();
+        const maxAge = 7 * 24 * 60 * 60 * 1000; // 7 dias
+        
+        if (sessionAge > maxAge) {
+          return req.session.destroy((err) => {
+            if (res.headersSent) return;
+            return res.status(401).json({ message: "Sessão expirada" });
+          });
+        }
+      }
+
+      // Atualiza último acesso sem consulta ao banco
+      req.session.lastAccess = new Date().toISOString();
+      
+      console.log(`🔍 [AUTH] Using cached session: userId=${req.session.userId}, userName=${req.session.user?.name}, userEmail=${req.session.user?.email}, userRole=${req.session.user?.role}`);
+      
+      return next();
+    }
+
+    // Fallback: consulta ao banco apenas se necessário
     const user = await storage.getUser(req.session.userId);
     if (!user || !user.isActive) {
-      console.log(`[AUTH] Usuário inválido ou inativo: ${req.session.userId}`);
       return req.session.destroy((err) => {
         if (res.headersSent) return;
         return res.status(401).json({ message: "Usuário inválido" });
       });
     }
 
-    // Verifica se a sessão não é muito antiga (se lastAccess existe)
-    if (req.session.lastAccess) {
-      const sessionAge = Date.now() - new Date(req.session.lastAccess).getTime();
-      const maxAge = 7 * 24 * 60 * 60 * 1000; // 7 dias
-      
-      if (sessionAge > maxAge) {
-        console.log(`[AUTH] Sessão expirada para usuário: ${user.email}`);
-        return req.session.destroy((err) => {
-          if (res.headersSent) return;
-          return res.status(401).json({ message: "Sessão expirada" });
-        });
-      }
-    }
-
-    // Atualiza último acesso
+    // Atualiza dados da sessão
     req.session.lastAccess = new Date().toISOString();
     req.session.user = user;
+    
+    console.log(`🔍 [AUTH] Session updated: userId=${req.session.userId}, userName=${req.session.user?.name}, userEmail=${req.session.user?.email}, userRole=${req.session.user?.role}`);
     
     next();
   } catch (error) {

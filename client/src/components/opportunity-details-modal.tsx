@@ -719,7 +719,7 @@ export default function OpportunityDetailsModal({
                             <SelectItem value="loading" disabled>Carregando vendedores...</SelectItem>
                           ) : salespeople && Array.isArray(salespeople) && salespeople.length > 0 ? (
                             salespeople.map((user: any) => (
-                              <SelectItem key={user.id} value={user.name}>
+                              <SelectItem key={user.id} value={user.id}>
                                 {user.name} ({user.role === 'admin' ? 'Admin' : user.role === 'gerente' ? 'Gerente' : 'Vendedor'})
                               </SelectItem>
                             ))
@@ -1140,7 +1140,7 @@ export default function OpportunityDetailsModal({
                             <SelectItem value="loading" disabled>Carregando vendedores...</SelectItem>
                           ) : salespeople && Array.isArray(salespeople) && salespeople.length > 0 ? (
                             salespeople.map((user: any) => (
-                              <SelectItem key={user.id} value={user.name}>
+                              <SelectItem key={user.id} value={user.id}>
                                 {user.name} ({user.role === 'admin' ? 'Admin' : user.role === 'gerente' ? 'Gerente' : 'Vendedor'})
                               </SelectItem>
                             ))
@@ -1810,7 +1810,7 @@ export default function OpportunityDetailsModal({
                                     <SelectItem value="loading" disabled>Carregando vendedores...</SelectItem>
                                   ) : salespeople && salespeople.length > 0 ? (
                                     salespeople.map((user: any) => (
-                                      <SelectItem key={user.id} value={user.name}>
+                                      <SelectItem key={user.id} value={user.id}>
                                         {user.name} ({user.role === 'admin' ? 'Admin' : user.role === 'gerente' ? 'Gerente' : 'Vendedor'})
                                       </SelectItem>
                                     ))

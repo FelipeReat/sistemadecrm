@@ -16,7 +16,20 @@ export function log(message: string, source = "express") {
     hour12: true,
   });
 
-  console.log(`${formattedTime} [${source}] ${message}`);
+  const logMessage = `${formattedTime} [${source}] ${message}`;
+  
+  // Force immediate console output
+  console.log(logMessage);
+  
+  // Also force stderr output for debug messages
+  if (message.includes('🔍') || message.includes('Debug') || message.includes('STDERR')) {
+    process.stderr.write(logMessage + '\n');
+  }
+  
+  // Force flush stdout
+  if (process.stdout.write) {
+    process.stdout.write(logMessage + '\n');
+  }
 }
 
 export async function setupVite(app: Express, server: Server) {

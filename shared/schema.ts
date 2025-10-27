@@ -264,8 +264,25 @@ export const insertOpportunitySchema = createInsertSchema(opportunities, {
     if (!val || val.trim() === '') return "Sistema de Importação";
     return val.trim();
   }),
-  createdByName: z.string().min(1, "Nome do criador é obrigatório").transform(val => {
-    if (!val || val.trim() === '') return "Sistema";
+  createdByName: z.string().optional().transform(val => {
+    console.log(`🔍 [SCHEMA] createdByName transform input: "${val}"`);
+    process.stderr.write(`🔍 STDERR [SCHEMA]: createdByName transform input="${val}"\n`);
+    // Only default to "Sistema" if the value is undefined or null
+    // Preserve actual user names when provided
+    if (val === undefined || val === null) {
+      console.log(`🔍 [SCHEMA] createdByName defaulting to "Sistema" (undefined/null)`);
+      process.stderr.write(`🔍 STDERR [SCHEMA]: createdByName defaulting to "Sistema" (undefined/null)\n`);
+      return "Sistema";
+    }
+    // If it's an empty string, also default to "Sistema"
+    if (typeof val === 'string' && val.trim() === '') {
+      console.log(`🔍 [SCHEMA] createdByName defaulting to "Sistema" (empty string)`);
+      process.stderr.write(`🔍 STDERR [SCHEMA]: createdByName defaulting to "Sistema" (empty string)\n`);
+      return "Sistema";
+    }
+    // Preserve the actual user name
+    console.log(`🔍 [SCHEMA] createdByName keeping value: "${val.trim()}"`);
+    process.stderr.write(`🔍 STDERR [SCHEMA]: createdByName keeping value="${val.trim()}"\n`);
     return val.trim();
   }),
 

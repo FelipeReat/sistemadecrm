@@ -11,6 +11,7 @@ import { insertOpportunitySchema, insertAutomationSchema, insertUserSchema, upda
 import { fromZodError } from "zod-validation-error";
 import { getSession, isAuthenticated, isAdmin, isManagerOrAdmin, canEditAllOpportunities, canViewReports } from "./auth";
 import { rateLimiter } from "./rate-limiter";
+import { log } from "./vite";
 import * as crypto from "crypto";
 import * as z from "zod";
 import * as XLSX from 'xlsx';
@@ -43,9 +44,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Verifica rate limiting
       if (rateLimiter.isBlocked(email)) {
         const blockTime = rateLimiter.getBlockTimeRemaining(email);
-        if (process.env.NODE_ENV !== 'production') {
-          console.log(`[AUTH] Login bloqueado para ${email}, tempo restante: ${blockTime} minutos`);
-        }
         return res.status(429).json({ 
           message: `Muitas tentativas falharam. Tente novamente em ${blockTime} minutos.` 
         });
@@ -56,9 +54,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!user) {
         rateLimiter.recordFailedAttempt(email);
         const remaining = rateLimiter.getRemainingAttempts(email);
-        if (process.env.NODE_ENV !== 'production') {
-          console.log(`[AUTH] Falha de login para ${email}, tentativas restantes: ${remaining}`);
-        }
 
         let message = "Email ou senha inválidos";
         if (remaining <= 2) {
@@ -70,9 +65,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Verifica se o usuário está ativo
       if (!user.isActive) {
-        if (process.env.NODE_ENV !== 'production') {
-          console.log(`[AUTH] Tentativa de login de usuário inativo: ${email}`);
-        }
         return res.status(401).json({ message: "Conta desativada. Entre em contato com o administrador." });
       }
 
@@ -80,11 +72,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       rateLimiter.recordSuccessfulLogin(email);
       req.session.userId = user.id;
       req.session.user = user;
-      req.session.lastAccess = new Date();
+      req.session.lastAccess = new Date().toISOString();
 
-      if (process.env.NODE_ENV !== 'production') {
-        console.log(`[AUTH] Login bem-sucedido para ${email} (${user.role})`);
-      }
+      console.log(`🔍 [LOGIN] User data stored in session: id=${user.id}, name=${user.name}, email=${user.email}, role=${user.role}`);
 
       // Remove password from response
       const { password: _, ...userWithoutPassword } = user;
@@ -182,27 +172,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/users/:id", isAuthenticated, isManagerOrAdmin, async (req, res) => {
     try {
       const { id } = req.params;
-      console.log(`[DEBUG] Recebida solicitação para excluir usuário com ID: ${id}`);
-
       // Prevent deleting the current user
       if (id === req.session.userId) {
-        console.log(`[DEBUG] Tentativa de excluir própria conta bloqueada para usuário: ${id}`);
         return res.status(400).json({ message: "Você não pode excluir sua própria conta" });
       }
 
-      console.log(`[DEBUG] Chamando storage.deleteUser para ID: ${id}`);
       const deleted = await storage.deleteUser(id);
-      console.log(`[DEBUG] Resultado do storage.deleteUser: ${deleted}`);
 
       if (!deleted) {
-        console.log(`[DEBUG] Usuário não encontrado ou não foi possível excluir: ${id}`);
         return res.status(404).json({ message: "Usuário não encontrado" });
       }
-
-      console.log(`[DEBUG] Usuário excluído com sucesso: ${id}`);
       res.status(204).send();
     } catch (error) {
-      console.error(`[DEBUG] Erro ao excluir usuário ${req.params.id}:`, error);
+      console.error(`Erro ao excluir usuário ${req.params.id}:`, error);
       res.status(500).json({ message: "Erro ao excluir usuário" });
     }
   });
@@ -245,42 +227,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create opportunity
   app.post("/api/opportunities", isAuthenticated, async (req, res) => {
     try {
-      // Log dos dados recebidos para debug
-      console.log('📞 Dados recebidos para criação de oportunidade:', JSON.stringify(req.body, null, 2));
+      console.log("🚨 TESTE: Iniciando criação de oportunidade");
+      console.log("🔍 [OPPORTUNITY] Session object:", JSON.stringify(req.session, null, 2));
+      console.log("🔍 [OPPORTUNITY] Session user:", JSON.stringify(req.session.user, null, 2));
       
-      // Verificar se a sessão do usuário está disponível
-      console.log('🔍 SESSION DEBUG - req.session:', !!req.session);
-      console.log('🔍 SESSION DEBUG - req.session.user:', !!req.session.user);
-      console.log('🔍 SESSION DEBUG - user name:', req.session.user?.name);
-      console.log('🔍 SESSION DEBUG - user email:', req.session.user?.email);
+      // Force output to stderr to ensure visibility
+      process.stderr.write("🚨 STDERR: Iniciando criação de oportunidade\n");
+      process.stderr.write(`🔍 STDERR: Session user name: ${req.session.user?.name}\n`);
       
-      // CRITICAL FIX: Múltiplos níveis de fallback para garantir created_by_name
+      // CRITICAL FIX: Garantir que o nome do usuário seja capturado corretamente
       let createdByName = req.session.user?.name;
+      
+      // Debug: Log para verificar o que está na sessão
+      console.log(`🔍 Debug sessão: userId=${req.session.userId}, userName=${req.session.user?.name}, userEmail=${req.session.user?.email}, userRole=${req.session.user?.role}`);
       
       if (!createdByName || createdByName.trim() === '') {
         createdByName = req.session.user?.email;
-        console.log('🔧 FALLBACK 1 - usando email:', createdByName);
       }
       
       if (!createdByName || createdByName.trim() === '') {
         createdByName = req.session.user?.id ? `Usuário ${req.session.user.id.substring(0, 8)}` : 'Sistema';
-        console.log('🔧 FALLBACK 2 - usando ID ou Sistema:', createdByName);
       }
       
       if (!createdByName || createdByName.trim() === '') {
         createdByName = 'Sistema Padrão';
-        console.log('🔧 FALLBACK 3 - usando Sistema Padrão');
       }
+      
+      console.log(`✅ Nome final definido: ${createdByName}`);
       
       // Preservar todos os dados enviados e adicionar informações de auditoria
       const dataToValidate = {
         ...req.body,
-        createdBy: createdByName,
+        createdBy: req.session.userId,
         createdByName: createdByName
       };
       
-      console.log('📞 Dados após processamento inicial:', JSON.stringify(dataToValidate, null, 2));
-      console.log('🔍 CRITICAL - createdByName value:', dataToValidate.createdByName);
+      console.log(`🔍 [ROUTES] Data to validate: createdBy=${dataToValidate.createdBy}, createdByName=${dataToValidate.createdByName}, sessionUserId=${req.session.userId}, sessionUserName=${req.session.user?.name}`);
+      process.stderr.write(`🔍 STDERR [ROUTES]: Data to validate - createdBy=${dataToValidate.createdBy}, createdByName=${dataToValidate.createdByName}, sessionUserId=${req.session.userId}, sessionUserName=${req.session.user?.name}\n`);
 
       // Ensure documents are properly formatted and persisted
       if (dataToValidate.documents && Array.isArray(dataToValidate.documents)) {
@@ -302,16 +285,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
+      console.log(`🔍 [ROUTES] Pre-validation data: createdByName=${dataToValidate.createdByName}`);
+      process.stderr.write(`🔍 STDERR [ROUTES]: Pre-validation createdByName=${dataToValidate.createdByName}\n`);
+      
       const validatedData = insertOpportunitySchema.parse(dataToValidate);
-      console.log('📞 Dados após validação do schema:', JSON.stringify(validatedData, null, 2));
-      console.log('🔍 CRITICAL DEBUG - validatedData.createdByName:', validatedData.createdByName);
-      console.log('🔍 CRITICAL DEBUG - typeof validatedData.createdByName:', typeof validatedData.createdByName);
+      
+      console.log(`🔍 [ROUTES] Post-validation data: createdByName=${validatedData.createdByName}`);
+      process.stderr.write(`🔍 STDERR [ROUTES]: Post-validation createdByName=${validatedData.createdByName}\n`);
       
       // Ensure createdByName is never null or undefined with multiple fallbacks
       if (!validatedData.createdByName || validatedData.createdByName.trim() === '') {
         const fallbackName = req.session.user?.name || req.session.user?.email || "Sistema Anônimo";
         validatedData.createdByName = fallbackName;
-        console.log('🔧 FALLBACK - Set createdByName to:', validatedData.createdByName);
+        console.log(`🔍 [ROUTES] Applied fallback: createdByName=${validatedData.createdByName}`);
+        process.stderr.write(`🔍 STDERR [ROUTES]: Applied fallback createdByName=${validatedData.createdByName}\n`);
       }
       
       // Final validation before database insert
@@ -320,7 +307,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const opportunity = await storage.createOpportunity(validatedData);
-      console.log('📞 Oportunidade criada no banco:', JSON.stringify(opportunity, null, 2));
 
       res.status(201).json(opportunity);
     } catch (error: any) {
@@ -791,7 +777,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Performance por vendedor
       const salesPerformance = users
-        .filter(u => u.role === 'usuario' && u.role !== 'admin')
+        .filter(u => u.role === 'usuario')
         .map(user => {
           const userOpportunities = opportunities.filter(o => o.salesperson === user.name);
           const userWon = userOpportunities.filter(o => o.phase === 'ganho');
@@ -1327,7 +1313,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       } catch (error) {
         console.error('Error in file filter:', error);
-        cb(error as Error, false);
+        cb(null, false);
       }
     }
   });
@@ -1659,12 +1645,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }
 
   // Transform row data - MÁXIMA TOLERÂNCIA para garantir importação de TODOS os cards
-  function transformRow(row: any, mapping: Record<string, string>, createdBy: string, targetPhase?: string): any {
+  function transformRow(row: any, mapping: Record<string, string>, userName: string, userId: string, targetPhase?: string): any {
     const timestamp = Date.now();
     const randomId = Math.random().toString(36).substr(2, 9);
     
     const transformed: any = {
-      createdBy: createdBy,
+      createdBy: userId,
       // Set defaults for ALL required fields
       hasRegistration: false,
       requiresVisit: false,
@@ -1682,10 +1668,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       phone: null, // Permitir nulo explicitamente
       needCategory: null,
       clientNeeds: null,
-      // Initialize createdByName with logged user as fallback
-      createdByName: createdBy || 'Sistema'
+      // CORRIGIDO: Initialize createdByName with the actual user name
+      createdByName: userName || 'Sistema'
     };
-
+    
     // Process all field mappings - COM MÁXIMA TOLERÂNCIA
     for (const [excelColumn, systemField] of Object.entries(mapping)) {
       const fieldConfig = FIELD_MAPPINGS[systemField as keyof typeof FIELD_MAPPINGS];
@@ -1753,7 +1739,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     // CRITICAL: Ensure createdByName is never null or empty
     if (!transformed.createdByName || transformed.createdByName.trim() === '') {
-      transformed.createdByName = createdBy || 'Sistema';
+      transformed.createdByName = userName || 'Sistema';
     }
 
     // Garantir que campos de texto não sejam muito longos
@@ -1923,7 +1909,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get preview of first 10 processed records
       const previewData = data.slice(0, 10).map((row: any, index: number) => {
         // Pass targetPhase to transformRow - SEMPRE usar a fase selecionada
-        const transformed = transformRow(row, mapping, req.session.userId!, targetPhase); 
+        const transformed = transformRow(row, mapping, req.session.user?.name || 'Sistema', req.session.userId!, targetPhase); 
         const rowErrors = validateRow(row, mapping, index);
         return {
           original: row,
@@ -1995,68 +1981,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
         try {
           const userId = req.session.userId!;
           
-          // Get user name for createdByName fallback
-          const user = await storage.getUser(userId);
-          const userName = user?.name || userId || 'Sistema';
+          // CAPTURAR DADOS DA SESSÃO ANTES DO PROCESSAMENTO ASSÍNCRONO
+          const sessionUser = req.session.user;
+          
+          // OTIMIZAÇÃO: Buscar do banco apenas se necessário
+          let userName = 'Sistema';
+          
+          if (sessionUser?.name && sessionUser.name.trim() !== '') {
+            userName = sessionUser.name;
+          } else {
+            // Fallback: buscar do banco apenas se sessão não tem nome
+            const userFromDB = await storage.getUser(userId);
+            if (userFromDB?.name && userFromDB.name.trim() !== '') {
+              userName = userFromDB.name;
+            } else {
+              userName = userId || 'Sistema';
+            }
+          }
           
           let created = 0;
           let failed = 0;
           const errors: any[] = [];
 
+          // OTIMIZAÇÃO: Processamento em lotes para melhor performance
+          const BATCH_SIZE = 100;
+          const totalBatches = Math.ceil(data.length / BATCH_SIZE);
 
+          for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
+            const startIndex = batchIndex * BATCH_SIZE;
+            const endIndex = Math.min(startIndex + BATCH_SIZE, data.length);
+            const batch = data.slice(startIndex, endIndex);
+            
+            // Log apenas para batches grandes - otimizado para performance
+            if (totalBatches > 5) {
+              console.log(`📦 Lote ${batchIndex + 1}/${totalBatches}`);
+            }
 
-          for (let i = 0; i < data.length; i++) {
-            const row = data[i];
-            const progress = Math.round(((i + 1) / data.length) * 100);
+            // Preparar dados do lote
+            const batchOpportunities: any[] = [];
+            const batchErrors: any[] = [];
 
-            try {
-              // NUNCA pular linhas - validar apenas para logs
-              const rowErrors = validateRow(row, mapping, i);
-              if (rowErrors.length > 0) {
-                errors.push(...rowErrors);
-              }
+            for (let i = 0; i < batch.length; i++) {
+              const globalIndex = startIndex + i;
+              const row = batch[i];
 
-              // Transform row SEMPRE, independente de erros
-              const transformedData = transformRow(row, mapping, userName, targetPhase);
+              try {
+                // Validar linha apenas para logs (não bloquear processamento)
+                const rowErrors = validateRow(row, mapping, globalIndex);
+                if (rowErrors.length > 0) {
+                  batchErrors.push(...rowErrors);
+                }
 
-              // Validate with Zod schema com MÚLTIPLOS FALLBACKS
-              let validatedData = null;
-              let attempt = 0;
-              const maxAttempts = 3;
+                // Transform row
+                const transformedData = transformRow(row, mapping, userName, userId, targetPhase);
 
-              while (validatedData === null && attempt < maxAttempts) {
-                attempt++;
+                // VALIDAÇÃO OTIMIZADA: 1 tentativa principal + 1 fallback
+                let validatedData = null;
+                
                 try {
-                  if (attempt === 1) {
-                    // Primeira tentativa: dados como estão
-                    validatedData = insertOpportunitySchema.parse(transformedData);
-                  } else if (attempt === 2) {
-                    // Segunda tentativa: dados básicos garantidos
-                    const basicData = {
-                      ...transformedData,
-                      contact: transformedData.contact || `Contato Importado ${i + 1}`,
-                      company: transformedData.company || `Empresa Importada ${i + 1}`,
-                      phone: null, // Garantir null para phone
-                      needCategory: transformedData.needCategory || null,
-                      clientNeeds: transformedData.clientNeeds || null,
-                      phase: targetPhase || 'prospeccao',
-                      businessTemperature: 'morno',
-                      hasRegistration: false,
-                      requiresVisit: false,
-                      documents: [],
-                      visitPhotos: [],
-                      createdBy: userId,
-                      createdByName: transformedData.createdByName || userName
-                    };
-                    validatedData = insertOpportunitySchema.parse(basicData);
-                  } else {
-                    // Terceira tentativa: dados mínimos absolutos
-                    const minimalData = {
-                      contact: `Contato Importado ${Date.now()}_${i}`,
-                      company: `Empresa Importada ${Date.now()}_${i}`,
+                  // Primeira tentativa: dados como estão
+                  validatedData = insertOpportunitySchema.parse(transformedData);
+                } catch (zodError: any) {
+                  // Fallback: dados básicos garantidos
+                  try {
+                    const fallbackData = {
+                      contact: transformedData.contact || `Contato Importado ${globalIndex + 1}`,
+                      company: transformedData.company || `Empresa Importada ${globalIndex + 1}`,
                       phone: null,
-                      needCategory: null,
-                      clientNeeds: `Dados importados da linha ${i + 1}`,
+                      needCategory: transformedData.needCategory || null,
+                      clientNeeds: transformedData.clientNeeds || `Dados importados da linha ${globalIndex + 1}`,
                       phase: targetPhase || 'prospeccao',
                       businessTemperature: 'morno',
                       hasRegistration: false,
@@ -2066,109 +2059,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
                       createdBy: userId,
                       createdByName: userName,
                       isImported: true,
-                      importBatchId: `emergency_${Date.now()}_${i}`,
+                      importBatchId: `batch_${Date.now()}_${batchIndex}`,
                       importSource: 'csv_upload'
                     };
-                    validatedData = insertOpportunitySchema.parse(minimalData);
-                  }
-
-                } catch (zodError: any) {
-                  console.error(`❌ Tentativa ${attempt} falhou para linha ${i + 1}:`, zodError.errors);
-                  if (attempt === maxAttempts) {
-                    console.error(`❌ TODAS as tentativas falharam para linha ${i + 1}, mas continuando...`);
-                  }
-                }
-              }
-
-              // Insert into database - SEMPRE tentar inserir
-              if (validatedData) {
-                try {
-                  await storage.createOpportunity(validatedData);
-                  created++;
-                } catch (dbError: any) {
-                  console.error(`❌ Erro no banco para linha ${i + 1}:`, dbError.message);
-                  
-                  // ÚLTIMA tentativa com dados super básicos
-                  try {
-                    const emergencyData = {
-                      contact: `Contato Emergência ${Date.now()}_${i}`,
-                      company: `Empresa Emergência ${Date.now()}_${i}`,
-                      phone: null,
-                      needCategory: null,
-                      clientNeeds: 'Dados de emergência - erro na importação original',
-                      phase: targetPhase || 'prospeccao',
-                      businessTemperature: 'morno',
-                      hasRegistration: false,
-                      requiresVisit: false,
-                      documents: [],
-                      visitPhotos: [],
-                      createdBy: userId,
-                      isImported: true,
-                      importBatchId: `emergency_${Date.now()}_${i}`,
-                      importSource: 'csv_upload_emergency'
-                    };
                     
-                    const emergencyValidated = insertOpportunitySchema.parse(emergencyData);
-                    await storage.createOpportunity(emergencyValidated);
-                    created++;
-                  } catch (emergencyError: any) {
-                    console.error(`🚨 Falha total na linha ${i + 1}:`, emergencyError.message);
-                    failed++;
-                    errors.push({
-                      row: i + 2,
-                      message: `Falha crítica: ${emergencyError.message}`,
-                      data: row,
-                      transformedData: transformedData
+                    validatedData = insertOpportunitySchema.parse(fallbackData);
+                  } catch (fallbackError: any) {
+                    batchErrors.push({
+                      row: globalIndex + 2,
+                      message: `Erro de validação: ${fallbackError.message}`,
+                      data: row
                     });
                   }
                 }
-              } else {
-                failed++;
-                errors.push({
-                  row: i + 2,
-                  message: 'Não foi possível validar os dados após múltiplas tentativas',
-                  data: row
-                });
-              }
 
-            } catch (error: any) {
-              console.error(`❌ Erro geral na linha ${i + 1}:`, error);
-              // AINDA ASSIM tentar importar com dados básicos
-              try {
-                const fallbackData = {
-                  contact: `Contato Erro ${Date.now()}_${i}`,
-                  company: `Empresa Erro ${Date.now()}_${i}`,
-                  phone: null,
-                  needCategory: null,
-                  clientNeeds: `Erro na importação: ${error.message}`,
-                  phase: targetPhase || 'prospeccao',
-                  businessTemperature: 'morno',
-                  hasRegistration: false,
-                  requiresVisit: false,
-                  documents: [],
-                  visitPhotos: [],
-                  createdBy: userId,
-                  createdByName: userName,
-                  isImported: true,
-                  importBatchId: `error_${Date.now()}_${i}`,
-                  importSource: 'csv_upload_error'
-                };
-                
-                const fallbackValidated = insertOpportunitySchema.parse(fallbackData);
-                await storage.createOpportunity(fallbackValidated);
-                created++;
-              } catch (fallbackError: any) {
-                failed++;
-                console.error(`🚨 Fallback final falhou para linha ${i + 1}:`, fallbackError.message);
-                errors.push({
-                  row: i + 2,
-                  message: `Erro total: ${error.message} | Fallback: ${fallbackError.message}`,
+                if (validatedData) {
+                  batchOpportunities.push(validatedData);
+                }
+
+              } catch (error: any) {
+                batchErrors.push({
+                  row: globalIndex + 2,
+                  message: `Erro geral: ${error.message}`,
                   data: row
                 });
               }
             }
 
-            // Update progress SEMPRE
+            // BULK INSERT do lote
+            if (batchOpportunities.length > 0) {
+              try {
+                const bulkResult = await storage.createOpportunitiesBulk(batchOpportunities);
+                created += bulkResult.created;
+                
+                if (bulkResult.errors.length > 0) {
+                  failed += bulkResult.errors.length;
+                  errors.push(...bulkResult.errors.map(err => ({
+                    row: startIndex + err.index + 2,
+                    message: err.message,
+                    data: err.data
+                  })));
+                }
+              } catch (bulkError: any) {
+                console.error(`❌ Erro no bulk insert do lote ${batchIndex + 1}:`, bulkError.message);
+                
+                // Fallback: inserção individual para este lote
+                for (let j = 0; j < batchOpportunities.length; j++) {
+                  try {
+                    await storage.createOpportunity(batchOpportunities[j]);
+                    created++;
+                  } catch (individualError: any) {
+                    failed++;
+                    errors.push({
+                      row: startIndex + j + 2,
+                      message: `Erro na inserção individual: ${individualError.message}`,
+                      data: batch[j]
+                    });
+                  }
+                }
+              }
+            }
+
+            // Adicionar erros do lote
+            if (batchErrors.length > 0) {
+              failed += batchErrors.length;
+              errors.push(...batchErrors);
+            }
+
+            // Update progress
+            const progress = Math.round(((endIndex) / data.length) * 100);
             const currentSession = importSessions.get(fileId);
             if (currentSession) {
               currentSession.progress = progress;
@@ -2177,9 +2136,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 updated: 0,
                 skipped: 0,
                 failed,
-                errors: errors.slice(0, 50) // Limit errors to prevent memory issues
+                errors: errors.slice(0, 100) // Limit errors to prevent memory issues
               };
               importSessions.set(fileId, currentSession);
+            }
+
+            // Log apenas para batches grandes - otimizado para performance
+            if (totalBatches > 5) {
+              console.log(`✅ Lote ${batchIndex + 1} concluído`);
             }
           }
 
@@ -2281,7 +2245,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/sync/opportunity/:id", isAuthenticated, async (req, res) => {
     try {
       const { id } = req.params;
-      const opportunity = await storage.getOpportunityById(id);
+      const opportunity = await storage.getOpportunity(id);
       
       if (!opportunity) {
         return res.status(404).json({ 

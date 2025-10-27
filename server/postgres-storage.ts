@@ -1,11 +1,12 @@
 import { type Opportunity, type InsertOpportunity, type Automation, type InsertAutomation, type User, type UpdateUser, type SavedReport, type InsertSavedReport, type UserSettings, type InsertUserSettings, type EmailTemplate, type InsertEmailTemplate, type AuditLog, type SalesReport, type SystemBackup } from "@shared/schema";
 import { db } from './db';
 import { opportunities, automations, users, savedReports, userSettings, emailTemplates, auditLogs, salesReports, systemBackups, emailLogs } from '@shared/schema';
-import { eq, desc, and, count, sum } from 'drizzle-orm';
+import { eq, desc, and, count, sum, sql } from 'drizzle-orm';
 import { randomUUID } from "crypto";
 import bcrypt from "bcryptjs";
 import { IStorage } from './storage';
 import { getPgPool, createDirectConnection } from "./pg-pool";
+import { log } from "./vite";
 
 export class PostgresStorage implements IStorage {
   private adminInitialized = false;
@@ -115,30 +116,40 @@ export class PostgresStorage implements IStorage {
       const id = randomUUID();
       const now = new Date();
 
-
-
       // CRITICAL FIX: Garantir que createdByName nunca seja nulo/undefined/vazio
       let finalCreatedByName = insertOpportunity.createdByName;
+      
+      console.log('🔍 [STORAGE] Debug createdByName:', {
+        original: insertOpportunity.createdByName,
+        createdBy: insertOpportunity.createdBy,
+        finalCreatedByName: finalCreatedByName
+      });
       
       // Múltiplos níveis de fallback com validação mais rigorosa
       if (!finalCreatedByName || typeof finalCreatedByName !== 'string' || finalCreatedByName.trim() === '' || finalCreatedByName === 'null' || finalCreatedByName === 'undefined') {
         finalCreatedByName = insertOpportunity.createdBy;
+        console.log('🔄 [STORAGE] Usando createdBy como fallback:', finalCreatedByName);
       }
       
       if (!finalCreatedByName || typeof finalCreatedByName !== 'string' || finalCreatedByName.trim() === '' || finalCreatedByName === 'null' || finalCreatedByName === 'undefined') {
         finalCreatedByName = 'Sistema Padrão';
+        console.log('🔄 [STORAGE] Usando Sistema Padrão como fallback');
       }
       
       // Garantia final - forçar string não vazia
       if (!finalCreatedByName || typeof finalCreatedByName !== 'string') {
         finalCreatedByName = 'Sistema Emergencial';
+        console.log('🔄 [STORAGE] Usando Sistema Emergencial como fallback');
       }
       
       // Trim e validação final
       finalCreatedByName = finalCreatedByName.toString().trim();
       if (finalCreatedByName === '' || finalCreatedByName === 'null' || finalCreatedByName === 'undefined') {
         finalCreatedByName = 'Sistema Crítico';
+        console.log('🔄 [STORAGE] Usando Sistema Crítico como fallback');
       }
+      
+      console.log('✅ [STORAGE] Nome final definido:', finalCreatedByName);
 
       const opportunity: Opportunity = { 
         id,
@@ -170,7 +181,6 @@ export class PostgresStorage implements IStorage {
         createdBy: insertOpportunity.createdBy || 'system',
         createdByName: finalCreatedByName,
         
-
 
         // Prospection phase data
         opportunityNumber: insertOpportunity.opportunityNumber || null,
@@ -208,41 +218,16 @@ export class PostgresStorage implements IStorage {
         importSource: insertOpportunity.importSource || null,
       };
 
-
       
-      // CRITICAL FIX: Ensure created_by_name is NEVER null with multiple fallbacks
-      const { createdByName, ...opportunityWithoutJSField } = opportunity;
-      
-      // Multi-level fallback to guarantee non-null value
-      let finalCreatedByName = opportunity.createdByName;
-      
-      if (!finalCreatedByName || finalCreatedByName.trim() === '') {
-        finalCreatedByName = insertOpportunity.createdByName;
-      }
-      
-      if (!finalCreatedByName || finalCreatedByName.trim() === '') {
-        finalCreatedByName = insertOpportunity.createdBy;
-      }
-      
-      if (!finalCreatedByName || finalCreatedByName.trim() === '') {
-        finalCreatedByName = 'Sistema Padrão';
-      }
-      
-      // Final validation - ensure it's a non-empty string
-      if (typeof finalCreatedByName !== 'string' || finalCreatedByName.trim() === '') {
-        finalCreatedByName = 'Sistema Emergencial';
-      }
-      
+      // CRITICAL FIX: Use the createdByName that was already properly set in routes.ts
       const insertData = {
-        ...opportunityWithoutJSField,
-        // Map JavaScript field to database column with guaranteed non-null value
-        created_by_name: finalCreatedByName.trim()
+        ...opportunity,
+        // Map JavaScript field to database column - use the value from opportunity object
+        created_by_name: opportunity.createdByName || insertOpportunity.createdByName || insertOpportunity.createdBy || 'Sistema'
       };
       
-      // FINAL VALIDATION: Ensure created_by_name is not null before database insertion
-      if (!insertData.created_by_name || insertData.created_by_name === null || insertData.created_by_name === undefined) {
-        insertData.created_by_name = 'Sistema Crítico';
-      }
+      console.log(`🔍 [STORAGE] Final insert data: createdBy=${insertData.createdBy}, created_by_name=${insertData.created_by_name}, originalCreatedByName=${opportunity.createdByName}`);
+      process.stderr.write(`🔍 STDERR [STORAGE]: created_by_name=${insertData.created_by_name}, originalCreatedByName=${opportunity.createdByName}\n`);
       
       const result = await db
         .insert(opportunities)
@@ -253,6 +238,191 @@ export class PostgresStorage implements IStorage {
     } catch (error) {
       console.error('Error creating opportunity:', error);
       throw error;
+    }
+  }
+
+  // Bulk insert method for improved import performance
+  async createOpportunitiesBulk(insertOpportunities: InsertOpportunity[]): Promise<{ created: number; errors: any[] }> {
+    if (!insertOpportunities || insertOpportunities.length === 0) {
+      return { created: 0, errors: [] };
+    }
+
+    const errors: any[] = [];
+    let created = 0;
+
+    try {
+      const now = new Date();
+      const insertDataArray: any[] = [];
+
+      // Process all opportunities and prepare for bulk insert
+      for (let i = 0; i < insertOpportunities.length; i++) {
+        const insertOpportunity = insertOpportunities[i];
+        
+        try {
+          const id = randomUUID();
+
+          // CRITICAL FIX: Garantir que createdByName nunca seja nulo/undefined/vazio
+          let finalCreatedByName = insertOpportunity.createdByName;
+          
+          // Múltiplos níveis de fallback com validação mais rigorosa
+          if (!finalCreatedByName || typeof finalCreatedByName !== 'string' || finalCreatedByName.trim() === '' || finalCreatedByName === 'null' || finalCreatedByName === 'undefined') {
+            finalCreatedByName = insertOpportunity.createdBy;
+          }
+          
+          if (!finalCreatedByName || typeof finalCreatedByName !== 'string' || finalCreatedByName.trim() === '' || finalCreatedByName === 'null' || finalCreatedByName === 'undefined') {
+            finalCreatedByName = 'Sistema Padrão';
+          }
+          
+          // Garantia final - forçar string não vazia
+          if (!finalCreatedByName || typeof finalCreatedByName !== 'string') {
+            finalCreatedByName = 'Sistema Emergencial';
+          }
+          
+          // Trim e validação final
+          finalCreatedByName = finalCreatedByName.toString().trim();
+          if (finalCreatedByName === '' || finalCreatedByName === 'null' || finalCreatedByName === 'undefined') {
+            finalCreatedByName = 'Sistema Crítico';
+          }
+
+          const insertData = {
+            id,
+            createdAt: now,
+            updatedAt: now,
+            phaseUpdatedAt: now,
+            // Core contact information
+            contact: insertOpportunity.contact || "Não informado",
+            company: insertOpportunity.company || "Não informado",
+            phone: insertOpportunity.phone || null,
+            cpf: insertOpportunity.cpf || null,
+            cnpj: insertOpportunity.cnpj || null,
+
+            // Business details
+            hasRegistration: insertOpportunity.hasRegistration || false,
+            proposalOrigin: insertOpportunity.proposalOrigin || null,
+            businessTemperature: insertOpportunity.businessTemperature || 'morno',
+            needCategory: insertOpportunity.needCategory || null,
+            clientNeeds: insertOpportunity.clientNeeds || null,
+
+            // Documents
+            documents: insertOpportunity.documents ? 
+              insertOpportunity.documents.map(doc => 
+                typeof doc === 'string' ? doc : JSON.stringify(doc)
+              ) : null,
+
+            // Phase and workflow
+            phase: insertOpportunity.phase || 'prospeccao',
+            createdBy: insertOpportunity.createdBy || 'system',
+            created_by_name: finalCreatedByName,
+
+            // Prospection phase data
+            opportunityNumber: insertOpportunity.opportunityNumber || null,
+            salesperson: insertOpportunity.salesperson || null,
+            requiresVisit: insertOpportunity.requiresVisit || false,
+            statement: insertOpportunity.statement || null,
+
+            // Visit technical data
+            visitSchedule: insertOpportunity.visitSchedule || null,
+            visitDate: insertOpportunity.visitDate || null,
+            visitPhotos: insertOpportunity.visitPhotos ? 
+              insertOpportunity.visitPhotos.map(photo => 
+                typeof photo === 'string' ? photo : JSON.stringify(photo)
+              ) : null,
+
+            // Proposal data
+            discount: insertOpportunity.discount || null,
+            discountDescription: insertOpportunity.discountDescription || null,
+            validityDate: insertOpportunity.validityDate ? new Date(insertOpportunity.validityDate) : null,
+            budgetNumber: insertOpportunity.budgetNumber || null,
+            budget: insertOpportunity.budget || null,
+
+            // Negotiation data
+            status: insertOpportunity.status || null,
+            finalValue: insertOpportunity.finalValue || null,
+            negotiationInfo: insertOpportunity.negotiationInfo || null,
+            contract: insertOpportunity.contract || null,
+            invoiceNumber: insertOpportunity.invoiceNumber || null,
+            lossReason: insertOpportunity.lossReason || null,
+            lossObservation: insertOpportunity.lossObservation || null,
+
+            // Import tracking fields
+            isImported: insertOpportunity.isImported || false,
+            importBatchId: insertOpportunity.importBatchId || null,
+            importSource: insertOpportunity.importSource || null,
+          };
+
+          insertDataArray.push(insertData);
+        } catch (error: any) {
+          errors.push({
+            index: i,
+            message: `Erro ao preparar dados: ${error.message}`,
+            data: insertOpportunity
+          });
+        }
+      }
+
+      // OTIMIZAÇÃO CRÍTICA: Desabilitar triggers temporariamente para bulk insert
+      if (insertDataArray.length > 0) {
+        // Usar transação para garantir consistência e performance
+        const result = await db.transaction(async (tx) => {
+          // Desabilitar triggers de notificação durante bulk insert
+          await tx.execute(sql`
+            ALTER TABLE opportunities DISABLE TRIGGER opportunity_insert_notify_trigger;
+            ALTER TABLE opportunities DISABLE TRIGGER opportunity_update_notify_trigger;
+            ALTER TABLE opportunities DISABLE TRIGGER opportunity_update_timestamps_trigger;
+          `);
+
+          try {
+            // Executar bulk insert sem triggers
+            const insertResult = await tx
+              .insert(opportunities)
+              .values(insertDataArray)
+              .returning();
+            
+            return insertResult;
+          } finally {
+            // Reabilitar triggers após bulk insert
+            await tx.execute(sql`
+              ALTER TABLE opportunities ENABLE TRIGGER opportunity_insert_notify_trigger;
+              ALTER TABLE opportunities ENABLE TRIGGER opportunity_update_notify_trigger;
+              ALTER TABLE opportunities ENABLE TRIGGER opportunity_update_timestamps_trigger;
+            `);
+          }
+        });
+        
+        created = result.length;
+        
+        // Enviar uma única notificação de bulk import para o real-time
+        if (created > 0) {
+          try {
+            await db.execute(sql`
+              SELECT pg_notify('opportunity_changes', ${JSON.stringify({
+                operation: 'BULK_INSERT',
+                table: 'opportunities',
+                count: created,
+                timestamp: Date.now() / 1000,
+                user_id: insertDataArray[0]?.createdBy || 'system',
+                import_batch_id: insertDataArray[0]?.importBatchId
+              })});
+            `);
+          } catch (notifyError) {
+            // Não falhar o bulk insert por causa da notificação
+            console.warn('Aviso: Falha ao enviar notificação de bulk insert:', notifyError);
+          }
+        }
+      }
+
+      return { created, errors };
+    } catch (error: any) {
+      console.error('Error in bulk insert:', error);
+      // If bulk insert fails, add all remaining items as errors
+      for (let i = 0; i < insertOpportunities.length; i++) {
+        errors.push({
+          index: i,
+          message: `Erro no bulk insert: ${error.message}`,
+          data: insertOpportunities[i]
+        });
+      }
+      return { created, errors };
     }
   }
 
@@ -542,8 +712,6 @@ export class PostgresStorage implements IStorage {
 
   async deleteUser(id: string): Promise<boolean> {
     try {
-      console.log(`[DEBUG] Tentando excluir usuário com ID: ${id}`);
-      
       // Primeiro, verificar se o usuário existe
       const existingUser = await db
         .select()
@@ -552,18 +720,13 @@ export class PostgresStorage implements IStorage {
         .limit(1);
 
       if (existingUser.length === 0) {
-        console.log(`[DEBUG] Usuário com ID ${id} não encontrado`);
         return false;
       }
 
-      console.log(`[DEBUG] Usuário encontrado: ${existingUser[0].name} (${existingUser[0].email})`);
-
       // Executar a exclusão
-      const result = await db
+      await db
         .delete(users)
         .where(eq(users.id, id));
-
-      console.log(`[DEBUG] Resultado da exclusão:`, result);
       
       // Verificar se a exclusão foi bem-sucedida verificando se o usuário ainda existe
       const userAfterDelete = await db
@@ -572,10 +735,7 @@ export class PostgresStorage implements IStorage {
         .where(eq(users.id, id))
         .limit(1);
 
-      const wasDeleted = userAfterDelete.length === 0;
-      console.log(`[DEBUG] Usuário foi excluído com sucesso: ${wasDeleted}`);
-      
-      return wasDeleted;
+      return userAfterDelete.length === 0;
     } catch (error) {
       console.error('Error deleting user:', error);
       return false;
