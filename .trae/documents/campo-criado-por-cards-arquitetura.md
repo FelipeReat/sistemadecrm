@@ -41,61 +41,71 @@ graph TD
 
 ## 2. Descrição das Tecnologias
 
-- **Frontend**: React@18 + TypeScript + Tailwind CSS
-- **Backend**: Express.js + TypeScript
-- **Database**: PostgreSQL (via Supabase)
-- **Validation**: Zod schemas
-- **State Management**: React hooks + Context
+* **Frontend**: React\@18 + TypeScript + Tailwind CSS
+
+* **Backend**: Express.js + TypeScript
+
+* **Database**: PostgreSQL (via Supabase)
+
+* **Validation**: Zod schemas
+
+* **State Management**: React hooks + Context
 
 ## 3. Definições de Rotas
 
-| Rota | Propósito |
-|------|-----------|
-| GET /api/opportunities | Buscar oportunidades (incluindo created_by_name) |
-| POST /api/opportunities | Criar nova oportunidade (auto-preencher created_by_name) |
-| PUT /api/opportunities/:id | Atualizar oportunidade (preservar created_by_name) |
-| POST /api/import/opportunities | Importar oportunidades com mapeamento de criador |
-| GET /api/users/names | Buscar nomes de usuários para validação na importação |
+| Rota                           | Propósito                                                  |
+| ------------------------------ | ---------------------------------------------------------- |
+| GET /api/opportunities         | Buscar oportunidades (incluindo created\_by\_name)         |
+| POST /api/opportunities        | Criar nova oportunidade (auto-preencher created\_by\_name) |
+| PUT /api/opportunities/:id     | Atualizar oportunidade (preservar created\_by\_name)       |
+| POST /api/import/opportunities | Importar oportunidades com mapeamento de criador           |
+| GET /api/users/names           | Buscar nomes de usuários para validação na importação      |
 
 ## 4. Definições da API
 
 ### 4.1 Core API
 
 **Criar Nova Oportunidade**
+
 ```
 POST /api/opportunities
 ```
 
 Request:
-| Nome do Parâmetro | Tipo | Obrigatório | Descrição |
-|-------------------|------|-------------|-----------|
-| name | string | true | Nome da oportunidade |
-| email | string | true | Email do cliente |
-| phone | string | false | Telefone do cliente |
-| created_by_name | string | false | Nome do criador (auto-preenchido se não fornecido) |
+
+| Nome do Parâmetro | Tipo   | Obrigatório | Descrição                                          |
+| ----------------- | ------ | ----------- | -------------------------------------------------- |
+| name              | string | true        | Nome da oportunidade                               |
+| email             | string | true        | Email do cliente                                   |
+| phone             | string | false       | Telefone do cliente                                |
+| created\_by\_name | string | false       | Nome do criador (auto-preenchido se não fornecido) |
 
 Response:
-| Nome do Parâmetro | Tipo | Descrição |
-|-------------------|------|-----------|
-| id | string | ID da oportunidade criada |
-| created_by_name | string | Nome do usuário que criou |
+
+| Nome do Parâmetro | Tipo   | Descrição                 |
+| ----------------- | ------ | ------------------------- |
+| id                | string | ID da oportunidade criada |
+| created\_by\_name | string | Nome do usuário que criou |
 
 **Importar Oportunidades**
+
 ```
 POST /api/import/opportunities
 ```
 
 Request:
-| Nome do Parâmetro | Tipo | Obrigatório | Descrição |
-|-------------------|------|-------------|-----------|
-| data | array | true | Array de oportunidades |
-| mapping | object | true | Mapeamento de colunas incluindo created_by_name |
+
+| Nome do Parâmetro | Tipo   | Obrigatório | Descrição                                         |
+| ----------------- | ------ | ----------- | ------------------------------------------------- |
+| data              | array  | true        | Array de oportunidades                            |
+| mapping           | object | true        | Mapeamento de colunas incluindo created\_by\_name |
 
 Response:
-| Nome do Parâmetro | Tipo | Descrição |
-|-------------------|------|-----------|
-| imported | number | Número de registros importados |
-| errors | array | Lista de erros de validação |
+
+| Nome do Parâmetro | Tipo   | Descrição                      |
+| ----------------- | ------ | ------------------------------ |
+| imported          | number | Número de registros importados |
+| errors            | array  | Lista de erros de validação    |
 
 ## 5. Arquitetura do Servidor
 
@@ -161,7 +171,8 @@ erDiagram
 
 ### 6.2 Linguagem de Definição de Dados (DDL)
 
-**Migração para adicionar campo created_by_name**
+**Migração para adicionar campo created\_by\_name**
+
 ```sql
 -- Adicionar coluna created_by_name à tabela opportunities
 ALTER TABLE opportunities 
@@ -187,6 +198,7 @@ CHECK (length(trim(created_by_name)) > 0);
 ```
 
 **Schema de Validação (Zod)**
+
 ```typescript
 // Schema para criação de oportunidade
 const createOpportunitySchema = z.object({
@@ -214,6 +226,7 @@ const updateOpportunitySchema = z.object({
 ```
 
 **Dados Iniciais**
+
 ```sql
 -- Inserir usuários padrão se não existirem
 INSERT INTO users (id, name, email, created_at) 
@@ -238,3 +251,4 @@ INSERT INTO opportunities (
   NOW()
 );
 ```
+
