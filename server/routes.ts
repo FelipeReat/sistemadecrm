@@ -254,12 +254,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('🔍 SESSION DEBUG - user name:', req.session.user?.name);
       console.log('🔍 SESSION DEBUG - user email:', req.session.user?.email);
       
+      // CRITICAL FIX: Múltiplos níveis de fallback para garantir created_by_name
+      let createdByName = req.session.user?.name;
+      
+      if (!createdByName || createdByName.trim() === '') {
+        createdByName = req.session.user?.email;
+        console.log('🔧 FALLBACK 1 - usando email:', createdByName);
+      }
+      
+      if (!createdByName || createdByName.trim() === '') {
+        createdByName = req.session.user?.id ? `Usuário ${req.session.user.id.substring(0, 8)}` : 'Sistema';
+        console.log('🔧 FALLBACK 2 - usando ID ou Sistema:', createdByName);
+      }
+      
+      if (!createdByName || createdByName.trim() === '') {
+        createdByName = 'Sistema Padrão';
+        console.log('🔧 FALLBACK 3 - usando Sistema Padrão');
+      }
+      
       // Preservar todos os dados enviados e adicionar informações de auditoria
-      const userName = req.session.user?.name || req.session.user?.email || "Sistema";
       const dataToValidate = {
         ...req.body,
-        createdBy: userName,
-        createdByName: userName
+        createdBy: createdByName,
+        createdByName: createdByName
       };
       
       console.log('📞 Dados após processamento inicial:', JSON.stringify(dataToValidate, null, 2));

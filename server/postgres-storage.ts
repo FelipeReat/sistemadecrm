@@ -115,11 +115,30 @@ export class PostgresStorage implements IStorage {
       const id = randomUUID();
       const now = new Date();
 
-      console.log('🔍 DEBUG - insertOpportunity.createdByName:', insertOpportunity.createdByName);
-      console.log('🔍 DEBUG - insertOpportunity object keys:', Object.keys(insertOpportunity));
-      console.log('🔍 STORAGE DEBUG - typeof insertOpportunity.createdByName:', typeof insertOpportunity.createdByName);
-      console.log('🔍 STORAGE DEBUG - insertOpportunity.createdByName === null:', insertOpportunity.createdByName === null);
-      console.log('🔍 STORAGE DEBUG - insertOpportunity.createdByName === undefined:', insertOpportunity.createdByName === undefined);
+
+
+      // CRITICAL FIX: Garantir que createdByName nunca seja nulo/undefined/vazio
+      let finalCreatedByName = insertOpportunity.createdByName;
+      
+      // Múltiplos níveis de fallback com validação mais rigorosa
+      if (!finalCreatedByName || typeof finalCreatedByName !== 'string' || finalCreatedByName.trim() === '' || finalCreatedByName === 'null' || finalCreatedByName === 'undefined') {
+        finalCreatedByName = insertOpportunity.createdBy;
+      }
+      
+      if (!finalCreatedByName || typeof finalCreatedByName !== 'string' || finalCreatedByName.trim() === '' || finalCreatedByName === 'null' || finalCreatedByName === 'undefined') {
+        finalCreatedByName = 'Sistema Padrão';
+      }
+      
+      // Garantia final - forçar string não vazia
+      if (!finalCreatedByName || typeof finalCreatedByName !== 'string') {
+        finalCreatedByName = 'Sistema Emergencial';
+      }
+      
+      // Trim e validação final
+      finalCreatedByName = finalCreatedByName.toString().trim();
+      if (finalCreatedByName === '' || finalCreatedByName === 'null' || finalCreatedByName === 'undefined') {
+        finalCreatedByName = 'Sistema Crítico';
+      }
 
       const opportunity: Opportunity = { 
         id,
@@ -149,7 +168,9 @@ export class PostgresStorage implements IStorage {
         // Phase and workflow
         phase: insertOpportunity.phase || 'prospeccao',
         createdBy: insertOpportunity.createdBy || 'system',
-        createdByName: insertOpportunity.createdByName || 'Sistema',
+        createdByName: finalCreatedByName,
+        
+
 
         // Prospection phase data
         opportunityNumber: insertOpportunity.opportunityNumber || null,
@@ -187,45 +208,46 @@ export class PostgresStorage implements IStorage {
         importSource: insertOpportunity.importSource || null,
       };
 
-      console.log('🔍 DEBUG - opportunity object before insert:', JSON.stringify(opportunity, null, 2));
-      console.log('🔍 DRIZZLE DEBUG - opportunity.createdByName before insert:', opportunity.createdByName);
-      console.log('🔍 DRIZZLE DEBUG - typeof opportunity.createdByName:', typeof opportunity.createdByName);
+
       
-      // Final safety check before insert
-      if (!opportunity.createdByName) {
-        opportunity.createdByName = 'Sistema Fallback';
-        console.log('🚨 EMERGENCY FALLBACK - Set createdByName to:', opportunity.createdByName);
+      // CRITICAL FIX: Ensure created_by_name is NEVER null with multiple fallbacks
+      const { createdByName, ...opportunityWithoutJSField } = opportunity;
+      
+      // Multi-level fallback to guarantee non-null value
+      let finalCreatedByName = opportunity.createdByName;
+      
+      if (!finalCreatedByName || finalCreatedByName.trim() === '') {
+        finalCreatedByName = insertOpportunity.createdByName;
       }
       
-      // Log the exact values being sent to Drizzle
-      console.log('🔍 DRIZZLE VALUES DEBUG - opportunity object keys:', Object.keys(opportunity));
-      console.log('🔍 DRIZZLE VALUES DEBUG - opportunity.createdByName value:', JSON.stringify(opportunity.createdByName));
-      console.log('🔍 DRIZZLE VALUES DEBUG - opportunity object for insert:', JSON.stringify({
-        id: opportunity.id,
-        createdBy: opportunity.createdBy,
-        createdByName: opportunity.createdByName,
-        contact: opportunity.contact,
-        company: opportunity.company
-      }, null, 2));
+      if (!finalCreatedByName || finalCreatedByName.trim() === '') {
+        finalCreatedByName = insertOpportunity.createdBy;
+      }
       
-      // CRITICAL FIX: Remove the JavaScript field and use only the database column name
-      const { createdByName, ...opportunityWithoutJSField } = opportunity;
+      if (!finalCreatedByName || finalCreatedByName.trim() === '') {
+        finalCreatedByName = 'Sistema Padrão';
+      }
+      
+      // Final validation - ensure it's a non-empty string
+      if (typeof finalCreatedByName !== 'string' || finalCreatedByName.trim() === '') {
+        finalCreatedByName = 'Sistema Emergencial';
+      }
       
       const insertData = {
         ...opportunityWithoutJSField,
-        // Map JavaScript field to database column explicitly
-        created_by_name: opportunity.createdByName || 'Sistema Fallback Final'
+        // Map JavaScript field to database column with guaranteed non-null value
+        created_by_name: finalCreatedByName.trim()
       };
       
-      console.log('🔍 FINAL INSERT DATA - created_by_name:', insertData.created_by_name);
-      console.log('🔍 FINAL INSERT DATA - removed createdByName field');
+      // FINAL VALIDATION: Ensure created_by_name is not null before database insertion
+      if (!insertData.created_by_name || insertData.created_by_name === null || insertData.created_by_name === undefined) {
+        insertData.created_by_name = 'Sistema Crítico';
+      }
       
       const result = await db
         .insert(opportunities)
         .values(insertData)
         .returning();
-
-      console.log('🔍 DEBUG - inserted opportunity result:', JSON.stringify(result[0], null, 2));
 
       return result[0];
     } catch (error) {

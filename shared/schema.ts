@@ -51,7 +51,7 @@ export const opportunities = pgTable("opportunities", {
 
   // Auditoria
   createdBy: text("created_by"),
-  createdByName: text("created_by_name").notNull(),
+  createdByName: text("created_by_name").notNull().default("Sistema"),
 
   // Import tracking fields
   isImported: boolean("is_imported").default(false),
