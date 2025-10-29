@@ -28,6 +28,8 @@ export const opportunities = pgTable("opportunities", {
   // Fase 4: Visita Técnica
   visitSchedule: text("visit_schedule"),
   visitDate: text("visit_date"),
+  visitDescription: text("visit_description"),
+  visitRealization: text("visit_realization"),
   visitPhotos: text("visit_photos").array(),
 
   // Fase 5: Proposta
@@ -51,7 +53,7 @@ export const opportunities = pgTable("opportunities", {
 
   // Auditoria
   createdBy: text("created_by"),
-  createdByName: text("created_by_name").notNull().default("Sistema"),
+  createdByName: varchar("created_by_name", { length: 255 }).notNull().default("Sistema"),
 
   // Import tracking fields
   isImported: boolean("is_imported").default(false),
@@ -267,23 +269,47 @@ export const insertOpportunitySchema = createInsertSchema(opportunities, {
   createdByName: z.string().optional().transform(val => {
     console.log(`🔍 [SCHEMA] createdByName transform input: "${val}"`);
     process.stderr.write(`🔍 STDERR [SCHEMA]: createdByName transform input="${val}"\n`);
-    // Only default to "Sistema" if the value is undefined or null
-    // Preserve actual user names when provided
-    if (val === undefined || val === null) {
-      console.log(`🔍 [SCHEMA] createdByName defaulting to "Sistema" (undefined/null)`);
-      process.stderr.write(`🔍 STDERR [SCHEMA]: createdByName defaulting to "Sistema" (undefined/null)\n`);
+    
+    // VALIDAÇÃO RIGOROSA: NUNCA PERMITIR NULL/UNDEFINED/EMPTY
+    if (val === undefined || val === null || val === '') {
+      console.log(`🔍 [SCHEMA] createdByName defaulting to "Sistema" (undefined/null/empty)`);
+      process.stderr.write(`🔍 STDERR [SCHEMA]: createdByName defaulting to "Sistema" (undefined/null/empty)\n`);
       return "Sistema";
     }
-    // If it's an empty string, also default to "Sistema"
-    if (typeof val === 'string' && val.trim() === '') {
-      console.log(`🔍 [SCHEMA] createdByName defaulting to "Sistema" (empty string)`);
-      process.stderr.write(`🔍 STDERR [SCHEMA]: createdByName defaulting to "Sistema" (empty string)\n`);
+    
+    // Se for string, validar se não está vazia após trim
+    if (typeof val === 'string') {
+      const trimmed = val.trim();
+      if (trimmed === '' || trimmed === 'null' || trimmed === 'undefined') {
+        console.log(`🔍 [SCHEMA] createdByName defaulting to "Sistema" (empty/null string)`);
+        process.stderr.write(`🔍 STDERR [SCHEMA]: createdByName defaulting to "Sistema" (empty/null string)\n`);
+        return "Sistema";
+      }
+      // Preservar o nome do usuário válido
+      console.log(`🔍 [SCHEMA] createdByName keeping value: "${trimmed}"`);
+      process.stderr.write(`🔍 STDERR [SCHEMA]: createdByName keeping value="${trimmed}"\n`);
+      return trimmed;
+    }
+    
+    // Para qualquer outro tipo, converter para string e validar
+    const stringVal = String(val).trim();
+    if (stringVal === '' || stringVal === 'null' || stringVal === 'undefined') {
+      console.log(`🔍 [SCHEMA] createdByName defaulting to "Sistema" (invalid type)`);
+      process.stderr.write(`🔍 STDERR [SCHEMA]: createdByName defaulting to "Sistema" (invalid type)\n`);
       return "Sistema";
     }
-    // Preserve the actual user name
-    console.log(`🔍 [SCHEMA] createdByName keeping value: "${val.trim()}"`);
-    process.stderr.write(`🔍 STDERR [SCHEMA]: createdByName keeping value="${val.trim()}"\n`);
-    return val.trim();
+    
+    console.log(`🔍 [SCHEMA] createdByName converted and keeping: "${stringVal}"`);
+    process.stderr.write(`🔍 STDERR [SCHEMA]: createdByName converted and keeping="${stringVal}"\n`);
+    return stringVal;
+  }).refine(val => {
+    // VALIDAÇÃO FINAL: Garantir que o valor nunca seja null/undefined/empty
+    const isValid = val && typeof val === 'string' && val.trim() !== '';
+    console.log(`🔍 [SCHEMA] createdByName refine validation: "${val}" -> ${isValid}`);
+    process.stderr.write(`🔍 STDERR [SCHEMA]: createdByName refine validation="${val}" -> ${isValid}\n`);
+    return isValid;
+  }, {
+    message: "createdByName não pode ser vazio ou nulo"
   }),
 
   // Import tracking fields

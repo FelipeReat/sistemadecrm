@@ -1668,8 +1668,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       phone: null, // Permitir nulo explicitamente
       needCategory: null,
       clientNeeds: null,
-      // CORRIGIDO: Initialize createdByName with the actual user name
-      createdByName: userName || 'Sistema'
+      // CORRIGIDO: Initialize createdByName with the actual user name - NUNCA NULL
+      createdByName: userName && userName.trim() !== '' ? userName.trim() : 'Sistema de Importação'
     };
     
     // Process all field mappings - COM MÁXIMA TOLERÂNCIA
@@ -1984,19 +1984,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // CAPTURAR DADOS DA SESSÃO ANTES DO PROCESSAMENTO ASSÍNCRONO
           const sessionUser = req.session.user;
           
-          // OTIMIZAÇÃO: Buscar do banco apenas se necessário
-          let userName = 'Sistema';
+          // OTIMIZAÇÃO: Buscar do banco apenas se necessário - GARANTIR NUNCA NULL
+          let userName = 'Sistema de Importação'; // Default seguro
+          
+          console.log(`🔍 [IMPORT] Verificando userName: sessionUser=${JSON.stringify(sessionUser)}, userId=${userId}`);
           
           if (sessionUser?.name && sessionUser.name.trim() !== '') {
-            userName = sessionUser.name;
+            userName = sessionUser.name.trim();
+            console.log(`✅ [IMPORT] Usando nome da sessão: "${userName}"`);
           } else {
             // Fallback: buscar do banco apenas se sessão não tem nome
-            const userFromDB = await storage.getUser(userId);
-            if (userFromDB?.name && userFromDB.name.trim() !== '') {
-              userName = userFromDB.name;
-            } else {
-              userName = userId || 'Sistema';
+            try {
+              const userFromDB = await storage.getUser(userId);
+              if (userFromDB?.name && userFromDB.name.trim() !== '') {
+                userName = userFromDB.name.trim();
+                console.log(`✅ [IMPORT] Usando nome do banco: "${userName}"`);
+              } else {
+                userName = userId && userId.trim() !== '' ? `Usuário ${userId.substring(0, 8)}` : 'Sistema de Importação';
+                console.log(`⚠️ [IMPORT] Usando fallback: "${userName}"`);
+              }
+            } catch (error) {
+              console.error(`❌ [IMPORT] Erro ao buscar usuário do banco:`, error);
+              userName = 'Sistema de Importação';
             }
+          }
+          
+          // VALIDAÇÃO FINAL ABSOLUTA
+          if (!userName || userName.trim() === '') {
+            userName = 'Sistema de Importação';
+            console.error(`❌ [IMPORT] ERRO CRÍTICO: userName estava vazio, forçando valor padrão`);
+          }
+          
+          console.log(`🎯 [IMPORT] Nome final para importação: "${userName}"`);
+          
+          // VERIFICAÇÃO ADICIONAL
+          if (!userName) {
+            throw new Error(`ERRO CRÍTICO: userName não pode ser null/undefined. Valor atual: ${userName}`);
           }
           
           let created = 0;
@@ -2033,45 +2056,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 }
 
                 // Transform row
-                const transformedData = transformRow(row, mapping, userName, userId, targetPhase);
+        const transformedData = transformRow(row, mapping, userName, userId, targetPhase);
 
-                // VALIDAÇÃO OTIMIZADA: 1 tentativa principal + 1 fallback
-                let validatedData = null;
-                
-                try {
-                  // Primeira tentativa: dados como estão
-                  validatedData = insertOpportunitySchema.parse(transformedData);
-                } catch (zodError: any) {
-                  // Fallback: dados básicos garantidos
-                  try {
-                    const fallbackData = {
-                      contact: transformedData.contact || `Contato Importado ${globalIndex + 1}`,
-                      company: transformedData.company || `Empresa Importada ${globalIndex + 1}`,
-                      phone: null,
-                      needCategory: transformedData.needCategory || null,
-                      clientNeeds: transformedData.clientNeeds || `Dados importados da linha ${globalIndex + 1}`,
-                      phase: targetPhase || 'prospeccao',
-                      businessTemperature: 'morno',
-                      hasRegistration: false,
-                      requiresVisit: false,
-                      documents: [],
-                      visitPhotos: [],
-                      createdBy: userId,
-                      createdByName: userName,
-                      isImported: true,
-                      importBatchId: `batch_${Date.now()}_${batchIndex}`,
-                      importSource: 'csv_upload'
-                    };
-                    
-                    validatedData = insertOpportunitySchema.parse(fallbackData);
-                  } catch (fallbackError: any) {
-                    batchErrors.push({
-                      row: globalIndex + 2,
-                      message: `Erro de validação: ${fallbackError.message}`,
-                      data: row
-                    });
-                  }
-                }
+        // CRITICAL FIX: Ensure createdByName is NEVER null
+        if (!transformedData.createdByName || transformedData.createdByName.trim() === '') {
+          transformedData.createdByName = userName || 'Sistema de Importação';
+        }
+
+        console.log(`🔍 [IMPORT] Row ${globalIndex + 1}: createdByName="${transformedData.createdByName}"`);
+
+        // VALIDAÇÃO OTIMIZADA: 1 tentativa principal + 1 fallback
+        let validatedData = null;
+        
+        try {
+          // Primeira tentativa: dados como estão
+          validatedData = insertOpportunitySchema.parse(transformedData);
+        } catch (zodError: any) {
+          console.log(`⚠️ [IMPORT] Validation failed for row ${globalIndex + 1}, using fallback:`, zodError.message);
+          
+          // Fallback: dados básicos garantidos
+          try {
+            const fallbackData = {
+              contact: transformedData.contact || `Contato Importado ${globalIndex + 1}`,
+              company: transformedData.company || `Empresa Importada ${globalIndex + 1}`,
+              phone: null,
+              needCategory: transformedData.needCategory || null,
+              clientNeeds: transformedData.clientNeeds || `Dados importados da linha ${globalIndex + 1}`,
+              phase: targetPhase || 'prospeccao',
+              businessTemperature: 'morno',
+              hasRegistration: false,
+              requiresVisit: false,
+              documents: [],
+              visitPhotos: [],
+              createdBy: userId,
+              createdByName: userName || 'Sistema de Importação',
+              isImported: true,
+              importBatchId: `batch_${Date.now()}_${batchIndex}`,
+              importSource: 'csv_upload'
+            };
+            
+            console.log(`🔍 [IMPORT] Fallback data for row ${globalIndex + 1}: createdByName="${fallbackData.createdByName}"`);
+            validatedData = insertOpportunitySchema.parse(fallbackData);
+          } catch (fallbackError: any) {
+            console.error(`❌ [IMPORT] Fallback validation failed for row ${globalIndex + 1}:`, fallbackError.message);
+            batchErrors.push({
+              row: globalIndex + 2,
+              message: `Erro de validação: ${fallbackError.message}`,
+              data: row
+            });
+          }
+        }
 
                 if (validatedData) {
                   batchOpportunities.push(validatedData);
@@ -2207,12 +2241,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         progress: session.progress || 0,
         processedRows: session.results?.created + session.results?.failed || 0,
         totalRows: session.totalRows,
-        results: session.results || {
-          created: 0,
-          updated: 0,
-          skipped: 0,
-          failed: 0,
-          errors: []
+        results: {
+          created: session.results?.created || 0,
+          updated: session.results?.updated || 0,
+          skipped: session.results?.skipped || 0,
+          failed: session.results?.failed || 0,
+          errors: (session.results?.errors || []).map(err => 
+            typeof err === 'object' ? JSON.stringify(err) : String(err)
+          )
         },
         error: session.error
       });

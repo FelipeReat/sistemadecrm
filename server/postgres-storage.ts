@@ -86,10 +86,37 @@ export class PostgresStorage implements IStorage {
   // Opportunities CRUD
   async getOpportunities(): Promise<Opportunity[]> {
     try {
-      return await db
+      const result = await db
         .select()
         .from(opportunities)
+        .leftJoin(users, eq(opportunities.salesperson, users.id))
         .orderBy(desc(opportunities.createdAt));
+
+      // Mapear o resultado para incluir o nome do vendedor
+      return result.map(row => {
+        const opportunity = row.opportunities;
+        let salespersonName = opportunity.salesperson;
+
+        // Se encontrou um usuário no JOIN, usar o nome do usuário
+        if (row.users?.name) {
+          salespersonName = row.users.name;
+        } else {
+          // Se não encontrou no JOIN, verificar se o salesperson já é um nome (não UUID)
+          const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(opportunity.salesperson || '');
+          if (!isUUID && opportunity.salesperson) {
+            // Se não é UUID, provavelmente já é um nome
+            salespersonName = opportunity.salesperson;
+          } else {
+            // Se é UUID mas não encontrou no JOIN, manter o UUID
+            salespersonName = opportunity.salesperson || 'Vendedor não identificado';
+          }
+        }
+
+        return {
+          ...opportunity,
+          salesperson: salespersonName,
+        };
+      });
     } catch (error) {
       console.error('Error getting opportunities:', error);
       return [];
@@ -101,10 +128,34 @@ export class PostgresStorage implements IStorage {
       const result = await db
         .select()
         .from(opportunities)
+        .leftJoin(users, eq(opportunities.salesperson, users.id))
         .where(eq(opportunities.id, id))
         .limit(1);
 
-      return result[0] || undefined;
+      if (!result[0]) return undefined;
+
+      const opportunity = result[0].opportunities;
+      let salespersonName = opportunity.salesperson;
+
+      // Se encontrou um usuário no JOIN, usar o nome do usuário
+      if (result[0].users?.name) {
+        salespersonName = result[0].users.name;
+      } else {
+        // Se não encontrou no JOIN, verificar se o salesperson já é um nome (não UUID)
+        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(opportunity.salesperson || '');
+        if (!isUUID && opportunity.salesperson) {
+          // Se não é UUID, provavelmente já é um nome
+          salespersonName = opportunity.salesperson;
+        } else {
+          // Se é UUID mas não encontrou no JOIN, manter o UUID
+          salespersonName = opportunity.salesperson || 'Vendedor não identificado';
+        }
+      }
+
+      return {
+        ...opportunity,
+        salesperson: salespersonName,
+      };
     } catch (error) {
       console.error('Error getting opportunity:', error);
       return undefined;
@@ -226,6 +277,12 @@ export class PostgresStorage implements IStorage {
         created_by_name: opportunity.createdByName || insertOpportunity.createdByName || insertOpportunity.createdBy || 'Sistema'
       };
       
+      // FINAL VALIDATION: Ensure created_by_name is NEVER null
+      if (!insertData.created_by_name || insertData.created_by_name.trim() === '') {
+        insertData.created_by_name = 'Sistema';
+        console.error(`❌ [STORAGE] CRITICAL: created_by_name was null/empty, forcing to 'Sistema'`);
+      }
+      
       console.log(`🔍 [STORAGE] Final insert data: createdBy=${insertData.createdBy}, created_by_name=${insertData.created_by_name}, originalCreatedByName=${opportunity.createdByName}`);
       process.stderr.write(`🔍 STDERR [STORAGE]: created_by_name=${insertData.created_by_name}, originalCreatedByName=${opportunity.createdByName}\n`);
       
@@ -264,24 +321,49 @@ export class PostgresStorage implements IStorage {
           // CRITICAL FIX: Garantir que createdByName nunca seja nulo/undefined/vazio
           let finalCreatedByName = insertOpportunity.createdByName;
           
+          console.log(`🔍 [BULK] Processing item ${i}: createdByName="${finalCreatedByName}", createdBy="${insertOpportunity.createdBy}"`);
+          
           // Múltiplos níveis de fallback com validação mais rigorosa
           if (!finalCreatedByName || typeof finalCreatedByName !== 'string' || finalCreatedByName.trim() === '' || finalCreatedByName === 'null' || finalCreatedByName === 'undefined') {
             finalCreatedByName = insertOpportunity.createdBy;
+            console.log(`🔄 [BULK] Fallback 1 - usando createdBy: "${finalCreatedByName}"`);
           }
           
           if (!finalCreatedByName || typeof finalCreatedByName !== 'string' || finalCreatedByName.trim() === '' || finalCreatedByName === 'null' || finalCreatedByName === 'undefined') {
             finalCreatedByName = 'Sistema Padrão';
+            console.log(`🔄 [BULK] Fallback 2 - usando Sistema Padrão`);
           }
           
           // Garantia final - forçar string não vazia
           if (!finalCreatedByName || typeof finalCreatedByName !== 'string') {
             finalCreatedByName = 'Sistema Emergencial';
+            console.log(`🔄 [BULK] Fallback 3 - usando Sistema Emergencial`);
           }
           
           // Trim e validação final
           finalCreatedByName = finalCreatedByName.toString().trim();
           if (finalCreatedByName === '' || finalCreatedByName === 'null' || finalCreatedByName === 'undefined') {
             finalCreatedByName = 'Sistema Crítico';
+            console.log(`🔄 [BULK] Fallback 4 - usando Sistema Crítico`);
+          }
+          
+          // VALIDAÇÃO FINAL ABSOLUTA - NUNCA PERMITIR NULL
+          if (!finalCreatedByName) {
+            finalCreatedByName = 'Sistema Forçado';
+            console.error(`❌ [BULK] ERRO CRÍTICO: createdByName ainda é null/undefined, forçando valor padrão`);
+          }
+          
+          console.log(`✅ [BULK] Nome final para item ${i}: "${finalCreatedByName}"`);
+          
+          // VERIFICAÇÃO ADICIONAL ANTES DA INSERÇÃO
+          if (!finalCreatedByName || finalCreatedByName === null || finalCreatedByName === undefined) {
+            throw new Error(`ERRO CRÍTICO: created_by_name não pode ser null para o item ${i}. Valor atual: ${finalCreatedByName}`);
+          }
+          
+          // VALIDAÇÃO FINAL ABSOLUTA ANTES DE CRIAR O OBJETO
+          if (typeof finalCreatedByName !== 'string' || finalCreatedByName.trim() === '') {
+            finalCreatedByName = 'Sistema Forçado Final';
+            console.error(`❌ [BULK] ERRO CRÍTICO FINAL: created_by_name inválido, forçando valor final`);
           }
 
           const insertData = {
@@ -312,7 +394,7 @@ export class PostgresStorage implements IStorage {
             // Phase and workflow
             phase: insertOpportunity.phase || 'prospeccao',
             createdBy: insertOpportunity.createdBy || 'system',
-            created_by_name: finalCreatedByName,
+            createdByName: finalCreatedByName, // Use Drizzle schema field name
 
             // Prospection phase data
             opportunityNumber: insertOpportunity.opportunityNumber || null,
@@ -523,11 +605,38 @@ export class PostgresStorage implements IStorage {
 
   async getOpportunitiesByPhase(phase: string): Promise<Opportunity[]> {
     try {
-      return await db
+      const result = await db
         .select()
         .from(opportunities)
+        .leftJoin(users, eq(opportunities.salesperson, users.id))
         .where(eq(opportunities.phase, phase))
         .orderBy(desc(opportunities.createdAt));
+
+      // Mapear o resultado para incluir o nome do vendedor
+      return result.map(row => {
+        const opportunity = row.opportunities;
+        let salespersonName = opportunity.salesperson;
+
+        // Se encontrou um usuário no JOIN, usar o nome do usuário
+        if (row.users?.name) {
+          salespersonName = row.users.name;
+        } else {
+          // Se não encontrou no JOIN, verificar se o salesperson já é um nome (não UUID)
+          const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(opportunity.salesperson || '');
+          if (!isUUID && opportunity.salesperson) {
+            // Se não é UUID, provavelmente já é um nome
+            salespersonName = opportunity.salesperson;
+          } else {
+            // Se é UUID mas não encontrou no JOIN, manter o UUID
+            salespersonName = opportunity.salesperson || 'Vendedor não identificado';
+          }
+        }
+
+        return {
+          ...opportunity,
+          salesperson: salespersonName,
+        };
+      });
     } catch (error) {
       console.error('Error getting opportunities by phase:', error);
       return [];

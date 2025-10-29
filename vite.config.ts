@@ -29,15 +29,18 @@ export default defineConfig({
     emptyOutDir: true,
   },
   server: {
-    port: 5501,
+    port: 5500,
+    host: 'localhost',
     hmr: {
-      port: 5502
+      port: 5502,
+      host: 'localhost'
     },
     proxy: {
       '/api': {
-        target: 'http://localhost:3000',
+        target: 'http://localhost:5501',
         changeOrigin: true,
         secure: false,
+        rewrite: (path) => path,
       }
     },
     fs: {
