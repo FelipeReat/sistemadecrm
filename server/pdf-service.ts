@@ -16,6 +16,45 @@ interface PDFGenerationOptions {
   summary?: Array<{ label: string; value: string }>;
 }
 
+// Função para detectar navegadores disponíveis no Windows
+function detectAvailableBrowser(): string | null {
+  const browsers = [
+    {
+      name: 'Brave',
+      paths: [
+        'C:\\Program Files\\BraveSoftware\\Brave-Browser\\Application\\brave.exe',
+        'C:\\Program Files (x86)\\BraveSoftware\\Brave-Browser\\Application\\brave.exe'
+      ]
+    },
+    {
+      name: 'Microsoft Edge',
+      paths: [
+        'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
+        'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe'
+      ]
+    },
+    {
+      name: 'Google Chrome',
+      paths: [
+        'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+        'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe'
+      ]
+    }
+  ];
+
+  for (const browser of browsers) {
+    for (const path of browser.paths) {
+      if (existsSync(path)) {
+        console.log(`✅ Navegador detectado: ${browser.name} em ${path}`);
+        return path;
+      }
+    }
+  }
+
+  console.warn('⚠️ Nenhum navegador compatível encontrado nos caminhos padrão');
+  return null;
+}
+
 class PDFService {
   private baseTemplate: string;
 
@@ -47,6 +86,9 @@ class PDFService {
     const isProduction = process.env.NODE_ENV === 'production';
     const tempDir = this.createTempDirectory();
     
+    // Detecta navegador disponível automaticamente
+    const browserExecutable = detectAvailableBrowser();
+    
     const baseArgs = [
       '--no-sandbox',
       '--disable-setuid-sandbox',
@@ -64,6 +106,14 @@ class PDFService {
       headless: true,
       args: baseArgs
     };
+
+    // Configura o executável do navegador se encontrado
+    if (browserExecutable) {
+      config.executablePath = browserExecutable;
+      console.log(`🚀 Usando navegador personalizado: ${browserExecutable}`);
+    } else {
+      console.log('🔄 Usando Puppeteer padrão (tentará baixar Chrome automaticamente)');
+    }
 
     // Em produção, adiciona configurações específicas para Windows
     if (isProduction) {
@@ -363,7 +413,11 @@ class PDFService {
 
     // Gerar PDF com Puppeteer usando configuração robusta
     const puppeteerConfig = this.getPuppeteerConfig();
-    console.log('Puppeteer config:', { args: puppeteerConfig.args.length, headless: puppeteerConfig.headless });
+    console.log('Puppeteer config:', { 
+      args: puppeteerConfig.args.length, 
+      headless: puppeteerConfig.headless,
+      executablePath: puppeteerConfig.executablePath || 'padrão'
+    });
     
     const browser = await puppeteer.launch(puppeteerConfig);
 
