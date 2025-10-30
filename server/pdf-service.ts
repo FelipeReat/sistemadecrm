@@ -89,6 +89,7 @@ class PDFService {
     // Detecta navegador disponível automaticamente
     const browserExecutable = detectAvailableBrowser();
     
+    // Argumentos robustos para Windows - baseado na documentação oficial do Puppeteer
     const baseArgs = [
       '--no-sandbox',
       '--disable-setuid-sandbox',
@@ -99,12 +100,33 @@ class PDFService {
       '--disable-gpu',
       '--disable-background-timer-throttling',
       '--disable-backgrounding-occluded-windows',
-      '--disable-renderer-backgrounding'
+      '--disable-renderer-backgrounding',
+      '--disable-ipc-flooding-protection',
+      '--disable-features=TranslateUI',
+      '--disable-features=VizDisplayCompositor',
+      '--disable-features=AudioServiceOutOfProcess',
+      '--disable-features=VizServiceDisplayCompositor',
+      '--disable-web-security',
+      '--disable-features=site-per-process',
+      '--single-process', // Crítico para Windows em produção
+      '--no-default-browser-check',
+      '--disable-default-apps',
+      '--disable-component-extensions-with-background-pages',
+      '--disable-background-networking',
+      '--disable-sync',
+      '--metrics-recording-only',
+      '--no-report-upload',
+      '--mute-audio',
+      '--disable-logging',
+      '--disable-permissions-api'
     ];
 
     const config: any = {
       headless: true,
-      args: baseArgs
+      args: baseArgs,
+      ignoreDefaultArgs: ['--disable-extensions'], // Permite extensões se necessário
+      timeout: 60000, // Timeout aumentado para Windows
+      protocolTimeout: 60000
     };
 
     // Configura o executável do navegador se encontrado
@@ -119,13 +141,14 @@ class PDFService {
     if (isProduction) {
       config.args.push(
         `--user-data-dir=${tempDir}`,
-        '--disable-extensions',
         '--disable-plugins',
         '--disable-images',
-        '--disable-javascript',
-        '--disable-default-apps',
-        '--disable-sync'
+        '--disable-javascript'
       );
+      
+      // Para Windows, permite extensões se necessário (resolve problemas de política)
+      config.ignoreDefaultArgs = false;
+      config.args.push('--disable-extensions-except=');
     }
 
     return config;
@@ -378,6 +401,55 @@ class PDFService {
     return compiledTemplate(variables);
   }
 
+  private async launchBrowserWithRetry(config: any, maxRetries: number = 3): Promise<any> {
+    let lastError: Error | null = null;
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(`🚀 Tentativa ${attempt}/${maxRetries} de inicializar o navegador...`);
+        console.log('Configuração do Puppeteer:', {
+          args: config.args?.length || 0,
+          headless: config.headless,
+          executablePath: config.executablePath || 'padrão',
+          timeout: config.timeout,
+          protocolTimeout: config.protocolTimeout
+        });
+        
+        const browser = await puppeteer.launch(config);
+        console.log(`✅ Navegador inicializado com sucesso na tentativa ${attempt}`);
+        return browser;
+        
+      } catch (error) {
+        lastError = error as Error;
+        console.error(`❌ Falha na tentativa ${attempt}/${maxRetries}:`, error);
+        
+        if (attempt < maxRetries) {
+          // Aguarda antes da próxima tentativa (backoff exponencial)
+          const delay = Math.pow(2, attempt) * 1000; // 2s, 4s, 8s...
+          console.log(`⏳ Aguardando ${delay}ms antes da próxima tentativa...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+          
+          // Modifica a configuração para a próxima tentativa
+          if (attempt === 1) {
+            // Segunda tentativa: remove --single-process que pode causar problemas
+            config.args = config.args.filter((arg: string) => arg !== '--single-process');
+            console.log('🔄 Removendo --single-process para segunda tentativa');
+          } else if (attempt === 2) {
+            // Terceira tentativa: usa configuração mínima
+            config.args = ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'];
+            config.ignoreDefaultArgs = false;
+            console.log('🔄 Usando configuração mínima para terceira tentativa');
+          }
+        }
+      }
+    }
+    
+    // Se chegou aqui, todas as tentativas falharam
+    const errorMessage = `Falha ao inicializar o navegador após ${maxRetries} tentativas. Último erro: ${lastError?.message}`;
+    console.error('💥', errorMessage);
+    throw new Error(errorMessage);
+  }
+
   async generatePDF(options: PDFGenerationOptions): Promise<Buffer> {
     const { title, type, data, filters } = options;
     
@@ -411,22 +483,23 @@ class PDFService {
     // Substituir variáveis no template
     const html = await this.replaceTemplateVariables(this.baseTemplate, templateVariables);
 
-    // Gerar PDF com Puppeteer usando configuração robusta
+    // Gerar PDF com Puppeteer usando configuração robusta e retry
     const puppeteerConfig = this.getPuppeteerConfig();
-    console.log('Puppeteer config:', { 
-      args: puppeteerConfig.args.length, 
-      headless: puppeteerConfig.headless,
-      executablePath: puppeteerConfig.executablePath || 'padrão'
-    });
     
-    const browser = await puppeteer.launch(puppeteerConfig);
+    let browser;
+    try {
+      browser = await this.launchBrowserWithRetry(puppeteerConfig);
+    } catch (launchError) {
+      console.error('💥 Erro crítico ao inicializar navegador:', launchError);
+      throw new Error(`Erro ao inicializar navegador: ${launchError instanceof Error ? launchError.message : 'Erro desconhecido'}`);
+    }
 
     try {
       const page = await browser.newPage();
       
       // Configurações de timeout e otimização para produção
-      await page.setDefaultTimeout(30000); // 30 segundos de timeout
-      await page.setDefaultNavigationTimeout(30000);
+      await page.setDefaultTimeout(45000); // Timeout aumentado
+      await page.setDefaultNavigationTimeout(45000);
       
       // Desabilita imagens e CSS para melhor performance em produção
       if (process.env.NODE_ENV === 'production') {
@@ -443,7 +516,7 @@ class PDFService {
       
       await page.setContent(html, { 
         waitUntil: 'domcontentloaded', // Mais rápido que networkidle0
-        timeout: 30000 
+        timeout: 45000 
       });
       
       const pdf = await page.pdf({
@@ -455,18 +528,23 @@ class PDFService {
           bottom: '20mm',
           left: '15mm'
         },
-        timeout: 30000
+        timeout: 45000
       });
 
+      console.log('✅ PDF gerado com sucesso');
       return pdf;
+      
     } catch (error) {
-      console.error('Erro ao gerar PDF com Puppeteer:', error);
+      console.error('💥 Erro durante geração do PDF:', error);
       throw new Error(`Falha na geração do PDF: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
     } finally {
       try {
-        await browser.close();
+        if (browser) {
+          await browser.close();
+          console.log('🔒 Navegador fechado com sucesso');
+        }
       } catch (closeError) {
-        console.warn('Aviso: Erro ao fechar browser do Puppeteer:', closeError);
+        console.warn('⚠️ Aviso: Erro ao fechar browser do Puppeteer:', closeError);
       }
     }
   }
