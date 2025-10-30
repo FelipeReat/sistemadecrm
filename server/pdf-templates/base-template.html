@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{title}}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #fff;
+        }
+        
+        .page {
+            width: 210mm;
+            min-height: 297mm;
+            padding: 20mm;
+            margin: 0 auto;
+            background: white;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        
+        .header {
+            text-align: center;
+            border-bottom: 3px solid #2563eb;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .logo {
+            font-size: 28px;
+            font-weight: bold;
+            color: #2563eb;
+            margin-bottom: 10px;
+        }
+        
+        .report-title {
+            font-size: 24px;
+            color: #1e40af;
+            margin-bottom: 10px;
+        }
+        
+        .report-info {
+            font-size: 14px;
+            color: #6b7280;
+        }
+        
+        .summary-section {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        
+        .summary-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #1e40af;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #2563eb;
+            padding-bottom: 5px;
+        }
+        
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        
+        .summary-item {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            border-left: 4px solid #2563eb;
+        }
+        
+        .summary-label {
+            font-size: 12px;
+            color: #6b7280;
+            text-transform: uppercase;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        
+        .summary-value {
+            font-size: 20px;
+            font-weight: bold;
+            color: #1e40af;
+        }
+        
+        .section {
+            margin: 30px 0;
+            page-break-inside: avoid;
+        }
+        
+        .section-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: #1e40af;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #2563eb;
+            padding-bottom: 8px;
+        }
+        
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .table th {
+            background: #2563eb;
+            color: white;
+            padding: 12px 8px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        
+        .table td {
+            padding: 10px 8px;
+            border-bottom: 1px solid #e5e7eb;
+            font-size: 13px;
+        }
+        
+        .table tr:nth-child(even) {
+            background: #f9fafb;
+        }
+        
+        .table tr:hover {
+            background: #f3f4f6;
+        }
+        
+        .currency {
+            color: #059669;
+            font-weight: 600;
+        }
+        
+        .percentage {
+            color: #dc2626;
+            font-weight: 600;
+        }
+        
+        .status {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .status.prospecção { background: #fef3c7; color: #92400e; }
+        .status.qualificação { background: #dbeafe; color: #1e40af; }
+        .status.proposta { background: #fde68a; color: #92400e; }
+        .status.negociação { background: #fed7aa; color: #ea580c; }
+        .status.fechamento { background: #dcfce7; color: #166534; }
+        
+        .temperature.fria { background: #dbeafe; color: #1e40af; }
+        .temperature.morna { background: #fef3c7; color: #92400e; }
+        .temperature.quente { background: #fecaca; color: #dc2626; }
+        
+        .footer {
+            position: fixed;
+            bottom: 15mm;
+            left: 20mm;
+            right: 20mm;
+            text-align: center;
+            font-size: 12px;
+            color: #6b7280;
+            border-top: 1px solid #e5e7eb;
+            padding-top: 10px;
+        }
+        
+        .page-break {
+            page-break-before: always;
+        }
+        
+        .filters-info {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 20px 0;
+            font-size: 14px;
+        }
+        
+        .filters-title {
+            font-weight: bold;
+            color: #1e40af;
+            margin-bottom: 8px;
+        }
+        
+        .no-data {
+            text-align: center;
+            color: #6b7280;
+            font-style: italic;
+            padding: 40px;
+        }
+        
+        @media print {
+            .page {
+                box-shadow: none;
+                margin: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <div class="header">
+            <div class="logo">🏢 Sistema CRM</div>
+            <div class="report-title">{{title}}</div>
+            <div class="report-info">
+                Gerado em: {{generatedAt}}<br>
+                {{#if filters}}Filtros aplicados: {{filters}}{{/if}}
+            </div>
+        </div>
+        
+        {{#if summary}}
+        <div class="summary-section">
+            <div class="summary-title">📊 Resumo Executivo</div>
+            <div class="summary-grid">
+                {{#each summary}}
+                <div class="summary-item">
+                    <div class="summary-label">{{label}}</div>
+                    <div class="summary-value">{{value}}</div>
+                </div>
+                {{/each}}
+            </div>
+        </div>
+        {{/if}}
+        
+        {{{content}}}
+        
+        <div class="footer">
+            <div>Sistema CRM - Relatório gerado automaticamente em {{generatedAt}}</div>
+            <div>{{#if filters}}Filtros: {{filters}}{{/if}}</div>
+        </div>
+    </div>
+</body>
+</html>

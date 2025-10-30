@@ -19,7 +19,9 @@ import {
   DollarSign,
   Users,
   Calendar,
-  Award
+  Award,
+  Download,
+  FileText
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { Opportunity, User } from "@shared/schema";
@@ -35,6 +37,13 @@ export default function ReportsDashboard() {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   });
+  
+  // Download loading states
+  const [downloadingComplete, setDownloadingComplete] = useState(false);
+  const [downloadingPhases, setDownloadingPhases] = useState(false);
+  const [downloadingTemperature, setDownloadingTemperature] = useState(false);
+  const [downloadingPerformance, setDownloadingPerformance] = useState(false);
+  const [downloadingOpportunities, setDownloadingOpportunities] = useState(false);
 
   // Generate last 12 months
   const getLastTwelveMonths = () => {
@@ -279,6 +288,74 @@ export default function ReportsDashboard() {
     }).format(value);
   };
 
+  // Download functions
+  const downloadReport = async (type: string, setLoading: (loading: boolean) => void) => {
+    try {
+      setLoading(true);
+      
+      const params = new URLSearchParams({
+        type,
+        ...(searchTerm && { searchTerm }),
+        ...(selectedPhase !== 'all' && { phase: selectedPhase }),
+        ...(selectedTemperature !== 'all' && { temperature: selectedTemperature }),
+        ...(selectedUser !== 'all' && { userId: selectedUser }),
+        ...(selectedMonth !== 'all' && { month: selectedMonth })
+      });
+
+      const response = await fetch(`/api/reports/download?${params}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Erro ao baixar relatório');
+      }
+
+      // Get filename from response headers
+      const contentDisposition = response.headers.get('content-disposition');
+      let filename = 'relatorio.pdf';
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename="(.+)"/);
+        if (filenameMatch) {
+          filename = filenameMatch[1];
+        }
+      }
+
+      // Create blob and download
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast({
+        title: "PDF gerado com sucesso",
+        description: `Relatório ${type} em PDF baixado com sucesso!`,
+      });
+    } catch (error) {
+      console.error('Erro ao baixar relatório:', error);
+      toast({
+        title: "Erro na geração do PDF",
+        description: "Não foi possível gerar o relatório PDF. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDownloadComplete = () => downloadReport('completo', setDownloadingComplete);
+  const handleDownloadPhases = () => downloadReport('fases', setDownloadingPhases);
+  const handleDownloadTemperature = () => downloadReport('temperatura', setDownloadingTemperature);
+  const handleDownloadPerformance = () => downloadReport('performance', setDownloadingPerformance);
+  const handleDownloadOpportunities = () => downloadReport('oportunidades', setDownloadingOpportunities);
+
   if (opportunitiesLoading) {
     return (
       <div className="min-h-screen bg-background p-6">
@@ -304,10 +381,20 @@ export default function ReportsDashboard() {
                 Análise completa do funil de vendas e performance
               </p>
             </div>
-            <Button onClick={() => refetch()} variant="outline">
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Atualizar
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                onClick={handleDownloadComplete} 
+                variant="default"
+                disabled={downloadingComplete}
+              >
+                <FileText className="h-4 w-4 mr-2" />
+                {downloadingComplete ? "Gerando PDF..." : "Baixar Relatório PDF"}
+              </Button>
+              <Button onClick={() => refetch()} variant="outline">
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Atualizar
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -438,11 +525,24 @@ export default function ReportsDashboard() {
           {/* Distribution by Phase */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <BarChart3 className="h-5 w-5" />
-                <span>Distribuição por Fase</span>
-              </CardTitle>
-              <CardDescription>Quantidade de oportunidades em cada fase</CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center space-x-2">
+                    <BarChart3 className="h-5 w-5" />
+                    <span>Distribuição por Fase</span>
+                  </CardTitle>
+                  <CardDescription>Quantidade de oportunidades em cada fase</CardDescription>
+                </div>
+                <Button 
+                  onClick={handleDownloadPhases} 
+                  variant="outline" 
+                  size="sm"
+                  disabled={downloadingPhases}
+                  title="Baixar PDF - Distribuição por Fase"
+                >
+                  <FileText className="h-4 w-4" />
+                </Button>
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
               {phaseDistribution.map((phase) => (
@@ -463,11 +563,24 @@ export default function ReportsDashboard() {
           {/* Temperature Distribution */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Thermometer className="h-5 w-5" />
-                <span>Temperatura de Negócio</span>
-              </CardTitle>
-              <CardDescription>Distribuição das oportunidades por temperatura</CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Thermometer className="h-5 w-5" />
+                    <span>Temperatura de Negócio</span>
+                  </CardTitle>
+                  <CardDescription>Distribuição das oportunidades por temperatura</CardDescription>
+                </div>
+                <Button 
+                  onClick={handleDownloadTemperature} 
+                  variant="outline" 
+                  size="sm"
+                  disabled={downloadingTemperature}
+                  title="Baixar PDF - Temperatura de Negócio"
+                >
+                  <FileText className="h-4 w-4" />
+                </Button>
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
               {temperatureDistribution.map((temp) => (
@@ -517,11 +630,24 @@ export default function ReportsDashboard() {
           {/* Performance by Salesperson */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Users className="h-5 w-5" />
-                <span>Performance por Vendedor</span>
-              </CardTitle>
-              <CardDescription>Ranking de vendedores por valor gerado</CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Users className="h-5 w-5" />
+                    <span>Performance por Vendedor</span>
+                  </CardTitle>
+                  <CardDescription>Ranking de vendedores por valor gerado</CardDescription>
+                </div>
+                <Button 
+                  onClick={handleDownloadPerformance} 
+                  variant="outline" 
+                  size="sm"
+                  disabled={downloadingPerformance}
+                  title="Baixar PDF - Performance por Vendedor"
+                >
+                  <FileText className="h-4 w-4" />
+                </Button>
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
               {performanceBySalesperson.slice(0, 5).map((salesperson) => (
@@ -543,11 +669,23 @@ export default function ReportsDashboard() {
           {/* Performance by Card Creator */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Award className="h-5 w-5" />
-                <span>Performance por Criador do Card</span>
-              </CardTitle>
-              <CardDescription>Ranking de criadores por valor gerado</CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Award className="h-5 w-5" />
+                    <span>Performance por Criador do Card</span>
+                  </CardTitle>
+                  <CardDescription>Ranking de criadores por valor gerado</CardDescription>
+                </div>
+                <Button 
+                  onClick={handleDownloadOpportunities} 
+                  variant="outline" 
+                  size="sm"
+                  disabled={downloadingOpportunities}
+                >
+                  <Download className="h-4 w-4" />
+                </Button>
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
               {performanceByCreator.slice(0, 5).map((creator) => (

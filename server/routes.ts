@@ -14,7 +14,7 @@ import { rateLimiter } from "./rate-limiter";
 import { log } from "./vite";
 import * as crypto from "crypto";
 import * as z from "zod";
-import * as XLSX from 'xlsx';
+import { pdfService } from './pdf-service';
 import multer from 'multer';
 import path from 'path';
 import { promises as fs } from 'fs';
@@ -1325,6 +1325,236 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(stats);
     } catch (error) {
       res.status(500).json({ message: "Erro ao buscar estatísticas rápidas" });
+    }
+  });
+
+  // Download reports endpoint - PDF Generation
+  app.get("/api/reports/download", isAuthenticated, canViewReports, async (req, res) => {
+    try {
+      const { type = 'complete', searchTerm, phase, temperature, userId, month } = req.query;
+      
+      // Get all opportunities and users
+      let opportunities = await storage.getOpportunities();
+      const users = await storage.getUsers();
+      
+      // Apply filters (same logic as dashboard)
+      if (searchTerm && typeof searchTerm === 'string') {
+        const term = searchTerm.toLowerCase();
+        opportunities = opportunities.filter(opp => 
+          opp.title?.toLowerCase().includes(term) ||
+          opp.company?.toLowerCase().includes(term) ||
+          opp.contact?.toLowerCase().includes(term)
+        );
+      }
+      
+      if (phase && typeof phase === 'string' && phase !== 'all') {
+        opportunities = opportunities.filter(opp => opp.phase === phase);
+      }
+      
+      if (temperature && typeof temperature === 'string' && temperature !== 'all') {
+        opportunities = opportunities.filter(opp => opp.businessTemperature === temperature);
+      }
+      
+      if (userId && typeof userId === 'string' && userId !== 'all') {
+        opportunities = opportunities.filter(opp => opp.assignedTo === userId);
+      }
+      
+      if (month && typeof month === 'string' && month !== 'all') {
+        const [year, monthNum] = month.split('-');
+        opportunities = opportunities.filter(opp => {
+          if (!opp.createdAt) return false;
+          const oppDate = new Date(opp.createdAt);
+          return oppDate.getFullYear() === parseInt(year) && 
+                 oppDate.getMonth() === parseInt(monthNum) - 1;
+        });
+      }
+
+      // Generate filename with current date and filters
+      const now = new Date();
+      const dateStr = now.toISOString().split('T')[0];
+      const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-');
+      let filename = `relatorio-${type}-${dateStr}-${timeStr}`;
+      
+      // Add filter info to filename and create filter description
+      const filterParts = [];
+      const filterDescriptions = [];
+      
+      if (searchTerm) {
+        filterParts.push(`busca-${searchTerm}`);
+        filterDescriptions.push(`Busca: ${searchTerm}`);
+      }
+      if (phase && phase !== 'all') {
+        filterParts.push(`fase-${phase}`);
+        filterDescriptions.push(`Fase: ${phase}`);
+      }
+      if (temperature && temperature !== 'all') {
+        filterParts.push(`temp-${temperature}`);
+        filterDescriptions.push(`Temperatura: ${temperature}`);
+      }
+      if (userId && userId !== 'all') {
+        const user = users.find(u => u.id === userId);
+        if (user) {
+          filterParts.push(`usuario-${user.name.replace(/\s+/g, '-')}`);
+          filterDescriptions.push(`Usuário: ${user.name}`);
+        }
+      }
+      if (month && month !== 'all') {
+        filterParts.push(`mes-${month}`);
+        filterDescriptions.push(`Mês: ${month}`);
+      }
+      
+      if (filterParts.length > 0) {
+        filename += `-${filterParts.join('-')}`;
+      }
+      
+      filename += '.pdf';
+
+      // Prepare data for PDF generation
+      const phases = ['prospecção', 'qualificação', 'proposta', 'negociação', 'fechamento'];
+      const temperatures = ['fria', 'morna', 'quente'];
+
+      // Calculate phase distribution
+      const phaseDistribution = phases.map(phase => {
+        const phaseOpps = opportunities.filter(o => o.phase === phase);
+        const phaseValue = phaseOpps.reduce((sum, opp) => {
+          return sum + (opp.budget ? parseFloat(opp.budget.toString()) : 0);
+        }, 0);
+        const percentage = opportunities.length > 0 ? (phaseOpps.length / opportunities.length * 100) : 0;
+        
+        return {
+          phase: phase.charAt(0).toUpperCase() + phase.slice(1),
+          count: phaseOpps.length,
+          percentage,
+          totalValue: phaseValue
+        };
+      });
+
+      // Calculate temperature distribution
+      const temperatureDistribution = temperatures.map(temp => {
+        const tempOpps = opportunities.filter(o => o.businessTemperature === temp);
+        const tempValue = tempOpps.reduce((sum, opp) => {
+          return sum + (opp.budget ? parseFloat(opp.budget.toString()) : 0);
+        }, 0);
+        const percentage = opportunities.length > 0 ? (tempOpps.length / opportunities.length * 100) : 0;
+        
+        return {
+          temperature: temp.charAt(0).toUpperCase() + temp.slice(1),
+          count: tempOpps.length,
+          percentage,
+          totalValue: tempValue
+        };
+      });
+
+      // Calculate performance by salesperson
+      const performanceBySalesperson = users
+        .filter(u => u.isActive && u.role !== 'admin')
+        .map(user => {
+          const userOpps = opportunities.filter(o => o.assignedTo === user.id);
+          const userClosedOpps = userOpps.filter(o => o.phase === 'fechamento');
+          const userTotalValue = userClosedOpps.reduce((sum, opp) => {
+            return sum + (opp.finalValue ? parseFloat(opp.finalValue.toString()) : 
+                         opp.budget ? parseFloat(opp.budget.toString()) : 0);
+          }, 0);
+          const conversionRate = userOpps.length > 0 ? (userClosedOpps.length / userOpps.length * 100) : 0;
+
+          return {
+            name: user.name,
+            totalOpportunities: userOpps.length,
+            closedOpportunities: userClosedOpps.length,
+            conversionRate,
+            totalValue: userTotalValue
+          };
+        })
+        .sort((a, b) => b.totalValue - a.totalValue);
+
+      // Calculate performance by creator
+      const performanceByCreator = users
+        .filter(u => u.isActive)
+        .map(user => {
+          const userOpps = opportunities.filter(o => o.createdBy === user.id);
+          const userClosedOpps = userOpps.filter(o => o.phase === 'fechamento');
+          const userTotalValue = userClosedOpps.reduce((sum, opp) => {
+            return sum + (opp.finalValue ? parseFloat(opp.finalValue.toString()) : 
+                         opp.budget ? parseFloat(opp.budget.toString()) : 0);
+          }, 0);
+          const conversionRate = userOpps.length > 0 ? (userClosedOpps.length / userOpps.length * 100) : 0;
+
+          return {
+            name: user.name,
+            totalOpportunities: userOpps.length,
+            closedOpportunities: userClosedOpps.length,
+            conversionRate,
+            totalValue: userTotalValue
+          };
+        })
+        .sort((a, b) => b.totalValue - a.totalValue);
+
+      // Prepare opportunities data with user names
+      const opportunitiesWithUsers = opportunities.map(opp => {
+        const assignedUser = users.find(u => u.id === opp.assignedTo);
+        const createdByUser = users.find(u => u.id === opp.createdBy);
+        
+        return {
+          ...opp,
+          assignedUser: assignedUser?.name || 'N/A',
+          createdByUser: createdByUser?.name || 'N/A',
+          value: opp.budget ? parseFloat(opp.budget.toString()) : 0,
+          phase: opp.phase || 'N/A',
+          temperature: opp.businessTemperature || 'N/A'
+        };
+      });
+
+      // Prepare report data
+      const reportData = {
+        opportunities: opportunitiesWithUsers,
+        phaseDistribution,
+        temperatureDistribution,
+        performanceBySalesperson,
+        performanceByCreator
+      };
+
+      // Map Portuguese types to English types for PDF service
+      const typeMapping: { [key: string]: string } = {
+        'completo': 'complete',
+        'fases': 'phases',
+        'temperatura': 'temperature',
+        'performance': 'performance',
+        'oportunidades': 'opportunities'
+      };
+
+      // Convert type to English if it's in Portuguese
+      const mappedType = typeMapping[type as string] || type as string;
+
+      // Define report titles
+      const reportTitles = {
+        complete: 'Relatório Completo de Oportunidades',
+        phases: 'Relatório de Distribuição por Fase',
+        temperature: 'Relatório de Distribuição por Temperatura',
+        performance: 'Relatório de Performance por Vendedor',
+        opportunities: 'Relatório de Lista de Oportunidades'
+      };
+
+      const reportTitle = reportTitles[mappedType as keyof typeof reportTitles] || 'Relatório CRM';
+      const filtersDescription = filterDescriptions.length > 0 ? filterDescriptions.join(', ') : undefined;
+
+      // Generate PDF
+      const pdfBuffer = await pdfService.generatePDF({
+        title: reportTitle,
+        type: mappedType,
+        data: reportData,
+        filters: filtersDescription
+      });
+
+      // Send PDF response
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Length', pdfBuffer.length);
+      
+      res.send(pdfBuffer);
+      
+    } catch (error: any) {
+      console.error('Erro ao gerar relatório PDF:', error);
+      res.status(500).json({ message: "Erro ao gerar relatório PDF para download" });
     }
   });
 
