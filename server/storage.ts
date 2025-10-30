@@ -65,6 +65,25 @@ export interface IStorage {
   getSystemBackups(limit?: number): Promise<SystemBackup[]>;
   getSystemBackup(id: string): Promise<SystemBackup | undefined>;
 
+  // Company Settings
+  getCompanySettings(): Promise<any>;
+  updateCompanySettings(settings: any): Promise<any>;
+
+  // Login History
+  getLoginHistory(userId: string, options?: { limit?: number; offset?: number }): Promise<any[]>;
+  createLoginHistory(data: any): Promise<any>;
+
+  // User Sessions
+  getUserSessions(userId: string): Promise<any[]>;
+  deleteUserSession(sessionId: string, userId: string): Promise<boolean>;
+
+  // System Logs
+  getSystemLogs(filters?: { level?: string; category?: string; search?: string; dateFrom?: string; dateTo?: string; limit?: number; offset?: number }): Promise<{ logs: any[]; totalRecords: number; totalPages: number; currentPage: number }>;
+  createSystemLog(data: any): Promise<any>;
+
+  // Password Management
+  updatePassword(userId: string, currentPassword: string, newPassword: string): Promise<boolean>;
+
   // Methods to clear all data
   clearAllOpportunities(): Promise<number>;
   clearAllAutomations(): Promise<number>;
@@ -478,6 +497,71 @@ export class MemStorage implements IStorage {
     const count = this.savedReports.size;
     this.savedReports.clear();
     return count;
+  }
+
+  // Company Settings (stub implementations for MemStorage)
+  async getCompanySettings(): Promise<any> {
+    return {
+      id: 'default',
+      companyName: 'Empresa Exemplo',
+      phone: '(11) 99999-9999',
+      email: 'contato@empresa.com',
+      address: 'Rua Exemplo, 123',
+      currency: 'BRL',
+      timezone: 'America/Sao_Paulo',
+      autoBackup: true,
+      backupFrequency: 'daily',
+      allowedFileTypes: ['pdf', 'doc', 'docx', 'jpg', 'png'],
+      maxFileSize: 10485760,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+  }
+
+  async updateCompanySettings(settings: any): Promise<any> {
+    return { ...settings, id: 'default', updatedAt: new Date() };
+  }
+
+  // Login History (stub implementations)
+  async getLoginHistory(userId: string, options: { limit?: number; offset?: number } = {}): Promise<any[]> {
+    return [];
+  }
+
+  async createLoginHistory(data: any): Promise<any> {
+    return { ...data, id: randomUUID() };
+  }
+
+  // User Sessions (stub implementations)
+  async getUserSessions(userId: string): Promise<any[]> {
+    return [];
+  }
+
+  async deleteUserSession(sessionId: string, userId: string): Promise<boolean> {
+    return true;
+  }
+
+  // System Logs (stub implementations)
+  async getSystemLogs(filters: { level?: string; category?: string; search?: string; dateFrom?: string; dateTo?: string; limit?: number; offset?: number } = {}): Promise<{ logs: any[]; totalRecords: number; totalPages: number; currentPage: number }> {
+    return { logs: [], totalRecords: 0, totalPages: 0, currentPage: 1 };
+  }
+
+  async createSystemLog(data: any): Promise<any> {
+    return { ...data, id: randomUUID(), createdAt: new Date() };
+  }
+
+  // Password Management (stub implementation)
+  async updatePassword(userId: string, currentPassword: string, newPassword: string): Promise<boolean> {
+    const user = this.users.get(userId);
+    if (!user) return false;
+    
+    const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password);
+    if (!isCurrentPasswordValid) return false;
+    
+    const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+    user.password = hashedNewPassword;
+    user.updatedAt = new Date();
+    
+    return true;
   }
 }
 

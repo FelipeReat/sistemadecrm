@@ -7,7 +7,7 @@ import { storage } from "./storage";
 // import { auditService } from "./audit-service";
 // import { backupService } from "./backup-service";
 // import { schedulerService } from "./scheduler";
-import { insertOpportunitySchema, insertAutomationSchema, insertUserSchema, updateUserSchema, loginSchema, insertSavedReportSchema, updateSavedReportSchema, insertUserSettingsSchema, insertEmailTemplateSchema } from "@shared/schema";
+import { insertOpportunitySchema, insertAutomationSchema, insertUserSchema, updateUserSchema, loginSchema, insertSavedReportSchema, updateSavedReportSchema, insertUserSettingsSchema, insertEmailTemplateSchema, updateEmailTemplateSchema } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import { getSession, isAuthenticated, isAdmin, isManagerOrAdmin, canEditAllOpportunities, canViewReports } from "./auth";
 import { rateLimiter } from "./rate-limiter";
@@ -30,6 +30,27 @@ import { nanoid } from 'nanoid';
 const requireAuth = isAuthenticated;
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Setup multer for file uploads
+  const uploadsDir = path.join(process.cwd(), 'uploads');
+  if (!fsSync.existsSync(uploadsDir)) {
+    fsSync.mkdirSync(uploadsDir, { recursive: true });
+  }
+
+  const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: {
+      fileSize: 5 * 1024 * 1024, // 5MB limit
+    },
+    fileFilter: (req, file, cb) => {
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+      if (allowedTypes.includes(file.mimetype)) {
+        cb(null, true);
+      } else {
+        cb(new Error('Tipo de arquivo não permitido. Use JPEG, PNG, GIF ou WebP.'));
+      }
+    }
+  });
+
   // Setup session middleware
   app.use(getSession());
 
@@ -601,6 +622,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // User profile and settings routes
+  app.get("/api/user/profile", isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const user = await storage.getUser(userId);
+
+      if (!user) {
+        return res.status(404).json({ message: "Usuário não encontrado" });
+      }
+
+      // Buscar configurações do usuário para obter a foto de perfil
+      const userSettings = await storage.getUserSettings(userId);
+
+      const { password: _, ...userWithoutPassword } = user;
+      res.json({
+        ...userWithoutPassword,
+        profilePhoto: userSettings?.profilePhoto || null
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Erro ao carregar perfil" });
+    }
+  });
+
   app.put("/api/user/profile", isAuthenticated, async (req, res) => {
     try {
       const userId = req.session.userId!;
@@ -637,6 +680,91 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Profile photo upload endpoint
+  app.post("/api/user/profile/photo", isAuthenticated, upload.single('photo'), async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      
+      if (!req.file) {
+        return res.status(400).json({ message: "Nenhum arquivo enviado" });
+      }
+
+      // Validate file type
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+      if (!allowedTypes.includes(req.file.mimetype)) {
+        return res.status(400).json({ message: "Tipo de arquivo não permitido. Use JPEG, PNG, GIF ou WebP." });
+      }
+
+      // Validate file size (5MB max)
+      if (req.file.size > 5 * 1024 * 1024) {
+        return res.status(400).json({ message: "Arquivo muito grande. Tamanho máximo: 5MB" });
+      }
+
+      // Generate unique filename
+      const fileExtension = path.extname(req.file.originalname);
+      const fileName = `profile_${userId}_${Date.now()}${fileExtension}`;
+      const filePath = path.join(uploadsDir, fileName);
+
+      // Save file
+      await fs.writeFile(filePath, req.file.buffer);
+
+      // Update user settings with photo path
+      const photoUrl = `/uploads/${fileName}`;
+      
+      // Buscar ou criar configurações do usuário
+      let userSettings = await storage.getUserSettings(userId);
+      if (!userSettings) {
+        await storage.createUserSettings({ 
+          userId: userId, 
+          profilePhoto: photoUrl 
+        });
+      } else {
+        await storage.updateUserSettings(userId, { profilePhoto: photoUrl });
+      }
+
+      res.json({ 
+        message: "Foto de perfil atualizada com sucesso",
+        photoUrl: photoUrl
+      });
+    } catch (error) {
+      console.error('Error uploading profile photo:', error);
+      res.status(500).json({ message: "Erro ao fazer upload da foto" });
+    }
+  });
+
+  // Profile photo removal endpoint
+  app.delete("/api/user/profile/photo", isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const userSettings = await storage.getUserSettings(userId);
+
+      if (!userSettings) {
+        return res.status(404).json({ message: "Configurações do usuário não encontradas" });
+      }
+
+      // Remove photo file if exists
+      if (userSettings.profilePhoto) {
+        const fileName = path.basename(userSettings.profilePhoto);
+        const filePath = path.join(uploadsDir, fileName);
+        
+        try {
+          await fs.unlink(filePath);
+        } catch (error) {
+          // File might not exist, continue anyway
+          console.warn('Could not delete photo file:', error);
+        }
+      }
+
+      // Update user settings to remove photo
+      await storage.updateUserSettings(userId, { profilePhoto: null });
+
+      res.json({ message: "Foto de perfil removida com sucesso" });
+    } catch (error) {
+      console.error('Error removing profile photo:', error);
+      res.status(500).json({ message: "Erro ao remover foto" });
+    }
+  });
+
   app.put("/api/user/settings", isAuthenticated, async (req, res) => {
     try {
       const userId = req.session.userId!;
@@ -647,6 +775,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ message: "Configurações salvas com sucesso", settings });
     } catch (error) {
       res.status(500).json({ message: "Erro ao salvar configurações" });
+    }
+  });
+
+  // Change password endpoint
+  app.put("/api/user/change-password", isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const { currentPassword, newPassword } = req.body;
+
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ message: "Senha atual e nova senha são obrigatórias" });
+      }
+
+      if (newPassword.length < 8) {
+        return res.status(400).json({ message: "A nova senha deve ter pelo menos 8 caracteres" });
+      }
+
+      if (currentPassword === newPassword) {
+        return res.status(400).json({ message: "A nova senha deve ser diferente da senha atual" });
+      }
+
+      const success = await storage.updatePassword(userId, currentPassword, newPassword);
+
+      if (success) {
+        res.json({ message: "Senha alterada com sucesso" });
+      } else {
+        res.status(400).json({ message: "Senha atual incorreta" });
+      }
+    } catch (error) {
+      console.error('Error changing password:', error);
+      res.status(500).json({ message: "Erro ao alterar senha" });
     }
   });
 
@@ -2311,6 +2470,620 @@ export async function registerRoutes(app: Express): Promise<Server> {
       timestamp: new Date().toISOString(),
       server: 'online'
     });
+  });
+
+  // ========================================
+  // SETTINGS ENDPOINTS - Sistema de Configurações
+  // ========================================
+
+  // Company Settings endpoints
+  app.get("/api/company/settings", isAuthenticated, async (req, res) => {
+    try {
+      const settings = await storage.getCompanySettings();
+      res.json(settings);
+    } catch (error: any) {
+      console.error('Error fetching company settings:', error);
+      res.status(500).json({ message: "Erro ao buscar configurações da empresa" });
+    }
+  });
+
+  app.put("/api/company/settings", isAuthenticated, isManagerOrAdmin, async (req, res) => {
+    try {
+      const validatedData = z.object({
+        companyName: z.string().min(1, "Nome da empresa é obrigatório"),
+        companyPhone: z.string().optional(),
+        companyEmail: z.string().email("Email inválido").optional(),
+        companyAddress: z.string().optional(),
+        companyLogo: z.string().optional(),
+        currency: z.string().min(1, "Moeda é obrigatória"),
+        timezone: z.string().min(1, "Fuso horário é obrigatório"),
+        dateFormat: z.string().min(1, "Formato de data é obrigatório"),
+        timeFormat: z.string().min(1, "Formato de hora é obrigatório"),
+        language: z.string().min(1, "Idioma é obrigatório"),
+        autoBackupEnabled: z.boolean(),
+        autoBackupFrequency: z.enum(['daily', 'weekly', 'monthly']),
+        autoBackupTime: z.string(),
+        maxFileSizeMb: z.number().min(1).max(100),
+        allowedFileTypes: z.array(z.string())
+      }).parse(req.body);
+
+      const settings = await storage.updateCompanySettings(validatedData);
+      
+      // Log da ação
+      await storage.createSystemLog({
+        level: 'info',
+        message: 'Configurações da empresa atualizadas',
+        category: 'settings',
+        userId: req.session.userId!,
+        metadata: { updatedFields: Object.keys(validatedData) }
+      });
+
+      res.json(settings);
+    } catch (error: any) {
+      console.error('Error updating company settings:', error);
+      if (error.name === "ZodError") {
+        const validationError = fromZodError(error);
+        return res.status(400).json({ message: validationError.message });
+      }
+      res.status(500).json({ message: "Erro ao atualizar configurações da empresa" });
+    }
+  });
+
+  // User Settings endpoints
+  app.get("/api/user/settings", isAuthenticated, async (req, res) => {
+    try {
+      const settings = await storage.getUserSettings(req.session.userId!);
+      res.json(settings);
+    } catch (error: any) {
+      console.error('Error fetching user settings:', error);
+      res.status(500).json({ message: "Erro ao buscar configurações do usuário" });
+    }
+  });
+
+  app.put("/api/user/settings", isAuthenticated, async (req, res) => {
+    try {
+      const validatedData = z.object({
+        notifications: z.boolean().optional(),
+        emailNotifications: z.boolean().optional(),
+        language: z.string().optional(),
+        timezone: z.string().optional(),
+        autoBackup: z.boolean().optional(),
+        twoFactorEnabled: z.boolean().optional(),
+        sessionTimeout: z.number().min(5).max(1440).optional(), // 5 min to 24 hours
+        profilePhoto: z.string().optional()
+      }).parse(req.body);
+
+      const settings = await storage.updateUserSettings(req.session.userId!, validatedData);
+      
+      // Log da ação
+      await storage.createSystemLog({
+        level: 'info',
+        message: 'Configurações do usuário atualizadas',
+        category: 'settings',
+        userId: req.session.userId!,
+        metadata: { updatedFields: Object.keys(validatedData) }
+      });
+
+      res.json(settings);
+    } catch (error: any) {
+      console.error('Error updating user settings:', error);
+      if (error.name === "ZodError") {
+        const validationError = fromZodError(error);
+        return res.status(400).json({ message: validationError.message });
+      }
+      res.status(500).json({ message: "Erro ao atualizar configurações do usuário" });
+    }
+  });
+
+  // Profile Photo Upload endpoint
+  const photoUpload = multer({
+    storage: multer.memoryStorage(),
+    limits: {
+      fileSize: 5 * 1024 * 1024, // 5MB limit
+    },
+    fileFilter: (req, file, cb) => {
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+      if (allowedTypes.includes(file.mimetype)) {
+        cb(null, true);
+      } else {
+        cb(new Error('Tipo de arquivo não permitido. Use JPEG, PNG ou WebP.'));
+      }
+    }
+  });
+
+  app.post("/api/user/photo", isAuthenticated, photoUpload.single('photo'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "Nenhum arquivo enviado" });
+      }
+
+      // Convert to base64 data URL
+      const base64 = req.file.buffer.toString('base64');
+      const dataUrl = `data:${req.file.mimetype};base64,${base64}`;
+
+      // Update user settings with new photo
+      await storage.updateUserSettings(req.session.userId!, { profilePhoto: dataUrl });
+
+      // Log da ação
+      await storage.createSystemLog({
+        level: 'info',
+        message: 'Foto de perfil atualizada',
+        category: 'profile',
+        userId: req.session.userId!,
+        metadata: { fileSize: req.file.size, mimeType: req.file.mimetype }
+      });
+
+      res.json({ 
+        message: "Foto de perfil atualizada com sucesso",
+        photoUrl: dataUrl
+      });
+    } catch (error: any) {
+      console.error('Error uploading profile photo:', error);
+      res.status(500).json({ message: "Erro ao fazer upload da foto de perfil" });
+    }
+  });
+
+  // Password Change endpoint
+  app.put("/api/user/password", isAuthenticated, async (req, res) => {
+    try {
+      const validatedData = z.object({
+        currentPassword: z.string().min(1, "Senha atual é obrigatória"),
+        newPassword: z.string().min(6, "Nova senha deve ter pelo menos 6 caracteres"),
+        confirmPassword: z.string().min(1, "Confirmação de senha é obrigatória")
+      }).parse(req.body);
+
+      if (validatedData.newPassword !== validatedData.confirmPassword) {
+        return res.status(400).json({ message: "Nova senha e confirmação não coincidem" });
+      }
+
+      // Verify current password
+      const user = await storage.validateUserPassword(req.session.user!.email, validatedData.currentPassword);
+      if (!user) {
+        return res.status(400).json({ message: "Senha atual incorreta" });
+      }
+
+      // Update password
+      await storage.updateUserPassword(req.session.userId!, validatedData.newPassword);
+
+      // Log da ação
+      await storage.createSystemLog({
+        level: 'info',
+        message: 'Senha alterada pelo usuário',
+        category: 'security',
+        userId: req.session.userId!
+      });
+
+      res.json({ message: "Senha alterada com sucesso" });
+    } catch (error: any) {
+      console.error('Error changing password:', error);
+      if (error.name === "ZodError") {
+        const validationError = fromZodError(error);
+        return res.status(400).json({ message: validationError.message });
+      }
+      res.status(500).json({ message: "Erro ao alterar senha" });
+    }
+  });
+
+  // Login History endpoints
+  app.get("/api/user/login-history", isAuthenticated, async (req, res) => {
+    try {
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 20;
+      const offset = (page - 1) * limit;
+
+      const history = await storage.getLoginHistory(req.session.userId!, { limit, offset });
+      res.json(history);
+    } catch (error: any) {
+      console.error('Error fetching login history:', error);
+      res.status(500).json({ message: "Erro ao buscar histórico de login" });
+    }
+  });
+
+  // Active Sessions endpoints
+  app.get("/api/user/sessions", isAuthenticated, async (req, res) => {
+    try {
+      const sessions = await storage.getUserSessions(req.session.userId!);
+      res.json(sessions);
+    } catch (error: any) {
+      console.error('Error fetching user sessions:', error);
+      res.status(500).json({ message: "Erro ao buscar sessões ativas" });
+    }
+  });
+
+  app.delete("/api/user/sessions/:sessionId", isAuthenticated, async (req, res) => {
+    try {
+      const { sessionId } = req.params;
+      
+      // Verify session belongs to user
+      const session = await storage.getUserSession(sessionId);
+      if (!session || session.userId !== req.session.userId!) {
+        return res.status(404).json({ message: "Sessão não encontrada" });
+      }
+
+      await storage.terminateUserSession(sessionId);
+
+      // Log da ação
+      await storage.createSystemLog({
+        level: 'info',
+        message: 'Sessão terminada pelo usuário',
+        category: 'security',
+        userId: req.session.userId!,
+        metadata: { terminatedSessionId: sessionId }
+      });
+
+      res.json({ message: "Sessão terminada com sucesso" });
+    } catch (error: any) {
+      console.error('Error terminating session:', error);
+      res.status(500).json({ message: "Erro ao terminar sessão" });
+    }
+  });
+
+  // System Logs endpoints (Admin only)
+  app.get("/api/admin/system-logs", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 50;
+      const level = req.query.level as string;
+      const category = req.query.category as string;
+      const offset = (page - 1) * limit;
+
+      const logs = await storage.getSystemLogs({ 
+        limit, 
+        offset, 
+        level, 
+        category 
+      });
+      res.json(logs);
+    } catch (error: any) {
+      console.error('Error fetching system logs:', error);
+      res.status(500).json({ message: "Erro ao buscar logs do sistema" });
+    }
+  });
+
+  // Email Templates endpoints
+  app.get("/api/email-templates", isAuthenticated, isManagerOrAdmin, async (req, res) => {
+    try {
+      const templates = await storage.getEmailTemplates();
+      res.json(templates);
+    } catch (error: any) {
+      console.error('Error fetching email templates:', error);
+      res.status(500).json({ message: "Erro ao buscar templates de email" });
+    }
+  });
+
+  app.post("/api/email-templates", isAuthenticated, isManagerOrAdmin, async (req, res) => {
+    try {
+      const validatedData = z.object({
+        name: z.string().min(1, "Nome é obrigatório"),
+        subject: z.string().min(1, "Assunto é obrigatório"),
+        body: z.string().min(1, "Corpo do email é obrigatório"),
+        htmlContent: z.string().optional(),
+        textContent: z.string().optional(),
+        trigger: z.string().min(1, "Trigger é obrigatório"),
+        variables: z.array(z.string()).default([]),
+        active: z.boolean().default(true)
+      }).parse(req.body);
+
+      const template = await storage.createEmailTemplate({
+        ...validatedData,
+        createdBy: req.session.userId!
+      });
+
+      // Log da ação
+      await storage.createSystemLog({
+        level: 'info',
+        message: `Template de email criado: ${validatedData.name}`,
+        category: 'email',
+        userId: req.session.userId!,
+        metadata: { templateId: template.id, trigger: validatedData.trigger }
+      });
+
+      res.status(201).json(template);
+    } catch (error: any) {
+      console.error('Error creating email template:', error);
+      if (error.name === "ZodError") {
+        const validationError = fromZodError(error);
+        return res.status(400).json({ message: validationError.message });
+      }
+      res.status(500).json({ message: "Erro ao criar template de email" });
+    }
+  });
+
+  app.put("/api/email-templates/:id", isAuthenticated, isManagerOrAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const validatedData = z.object({
+        name: z.string().min(1, "Nome é obrigatório").optional(),
+        subject: z.string().min(1, "Assunto é obrigatório").optional(),
+        body: z.string().min(1, "Corpo do email é obrigatório").optional(),
+        htmlContent: z.string().optional(),
+        textContent: z.string().optional(),
+        trigger: z.string().min(1, "Trigger é obrigatório").optional(),
+        variables: z.array(z.string()).optional(),
+        active: z.boolean().optional()
+      }).parse(req.body);
+
+      const template = await storage.updateEmailTemplate(parseInt(id), validatedData);
+      
+      if (!template) {
+        return res.status(404).json({ message: "Template não encontrado" });
+      }
+
+      // Log da ação
+      await storage.createSystemLog({
+        level: 'info',
+        message: `Template de email atualizado: ${template.name}`,
+        category: 'email',
+        userId: req.session.userId!,
+        metadata: { templateId: template.id, updatedFields: Object.keys(validatedData) }
+      });
+
+      res.json(template);
+    } catch (error: any) {
+      console.error('Error updating email template:', error);
+      if (error.name === "ZodError") {
+        const validationError = fromZodError(error);
+        return res.status(400).json({ message: validationError.message });
+      }
+      res.status(500).json({ message: "Erro ao atualizar template de email" });
+    }
+  });
+
+  app.delete("/api/email-templates/:id", isAuthenticated, isManagerOrAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const deleted = await storage.deleteEmailTemplate(parseInt(id));
+      
+      if (!deleted) {
+        return res.status(404).json({ message: "Template não encontrado" });
+      }
+
+      // Log da ação
+      await storage.createSystemLog({
+        level: 'info',
+        message: `Template de email excluído: ID ${id}`,
+        category: 'email',
+        userId: req.session.userId!,
+        metadata: { templateId: parseInt(id) }
+      });
+
+      res.status(204).send();
+    } catch (error: any) {
+      console.error('Error deleting email template:', error);
+      res.status(500).json({ message: "Erro ao excluir template de email" });
+    }
+  });
+
+  // Webhooks endpoints
+  app.get("/api/webhooks", isAuthenticated, isManagerOrAdmin, async (req, res) => {
+    try {
+      const webhooks = await storage.getWebhooks();
+      res.json(webhooks);
+    } catch (error: any) {
+      console.error('Error fetching webhooks:', error);
+      res.status(500).json({ message: "Erro ao buscar webhooks" });
+    }
+  });
+
+  app.post("/api/webhooks", isAuthenticated, isManagerOrAdmin, async (req, res) => {
+    try {
+      const validatedData = z.object({
+        name: z.string().min(1, "Nome é obrigatório"),
+        url: z.string().url("URL inválida"),
+        events: z.array(z.string()).min(1, "Pelo menos um evento é obrigatório"),
+        secret: z.string().optional(),
+        active: z.boolean().default(true),
+        retryCount: z.number().min(0).max(10).default(3),
+        timeoutSeconds: z.number().min(5).max(300).default(30)
+      }).parse(req.body);
+
+      const webhook = await storage.createWebhook({
+        ...validatedData,
+        createdBy: req.session.userId!
+      });
+
+      // Log da ação
+      await storage.createSystemLog({
+        level: 'info',
+        message: `Webhook criado: ${validatedData.name}`,
+        category: 'webhook',
+        userId: req.session.userId!,
+        metadata: { webhookId: webhook.id, url: validatedData.url, events: validatedData.events }
+      });
+
+      res.status(201).json(webhook);
+    } catch (error: any) {
+      console.error('Error creating webhook:', error);
+      if (error.name === "ZodError") {
+        const validationError = fromZodError(error);
+        return res.status(400).json({ message: validationError.message });
+      }
+      res.status(500).json({ message: "Erro ao criar webhook" });
+    }
+  });
+
+  app.put("/api/webhooks/:id", isAuthenticated, isManagerOrAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const validatedData = z.object({
+        name: z.string().min(1, "Nome é obrigatório").optional(),
+        url: z.string().url("URL inválida").optional(),
+        events: z.array(z.string()).min(1, "Pelo menos um evento é obrigatório").optional(),
+        secret: z.string().optional(),
+        active: z.boolean().optional(),
+        retryCount: z.number().min(0).max(10).optional(),
+        timeoutSeconds: z.number().min(5).max(300).optional()
+      }).parse(req.body);
+
+      const webhook = await storage.updateWebhook(parseInt(id), validatedData);
+      
+      if (!webhook) {
+        return res.status(404).json({ message: "Webhook não encontrado" });
+      }
+
+      // Log da ação
+      await storage.createSystemLog({
+        level: 'info',
+        message: `Webhook atualizado: ${webhook.name}`,
+        category: 'webhook',
+        userId: req.session.userId!,
+        metadata: { webhookId: webhook.id, updatedFields: Object.keys(validatedData) }
+      });
+
+      res.json(webhook);
+    } catch (error: any) {
+      console.error('Error updating webhook:', error);
+      if (error.name === "ZodError") {
+        const validationError = fromZodError(error);
+        return res.status(400).json({ message: validationError.message });
+      }
+      res.status(500).json({ message: "Erro ao atualizar webhook" });
+    }
+  });
+
+  app.delete("/api/webhooks/:id", isAuthenticated, isManagerOrAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const deleted = await storage.deleteWebhook(parseInt(id));
+      
+      if (!deleted) {
+        return res.status(404).json({ message: "Webhook não encontrado" });
+      }
+
+      // Log da ação
+      await storage.createSystemLog({
+        level: 'info',
+        message: `Webhook excluído: ID ${id}`,
+        category: 'webhook',
+        userId: req.session.userId!,
+        metadata: { webhookId: parseInt(id) }
+      });
+
+      res.status(204).send();
+    } catch (error: any) {
+      console.error('Error deleting webhook:', error);
+      res.status(500).json({ message: "Erro ao excluir webhook" });
+    }
+  });
+
+  // Email Templates endpoints
+  app.get("/api/email/templates", isAuthenticated, async (req, res) => {
+    try {
+      const templates = await storage.getEmailTemplates();
+      res.json(templates);
+    } catch (error: any) {
+      console.error('Error fetching email templates:', error);
+      res.status(500).json({ message: "Erro ao buscar templates de email" });
+    }
+  });
+
+  app.post("/api/email/templates", isAuthenticated, async (req, res) => {
+    try {
+      const templateData = insertEmailTemplateSchema.parse(req.body);
+      const template = await storage.createEmailTemplate(templateData);
+      
+      // Log da ação
+      await storage.createSystemLog({
+        level: 'info',
+        message: `Template de email criado: ${templateData.name}`,
+        category: 'email',
+        user_id: req.session.userId!,
+        metadata: { templateId: template.id }
+      });
+
+      res.status(201).json(template);
+    } catch (error: any) {
+      console.error('Error creating email template:', error);
+      if (error.name === "ZodError") {
+        const validationError = fromZodError(error);
+        return res.status(400).json({ message: validationError.message });
+      }
+      res.status(500).json({ message: "Erro ao criar template de email" });
+    }
+  });
+
+  app.put("/api/email/templates/:id", isAuthenticated, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const templateData = updateEmailTemplateSchema.parse(req.body);
+      
+      const template = await storage.updateEmailTemplate(id, templateData);
+      if (!template) {
+        return res.status(404).json({ message: "Template não encontrado" });
+      }
+
+      // Log da ação
+      await storage.createSystemLog({
+        level: 'info',
+        message: `Template de email atualizado: ${templateData.name}`,
+        category: 'email',
+        user_id: req.session.userId!,
+        metadata: { templateId: id }
+      });
+
+      res.json(template);
+    } catch (error: any) {
+      console.error('Error updating email template:', error);
+      if (error.name === "ZodError") {
+        const validationError = fromZodError(error);
+        return res.status(400).json({ message: validationError.message });
+      }
+      res.status(500).json({ message: "Erro ao atualizar template de email" });
+    }
+  });
+
+  app.delete("/api/email/templates/:id", isAuthenticated, async (req, res) => {
+    try {
+      const { id } = req.params;
+      
+      const deleted = await storage.deleteEmailTemplate(id);
+      if (!deleted) {
+        return res.status(404).json({ message: "Template não encontrado" });
+      }
+
+      // Log da ação
+      await storage.createSystemLog({
+        level: 'info',
+        message: `Template de email excluído: ${id}`,
+        category: 'email',
+        user_id: req.session.userId!,
+        metadata: { templateId: id }
+      });
+
+      res.status(204).send();
+    } catch (error: any) {
+      console.error('Error deleting email template:', error);
+      res.status(500).json({ message: "Erro ao excluir template de email" });
+    }
+  });
+
+  // System Logs endpoints
+  app.get("/api/system/logs", isAuthenticated, async (req, res) => {
+    try {
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 50;
+      const offset = (page - 1) * limit;
+      
+      const level = req.query.level as string;
+      const category = req.query.category as string;
+      const search = req.query.search as string;
+      const dateFrom = req.query.date_from as string;
+      const dateTo = req.query.date_to as string;
+
+      const filters = {
+        level,
+        category,
+        search,
+        dateFrom,
+        dateTo
+      };
+
+      const result = await storage.getSystemLogs({ limit, offset, filters });
+      res.json(result);
+    } catch (error: any) {
+      console.error('Error fetching system logs:', error);
+      res.status(500).json({ message: "Erro ao buscar logs do sistema" });
+    }
   });
 
   const httpServer = createServer(app);

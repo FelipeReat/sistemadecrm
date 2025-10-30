@@ -1354,6 +1354,348 @@ export class PostgresStorage implements IStorage {
       return undefined;
     }
   }
+
+  // Company Settings
+  async getCompanySettings(): Promise<any> {
+    try {
+      const client = createDirectConnection();
+      await client.connect();
+      
+      const result = await client.query('SELECT * FROM company_settings LIMIT 1');
+      await client.end();
+      
+      if (result.rows.length === 0) {
+        // Return default settings if none exist
+        return {
+          id: null,
+          companyName: '',
+          phone: '',
+          email: '',
+          address: '',
+          currency: 'BRL',
+          timezone: 'America/Sao_Paulo',
+          autoBackup: true,
+          backupFrequency: 'daily',
+          allowedFileTypes: ['pdf', 'doc', 'docx', 'jpg', 'png'],
+          maxFileSize: 10485760, // 10MB
+          createdAt: new Date(),
+          updatedAt: new Date()
+        };
+      }
+      
+      return result.rows[0];
+    } catch (error) {
+      console.error('Error getting company settings:', error);
+      throw error;
+    }
+  }
+
+  async updateCompanySettings(settings: any): Promise<any> {
+    try {
+      console.log('updateCompanySettings called with:', JSON.stringify(settings, null, 2));
+      
+      const client = createDirectConnection();
+      await client.connect();
+      
+      // Check if settings exist
+      const existingResult = await client.query('SELECT id FROM company_settings LIMIT 1');
+      console.log('Existing settings found:', existingResult.rows.length > 0);
+      
+      let result;
+      if (existingResult.rows.length === 0) {
+        console.log('Inserting new company settings...');
+        // Insert new settings
+        result = await client.query(`
+          INSERT INTO company_settings (
+            id, company_name, company_phone, company_email, company_address, currency, timezone,
+            date_format, time_format, language, auto_backup_enabled, auto_backup_frequency, 
+            auto_backup_time, max_file_size_mb, allowed_file_types, created_at, updated_at
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, NOW(), NOW())
+          RETURNING *
+        `, [
+          randomUUID(),
+          settings.companyName,
+          settings.companyPhone,
+          settings.companyEmail,
+          settings.companyAddress,
+          settings.currency,
+          settings.timezone,
+          settings.dateFormat,
+          settings.timeFormat,
+          settings.language,
+          settings.autoBackupEnabled,
+          settings.autoBackupFrequency,
+          settings.autoBackupTime,
+          settings.maxFileSizeMb,
+          settings.allowedFileTypes
+        ]);
+      } else {
+        console.log('Updating existing company settings...');
+        // Update existing settings
+        result = await client.query(`
+          UPDATE company_settings SET
+            company_name = $1,
+            company_phone = $2,
+            company_email = $3,
+            company_address = $4,
+            currency = $5,
+            timezone = $6,
+            date_format = $7,
+            time_format = $8,
+            language = $9,
+            auto_backup_enabled = $10,
+            auto_backup_frequency = $11,
+            auto_backup_time = $12,
+            max_file_size_mb = $13,
+            allowed_file_types = $14,
+            updated_at = NOW()
+          WHERE id = $15
+          RETURNING *
+        `, [
+          settings.companyName,
+          settings.companyPhone,
+          settings.companyEmail,
+          settings.companyAddress,
+          settings.currency,
+          settings.timezone,
+          settings.dateFormat,
+          settings.timeFormat,
+          settings.language,
+          settings.autoBackupEnabled,
+          settings.autoBackupFrequency,
+          settings.autoBackupTime,
+          settings.maxFileSizeMb,
+          settings.allowedFileTypes,
+          existingResult.rows[0].id
+        ]);
+      }
+      
+      console.log('Database operation completed successfully');
+      await client.end();
+      return result.rows[0];
+    } catch (error) {
+      console.error('Error updating company settings:', error);
+      throw error;
+    }
+  }
+
+  // Login History
+  async getLoginHistory(userId: string, options: { limit?: number; offset?: number } = {}): Promise<any[]> {
+    try {
+      const { limit = 50, offset = 0 } = options;
+      const client = createDirectConnection();
+      await client.connect();
+      
+      const result = await client.query(`
+        SELECT * FROM login_history 
+        WHERE user_id = $1 
+        ORDER BY login_time DESC 
+        LIMIT $2 OFFSET $3
+      `, [userId, limit, offset]);
+      
+      await client.end();
+      return result.rows;
+    } catch (error) {
+      console.error('Error getting login history:', error);
+      return [];
+    }
+  }
+
+  async createLoginHistory(data: any): Promise<any> {
+    try {
+      const client = createDirectConnection();
+      await client.connect();
+      
+      const result = await client.query(`
+        INSERT INTO login_history (
+          id, user_id, ip_address, user_agent, login_time, success
+        ) VALUES ($1, $2, $3, $4, $5, $6)
+        RETURNING *
+      `, [
+        randomUUID(),
+        data.userId,
+        data.ipAddress,
+        data.userAgent,
+        data.loginTime || new Date(),
+        data.success
+      ]);
+      
+      await client.end();
+      return result.rows[0];
+    } catch (error) {
+      console.error('Error creating login history:', error);
+      throw error;
+    }
+  }
+
+  // User Sessions
+  async getUserSessions(userId: string): Promise<any[]> {
+    try {
+      const client = createDirectConnection();
+      await client.connect();
+      
+      const result = await client.query(`
+        SELECT * FROM user_sessions 
+        WHERE user_id = $1 AND expires_at > NOW()
+        ORDER BY created_at DESC
+      `, [userId]);
+      
+      await client.end();
+      return result.rows;
+    } catch (error) {
+      console.error('Error getting user sessions:', error);
+      return [];
+    }
+  }
+
+  async deleteUserSession(sessionId: string, userId: string): Promise<boolean> {
+    try {
+      const client = createDirectConnection();
+      await client.connect();
+      
+      const result = await client.query(`
+        DELETE FROM user_sessions 
+        WHERE id = $1 AND user_id = $2
+      `, [sessionId, userId]);
+      
+      await client.end();
+      return result.rowCount > 0;
+    } catch (error) {
+      console.error('Error deleting user session:', error);
+      return false;
+    }
+  }
+
+  // System Logs
+  async getSystemLogs(options: { limit?: number; offset?: number; filters?: any } = {}): Promise<any> {
+    try {
+      const { limit = 100, offset = 0, filters = {} } = options;
+      const { level, category, search, dateFrom, dateTo } = filters;
+      
+      const client = createDirectConnection();
+      await client.connect();
+      
+      let query = 'SELECT * FROM system_logs WHERE 1=1';
+      const params: any[] = [];
+      let paramIndex = 1;
+      
+      if (level) {
+        query += ` AND level = $${paramIndex}`;
+        params.push(level);
+        paramIndex++;
+      }
+      
+      if (category) {
+        query += ` AND category = $${paramIndex}`;
+        params.push(category);
+        paramIndex++;
+      }
+      
+      if (search) {
+        query += ` AND (message ILIKE $${paramIndex} OR details ILIKE $${paramIndex})`;
+        params.push(`%${search}%`);
+        paramIndex++;
+      }
+      
+      if (dateFrom) {
+        query += ` AND created_at >= $${paramIndex}`;
+        params.push(dateFrom);
+        paramIndex++;
+      }
+      
+      if (dateTo) {
+        query += ` AND created_at <= $${paramIndex}`;
+        params.push(dateTo);
+        paramIndex++;
+      }
+      
+      // Count total records
+      const countQuery = query.replace('SELECT *', 'SELECT COUNT(*)');
+      const countResult = await client.query(countQuery, params);
+      const totalRecords = parseInt(countResult.rows[0].count);
+      
+      query += ` ORDER BY created_at DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
+      params.push(limit, offset);
+      
+      const result = await client.query(query, params);
+      await client.end();
+      
+      return {
+        logs: result.rows,
+        totalRecords,
+        totalPages: Math.ceil(totalRecords / limit),
+        currentPage: Math.floor(offset / limit) + 1
+      };
+    } catch (error) {
+      console.error('Error getting system logs:', error);
+      return [];
+    }
+  }
+
+  async createSystemLog(data: any): Promise<any> {
+    try {
+      const client = createDirectConnection();
+      await client.connect();
+      
+      const result = await client.query(`
+        INSERT INTO system_logs (
+          level, category, message, user_id, ip_address, user_agent, metadata, created_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+        RETURNING *
+      `, [
+        data.level || 'info',
+        data.category || 'general',
+        data.message,
+        data.userId || null,
+        data.ipAddress || null,
+        data.userAgent || null,
+        data.metadata ? JSON.stringify(data.metadata) : null
+      ]);
+      
+      await client.end();
+      return result.rows[0];
+    } catch (error) {
+      console.error('Error creating system log:', error);
+      throw error;
+    }
+  }
+
+  // Password Management
+  async updatePassword(userId: string, currentPassword: string, newPassword: string): Promise<boolean> {
+    try {
+      const client = createDirectConnection();
+      await client.connect();
+      
+      // Get current user password
+      const userResult = await client.query('SELECT password FROM users WHERE id = $1', [userId]);
+      if (userResult.rows.length === 0) {
+        await client.end();
+        return false;
+      }
+      
+      // Verify current password
+      const isCurrentPasswordValid = await bcrypt.compare(currentPassword, userResult.rows[0].password);
+      if (!isCurrentPasswordValid) {
+        await client.end();
+        return false;
+      }
+      
+      // Hash new password and update
+      const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+      const updateResult = await client.query(`
+        UPDATE users SET 
+          password = $1, 
+          updated_at = NOW() 
+        WHERE id = $2
+      `, [hashedNewPassword, userId]);
+      
+      await client.end();
+      return updateResult.rowCount > 0;
+    } catch (error) {
+      console.error('Error updating password:', error);
+      return false;
+    }
+  }
 }
 
 export const postgresStorage = new PostgresStorage();

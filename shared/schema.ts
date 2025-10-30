@@ -396,8 +396,12 @@ export const emailTemplates = pgTable("email_templates", {
   name: text("name").notNull(),
   subject: text("subject").notNull(),
   body: text("body").notNull(),
+  htmlContent: text("html_content"),
+  textContent: text("text_content"),
+  variables: jsonb("variables").default(sql`'[]'`),
   trigger: text("trigger").notNull(), // 'opportunity_created', 'phase_changed', etc.
   active: boolean("active").default(true),
+  createdBy: varchar("created_by").references(() => users.id),
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
   updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
 });
@@ -413,6 +417,20 @@ export const emailLogs = pgTable("email_logs", {
   sentAt: timestamp("sent_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
 });
 
+// Company settings
+export const companySettings = pgTable("company_settings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name", { length: 255 }).notNull(),
+  address: text("address"),
+  phone: varchar("phone", { length: 50 }),
+  email: varchar("email", { length: 255 }),
+  currency: varchar("currency", { length: 10 }).default("BRL"),
+  timezone: varchar("timezone", { length: 100 }).default("America/Sao_Paulo"),
+  backupSettings: jsonb("backup_settings").default(sql`'{"enabled": true, "frequency": "daily", "time": "02:00"}'`),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+  updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
 // User settings and preferences
 export const userSettings = pgTable("user_settings", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -423,6 +441,60 @@ export const userSettings = pgTable("user_settings", {
   autoBackup: boolean("auto_backup").default(true),
   language: text("language").default("pt-BR"),
   timezone: text("timezone").default("America/Sao_Paulo"),
+  twoFactorEnabled: boolean("two_factor_enabled").default(false),
+  twoFactorSecret: varchar("two_factor_secret", { length: 255 }),
+  backupCodes: text("backup_codes").array(),
+  sessionTimeout: integer("session_timeout").default(480), // 8 hours in minutes
+  passwordExpiresAt: timestamp("password_expires_at"),
+  profilePhoto: text("profile_photo"), // Base64 encoded photo
+  updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+// Login history
+export const loginHistory = pgTable("login_history", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  ipAddress: text("ip_address"), // Using text instead of inet for compatibility
+  userAgent: text("user_agent"),
+  location: varchar("location", { length: 255 }),
+  success: boolean("success").notNull(),
+  failureReason: varchar("failure_reason", { length: 255 }),
+  loginAt: timestamp("login_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+// User sessions
+export const userSessions = pgTable("user_sessions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  sessionToken: varchar("session_token", { length: 255 }).notNull().unique(),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+  isActive: boolean("is_active").default(true),
+});
+
+// System logs
+export const systemLogs = pgTable("system_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  level: varchar("level", { length: 20 }).notNull(), // 'info', 'warn', 'error', 'debug'
+  message: text("message").notNull(),
+  metadata: jsonb("metadata").default(sql`'{}'`),
+  source: varchar("source", { length: 100 }),
+  userId: varchar("user_id").references(() => users.id),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+// Webhooks
+export const webhooks = pgTable("webhooks", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name", { length: 255 }).notNull(),
+  url: text("url").notNull(),
+  events: text("events").array().notNull(),
+  secret: varchar("secret", { length: 255 }),
+  active: boolean("active").default(true),
+  createdBy: varchar("created_by").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
   updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
 });
 
@@ -654,3 +726,114 @@ export type InsertSalesReport = z.infer<typeof insertSalesReportSchema>;
 export type SalesReport = typeof salesReports.$inferSelect;
 export type EmailLog = typeof emailLogs.$inferSelect;
 export type SystemBackup = typeof systemBackups.$inferSelect;
+
+// New schemas for settings tables
+export const insertCompanySettingsSchema = createInsertSchema(companySettings, {
+  name: z.string().min(1, "Nome da empresa é obrigatório").max(255),
+  address: z.string().max(500).optional(),
+  phone: z.string().regex(/^\(\d{2}\)\s\d{4,5}-\d{4}$/, "Formato de telefone inválido").optional(),
+  email: z.string().email("Email inválido").optional(),
+  currency: z.enum(['BRL', 'USD', 'EUR'], { errorMap: () => ({ message: "Moeda deve ser BRL, USD ou EUR" }) }),
+  timezone: z.string().min(1, "Fuso horário é obrigatório"),
+}).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const updateCompanySettingsSchema = insertCompanySettingsSchema.partial();
+
+export const insertLoginHistorySchema = createInsertSchema(loginHistory).omit({
+  id: true,
+  loginAt: true,
+});
+
+export const insertUserSessionSchema = createInsertSchema(userSessions).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertSystemLogSchema = createInsertSchema(systemLogs, {
+  level: z.enum(['info', 'warn', 'error', 'debug']),
+  message: z.string().min(1, "Mensagem é obrigatória"),
+}).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertWebhookSchema = createInsertSchema(webhooks, {
+  name: z.string().min(1, "Nome é obrigatório").max(255),
+  url: z.string().url("URL inválida"),
+  events: z.array(z.string()).min(1, "Pelo menos um evento deve ser selecionado"),
+  secret: z.string().optional(),
+}).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const updateWebhookSchema = insertWebhookSchema.partial().omit({
+  createdBy: true,
+});
+
+export const updateUserSettingsSchema = createInsertSchema(userSettings, {
+  emailNotifications: z.boolean().optional(),
+  smsNotifications: z.boolean().optional(),
+  pushNotifications: z.boolean().optional(),
+  autoBackup: z.boolean().optional(),
+  language: z.string().optional(),
+  timezone: z.string().optional(),
+  twoFactorEnabled: z.boolean().optional(),
+  sessionTimeout: z.number().min(5).max(1440).optional(), // 5 minutes to 24 hours
+}).omit({
+  id: true,
+  userId: true,
+  updatedAt: true,
+}).partial();
+
+export const passwordChangeSchema = z.object({
+  currentPassword: z.string().min(1, "Senha atual é obrigatória"),
+  newPassword: z.string()
+    .min(8, "Nova senha deve ter pelo menos 8 caracteres")
+    .max(100, "Nova senha muito longa")
+    .refine((val) => /[A-Z]/.test(val), "Nova senha deve conter pelo menos uma letra maiúscula")
+    .refine((val) => /[a-z]/.test(val), "Nova senha deve conter pelo menos uma letra minúscula")
+    .refine((val) => /\d/.test(val), "Nova senha deve conter pelo menos um número")
+    .refine((val) => /[!@#$%^&*(),.?":{}|<>]/.test(val), "Nova senha deve conter pelo menos um caractere especial"),
+  confirmPassword: z.string()
+}).refine(data => data.newPassword === data.confirmPassword, {
+  message: "Senhas não coincidem",
+  path: ["confirmPassword"]
+});
+
+export const updateEmailTemplateSchema = createInsertSchema(emailTemplates, {
+  name: z.string().min(1, "Nome é obrigatório").max(255),
+  subject: z.string().min(1, "Assunto é obrigatório").max(500),
+  body: z.string().min(1, "Conteúdo é obrigatório"),
+  htmlContent: z.string().optional(),
+  textContent: z.string().optional(),
+  variables: z.array(z.string()).optional(),
+}).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+}).partial().omit({
+  createdBy: true,
+});
+
+// Export new types
+export type InsertCompanySettings = z.infer<typeof insertCompanySettingsSchema>;
+export type UpdateCompanySettings = z.infer<typeof updateCompanySettingsSchema>;
+export type CompanySettings = typeof companySettings.$inferSelect;
+export type InsertLoginHistory = z.infer<typeof insertLoginHistorySchema>;
+export type LoginHistory = typeof loginHistory.$inferSelect;
+export type InsertUserSession = z.infer<typeof insertUserSessionSchema>;
+export type UserSession = typeof userSessions.$inferSelect;
+export type InsertSystemLog = z.infer<typeof insertSystemLogSchema>;
+export type SystemLog = typeof systemLogs.$inferSelect;
+export type InsertWebhook = z.infer<typeof insertWebhookSchema>;
+export type UpdateWebhook = z.infer<typeof updateWebhookSchema>;
+export type Webhook = typeof webhooks.$inferSelect;
+export type UpdateUserSettings = z.infer<typeof updateUserSettingsSchema>;
+export type PasswordChange = z.infer<typeof passwordChangeSchema>;
+export type UpdateEmailTemplate = z.infer<typeof updateEmailTemplateSchema>;
