@@ -569,6 +569,7 @@ export default function CrmDashboard() {
                 onCreateOpportunityInPhase={() => handleCreateOpportunityInPhase(phase.key)}
                 isPhaseFiltered={filteredPhaseOnly === phase.key}
                 onTogglePhaseFilter={handleTogglePhaseFilter}
+                users={users}
               />
             ))}
           </div>

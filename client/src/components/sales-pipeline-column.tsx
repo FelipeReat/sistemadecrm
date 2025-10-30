@@ -7,7 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useReportsSync } from "@/hooks/useReportsSync";
 import { useAuth } from "@/hooks/useAuth";
 import { useKanbanStore } from "@/hooks/useKanbanStore";
-import type { Opportunity } from "@shared/schema";
+import type { Opportunity, User } from "@shared/schema";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -164,9 +164,10 @@ interface SalesPipelineColumnProps {
   onCreateOpportunityInPhase?: (phase: string) => void;
   isPhaseFiltered?: boolean;
   onTogglePhaseFilter?: (phase: string) => void;
+  users?: User[];
 }
 
-export default function SalesPipelineColumn({ phase, opportunities, isLoading, onViewDetails, onCreateOpportunityInPhase, isPhaseFiltered = false, onTogglePhaseFilter }: SalesPipelineColumnProps) {
+export default function SalesPipelineColumn({ phase, opportunities, isLoading, onViewDetails, onCreateOpportunityInPhase, isPhaseFiltered = false, onTogglePhaseFilter, users = [] }: SalesPipelineColumnProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { invalidateAllData } = useReportsSync();
@@ -464,6 +465,7 @@ export default function SalesPipelineColumn({ phase, opportunities, isLoading, o
                     key={opportunity.id}
                     opportunity={opportunity}
                     onViewDetails={onViewDetails}
+                    users={users}
                   />
                 );
               })}

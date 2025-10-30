@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import type { Opportunity } from "@shared/schema";
+import type { Opportunity, User as UserType } from "@shared/schema";
 import { formatters } from "@/lib/formatters";
 import { useEffect } from "react";
 
@@ -54,10 +54,25 @@ const validatePhaseCompletion = (opportunity: Opportunity): { isComplete: boolea
 interface OpportunityCardProps {
   opportunity: Opportunity;
   onViewDetails?: (opportunity: Opportunity) => void;
+  users?: UserType[];
 }
 
-export default function OpportunityCard({ opportunity, onViewDetails }: OpportunityCardProps) {
+export default function OpportunityCard({ opportunity, onViewDetails, users = [] }: OpportunityCardProps) {
   const phaseValidation = validatePhaseCompletion(opportunity);
+
+  // Função para mapear ID do vendedor para nome
+  const getSalespersonName = (salespersonId: string): string => {
+    if (!salespersonId) return '';
+    
+    // Se já é um nome (não é um UUID), retornar como está
+    if (!salespersonId.includes('-') || salespersonId.length !== 36) {
+      return salespersonId;
+    }
+    
+    // Procurar o usuário pelo ID
+    const user = users.find(u => u.id === salespersonId);
+    return user ? user.name : salespersonId;
+  };
 
   // Log para monitorar re-renderizações do card
   useEffect(() => {
@@ -221,7 +236,7 @@ export default function OpportunityCard({ opportunity, onViewDetails }: Opportun
           {opportunity.salesperson && (
             <div className="flex items-center flex-1 min-w-0">
               <User className="h-3 w-3 text-gray-500 dark:text-gray-400 mr-1 flex-shrink-0" />
-              <span className="text-gray-700 dark:text-gray-300 truncate">{opportunity.salesperson}</span>
+              <span className="text-gray-700 dark:text-gray-300 truncate">{getSalespersonName(opportunity.salesperson)}</span>
             </div>
           )}
         </div>

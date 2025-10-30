@@ -561,13 +561,47 @@ export class PostgresStorage implements IStorage {
           }
         });
 
+        // Update the opportunity
         const result = await db
           .update(opportunities)
           .set(updatedData)
           .where(eq(opportunities.id, id))
           .returning();
 
-        return result[0] || undefined;
+        if (!result[0]) return undefined;
+
+        // CORREÇÃO: Fazer JOIN para resolver o nome do vendedor imediatamente
+        const updatedOpportunityWithJoin = await db
+          .select()
+          .from(opportunities)
+          .leftJoin(users, eq(opportunities.salesperson, users.id))
+          .where(eq(opportunities.id, id))
+          .limit(1);
+
+        if (!updatedOpportunityWithJoin[0]) return result[0];
+
+        const opportunity = updatedOpportunityWithJoin[0].opportunities;
+        let salespersonName = opportunity.salesperson;
+
+        // Se encontrou um usuário no JOIN, usar o nome do usuário
+        if (updatedOpportunityWithJoin[0].users?.name) {
+          salespersonName = updatedOpportunityWithJoin[0].users.name;
+        } else {
+          // Se não encontrou no JOIN, verificar se o salesperson já é um nome (não UUID)
+          const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(opportunity.salesperson || '');
+          if (!isUUID && opportunity.salesperson) {
+            // Se não é UUID, provavelmente já é um nome
+            salespersonName = opportunity.salesperson;
+          } else {
+            // Se é UUID mas não encontrou no JOIN, manter o UUID
+            salespersonName = opportunity.salesperson || 'Vendedor não identificado';
+          }
+        }
+
+        return {
+          ...opportunity,
+          salesperson: salespersonName,
+        };
       } catch (error: any) {
         console.error('Error updating opportunity, attempt', 4 - retries, ':', error);
 
