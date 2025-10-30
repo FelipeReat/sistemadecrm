@@ -1,8 +1,9 @@
 import puppeteer from 'puppeteer';
-import { readFileSync } from 'fs';
+import { readFileSync, mkdirSync, existsSync } from 'fs';
 import { join } from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+import { tmpdir } from 'os';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -24,6 +25,60 @@ class PDFService {
       join(__dirname, 'pdf-templates', 'base-template.html'),
       'utf-8'
     );
+  }
+
+  private createTempDirectory(): string {
+    try {
+      // Cria um diretório temporário personalizado para o Puppeteer
+      const tempDir = join(tmpdir(), 'puppeteer-pdf-service');
+      
+      if (!existsSync(tempDir)) {
+        mkdirSync(tempDir, { recursive: true });
+      }
+      
+      return tempDir;
+    } catch (error) {
+      console.warn('Não foi possível criar diretório temporário personalizado, usando padrão do sistema');
+      return tmpdir();
+    }
+  }
+
+  private getPuppeteerConfig() {
+    const isProduction = process.env.NODE_ENV === 'production';
+    const tempDir = this.createTempDirectory();
+    
+    const baseArgs = [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',
+      '--disable-accelerated-2d-canvas',
+      '--no-first-run',
+      '--no-zygote',
+      '--disable-gpu',
+      '--disable-background-timer-throttling',
+      '--disable-backgrounding-occluded-windows',
+      '--disable-renderer-backgrounding'
+    ];
+
+    const config: any = {
+      headless: true,
+      args: baseArgs
+    };
+
+    // Em produção, adiciona configurações específicas para Windows
+    if (isProduction) {
+      config.args.push(
+        `--user-data-dir=${tempDir}`,
+        '--disable-extensions',
+        '--disable-plugins',
+        '--disable-images',
+        '--disable-javascript',
+        '--disable-default-apps',
+        '--disable-sync'
+      );
+    }
+
+    return config;
   }
 
   private formatCurrency(value: number): string {
@@ -306,15 +361,36 @@ class PDFService {
     // Substituir variáveis no template
     const html = await this.replaceTemplateVariables(this.baseTemplate, templateVariables);
 
-    // Gerar PDF com Puppeteer
-    const browser = await puppeteer.launch({
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox']
-    });
+    // Gerar PDF com Puppeteer usando configuração robusta
+    const puppeteerConfig = this.getPuppeteerConfig();
+    console.log('Puppeteer config:', { args: puppeteerConfig.args.length, headless: puppeteerConfig.headless });
+    
+    const browser = await puppeteer.launch(puppeteerConfig);
 
     try {
       const page = await browser.newPage();
-      await page.setContent(html, { waitUntil: 'networkidle0' });
+      
+      // Configurações de timeout e otimização para produção
+      await page.setDefaultTimeout(30000); // 30 segundos de timeout
+      await page.setDefaultNavigationTimeout(30000);
+      
+      // Desabilita imagens e CSS para melhor performance em produção
+      if (process.env.NODE_ENV === 'production') {
+        await page.setRequestInterception(true);
+        page.on('request', (req) => {
+          const resourceType = req.resourceType();
+          if (resourceType === 'image' || resourceType === 'font') {
+            req.abort();
+          } else {
+            req.continue();
+          }
+        });
+      }
+      
+      await page.setContent(html, { 
+        waitUntil: 'domcontentloaded', // Mais rápido que networkidle0
+        timeout: 30000 
+      });
       
       const pdf = await page.pdf({
         format: 'A4',
@@ -324,12 +400,20 @@ class PDFService {
           right: '15mm',
           bottom: '20mm',
           left: '15mm'
-        }
+        },
+        timeout: 30000
       });
 
       return pdf;
+    } catch (error) {
+      console.error('Erro ao gerar PDF com Puppeteer:', error);
+      throw new Error(`Falha na geração do PDF: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
     } finally {
-      await browser.close();
+      try {
+        await browser.close();
+      } catch (closeError) {
+        console.warn('Aviso: Erro ao fechar browser do Puppeteer:', closeError);
+      }
     }
   }
 }
