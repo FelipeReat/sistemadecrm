@@ -24,8 +24,41 @@ export default function SettingsPage() {
     id: '',
     name: 'Usuário',
     email: '',
-    photoUrl: ''
+    photoUrl: '',
+    role: ''
   });
+
+  // Definir abas disponíveis para cada tipo de usuário
+  const getAllowedTabs = (userRole: string) => {
+    const allTabs = [
+      { value: 'company', label: 'Empresa', icon: Building2 },
+      { value: 'profile', label: 'Perfil', icon: User },
+      { value: 'security', label: 'Segurança', icon: Shield },
+      { value: 'notifications', label: 'Notificações', icon: Bell },
+      { value: 'system', label: 'Sistema', icon: Database },
+      { value: 'email', label: 'Email', icon: FileText },
+      { value: 'history', label: 'Histórico', icon: History },
+      { value: 'logs', label: 'Logs', icon: FileText }
+    ];
+
+    // Para usuários com função "usuario", mostrar apenas perfil, segurança e notificações
+    if (userRole === 'usuario') {
+      return allTabs.filter(tab => 
+        ['profile', 'security', 'notifications'].includes(tab.value)
+      );
+    }
+
+    // Para admin e gerente, mostrar todas as abas
+    return allTabs;
+  };
+
+  // Obter o valor padrão da aba baseado na função do usuário
+  const getDefaultTabValue = (userRole: string) => {
+    if (userRole === 'usuario') {
+      return 'profile'; // Primeira aba disponível para usuários
+    }
+    return 'company'; // Primeira aba para admin/gerente
+  };
 
   useEffect(() => {
     // Carregar dados do usuário atual
@@ -45,6 +78,9 @@ export default function SettingsPage() {
 
     loadUserData();
   }, []);
+
+  const allowedTabs = getAllowedTabs(currentUser.role);
+  const defaultTabValue = getDefaultTabValue(currentUser.role);
 
   return (
     <div className="bg-background min-h-screen">
@@ -73,244 +109,130 @@ export default function SettingsPage() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Tabs defaultValue="company" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-8">
-            <TabsTrigger value="company" className="flex items-center space-x-2">
-              <Building2 className="h-4 w-4" />
-              <span>Empresa</span>
-            </TabsTrigger>
-            <TabsTrigger value="profile" className="flex items-center space-x-2">
-              <User className="h-4 w-4" />
-              <span>Perfil</span>
-            </TabsTrigger>
-            <TabsTrigger value="security" className="flex items-center space-x-2">
-              <Shield className="h-4 w-4" />
-              <span>Segurança</span>
-            </TabsTrigger>
-            <TabsTrigger value="notifications" className="flex items-center space-x-2">
-              <Bell className="h-4 w-4" />
-              <span>Notificações</span>
-            </TabsTrigger>
-            <TabsTrigger value="system" className="flex items-center space-x-2">
-              <Database className="h-4 w-4" />
-              <span>Sistema</span>
-            </TabsTrigger>
-            <TabsTrigger value="email" className="flex items-center space-x-2">
-              <FileText className="h-4 w-4" />
-              <span>Email</span>
-            </TabsTrigger>
-            <TabsTrigger value="history" className="flex items-center space-x-2">
-              <History className="h-4 w-4" />
-              <span>Histórico</span>
-            </TabsTrigger>
-            <TabsTrigger value="logs" className="flex items-center space-x-2">
-              <FileText className="h-4 w-4" />
-              <span>Logs</span>
-            </TabsTrigger>
+        <Tabs defaultValue={defaultTabValue} className="space-y-6">
+          <TabsList className={`grid w-full grid-cols-${allowedTabs.length}`}>
+            {allowedTabs.map((tab) => {
+              const IconComponent = tab.icon;
+              return (
+                <TabsTrigger key={tab.value} value={tab.value} className="flex items-center space-x-2">
+                  <IconComponent className="h-4 w-4" />
+                  <span>{tab.label}</span>
+                </TabsTrigger>
+              );
+            })}
           </TabsList>
 
-          {/* Configurações da Empresa */}
-          <TabsContent value="company" className="space-y-6">
-            <CompanySettingsForm />
-          </TabsContent>
+          {/* Configurações da Empresa - apenas para admin/gerente */}
+          {allowedTabs.some(tab => tab.value === 'company') && (
+            <TabsContent value="company" className="space-y-6">
+              <CompanySettingsForm />
+            </TabsContent>
+          )}
 
-          {/* Configurações de Perfil */}
-          <TabsContent value="profile" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Upload de Foto */}
-              <ProfilePhotoUpload
-                currentPhotoUrl={currentUser.photoUrl}
-                userName={currentUser.name}
-                onPhotoUpdate={(newPhotoUrl) => 
-                  setCurrentUser(prev => ({ ...prev, photoUrl: newPhotoUrl }))
-                }
-              />
+          {/* Configurações de Perfil - disponível para todos */}
+          {allowedTabs.some(tab => tab.value === 'profile') && (
+            <TabsContent value="profile" className="space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Upload de Foto */}
+                <ProfilePhotoUpload
+                  currentPhotoUrl={currentUser.photoUrl}
+                  userName={currentUser.name}
+                  onPhotoUpdate={(newPhotoUrl) => 
+                    setCurrentUser(prev => ({ ...prev, photoUrl: newPhotoUrl }))
+                  }
+                />
 
-              {/* Informações do Perfil */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Informações Pessoais</CardTitle>
-                  <CardDescription>
-                    Atualize suas informações pessoais
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Informações do Perfil */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Informações Pessoais</CardTitle>
+                    <CardDescription>
+                      Atualize suas informações pessoais
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="firstName">Nome</Label>
+                        <Input 
+                          id="firstName" 
+                          placeholder="Seu nome"
+                          defaultValue={currentUser.name.split(' ')[0] || ''}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="lastName">Sobrenome</Label>
+                        <Input 
+                          id="lastName" 
+                          placeholder="Seu sobrenome"
+                          defaultValue={currentUser.name.split(' ').slice(1).join(' ') || ''}
+                        />
+                      </div>
+                    </div>
                     <div className="space-y-2">
-                      <Label htmlFor="firstName">Nome</Label>
+                      <Label htmlFor="email">Email</Label>
                       <Input 
-                        id="firstName" 
-                        placeholder="Seu nome"
-                        defaultValue={currentUser.name.split(' ')[0] || ''}
+                        id="email" 
+                        type="email" 
+                        placeholder="seu@email.com"
+                        defaultValue={currentUser.email}
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="lastName">Sobrenome</Label>
-                      <Input 
-                        id="lastName" 
-                        placeholder="Seu sobrenome"
-                        defaultValue={currentUser.name.split(' ').slice(1).join(' ') || ''}
-                      />
+                      <Label htmlFor="phone">Telefone</Label>
+                      <Input id="phone" placeholder="(11) 99999-9999" />
                     </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input 
-                      id="email" 
-                      type="email" 
-                      placeholder="seu@email.com"
-                      defaultValue={currentUser.email}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">Telefone</Label>
-                    <Input id="phone" placeholder="(11) 99999-9999" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="role">Cargo</Label>
-                    <Select defaultValue="vendedor">
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione seu cargo" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="admin">Administrador</SelectItem>
-                        <SelectItem value="gerente">Gerente</SelectItem>
-                        <SelectItem value="vendedor">Vendedor</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <Button className="w-full">
-                    Salvar Alterações
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
+                    <div className="space-y-2">
+                      <Label htmlFor="role">Cargo</Label>
+                      <Select defaultValue="vendedor">
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione seu cargo" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="admin">Administrador</SelectItem>
+                          <SelectItem value="gerente">Gerente</SelectItem>
+                          <SelectItem value="vendedor">Vendedor</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <Button className="w-full">
+                      Salvar Alterações
+                    </Button>
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+          )}
 
-          {/* Configurações de Notificações */}
-          <TabsContent value="notifications" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Preferências de Notificação</CardTitle>
-                <CardDescription>
-                  Configure como você deseja receber notificações
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label className="text-base">Notificações Push</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Receber notificações no navegador
-                    </p>
-                  </div>
-                  <Switch
-                    checked={notifications}
-                    onCheckedChange={setNotifications}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label className="text-base">Email de Oportunidades</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Receber emails sobre novas oportunidades
-                    </p>
-                  </div>
-                  <Switch defaultChecked />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label className="text-base">Relatórios Semanais</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Receber relatórios semanais por email
-                    </p>
-                  </div>
-                  <Switch defaultChecked />
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Configurações de Segurança */}
-          <TabsContent value="security" className="space-y-6">
-            <PasswordChangeForm />
-          </TabsContent>
-
-          {/* Configurações do Sistema */}
-          <TabsContent value="system" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Configurações Gerais do Sistema */}
+          {/* Configurações de Notificações - disponível para todos */}
+          {allowedTabs.some(tab => tab.value === 'notifications') && (
+            <TabsContent value="notifications" className="space-y-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>Configurações Gerais</CardTitle>
+                  <CardTitle>Preferências de Notificação</CardTitle>
                   <CardDescription>
-                    Preferências básicas do sistema
+                    Configure como você deseja receber notificações
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="flex items-center justify-between">
                     <div className="space-y-0.5">
-                      <Label className="text-base">Modo Escuro</Label>
+                      <Label className="text-base">Notificações Push</Label>
                       <p className="text-sm text-muted-foreground">
-                        Ativar tema escuro para toda a aplicação
+                        Receber notificações no navegador
                       </p>
                     </div>
                     <Switch
-                      checked={darkMode}
-                      onCheckedChange={setDarkMode}
+                      checked={notifications}
+                      onCheckedChange={setNotifications}
                     />
                   </div>
 
                   <div className="flex items-center justify-between">
                     <div className="space-y-0.5">
-                      <Label className="text-base">Salvamento Automático</Label>
+                      <Label className="text-base">Email de Oportunidades</Label>
                       <p className="text-sm text-muted-foreground">
-                        Salvar automaticamente as alterações
-                      </p>
-                    </div>
-                    <Switch
-                      checked={autoSave}
-                      onCheckedChange={setAutoSave}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="language">Idioma</Label>
-                    <Select defaultValue="pt-br">
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione o idioma" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="pt-br">Português (Brasil)</SelectItem>
-                        <SelectItem value="en">English</SelectItem>
-                        <SelectItem value="es">Español</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="sessionTimeout">Timeout de Sessão (minutos)</Label>
-                    <Input id="sessionTimeout" type="number" defaultValue="30" />
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Configurações Avançadas */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Configurações Avançadas</CardTitle>
-                  <CardDescription>
-                    Configurações técnicas do sistema
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label className="text-base">Logs de Auditoria</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Manter logs detalhados de atividades
+                        Receber emails sobre novas oportunidades
                       </p>
                     </div>
                     <Switch defaultChecked />
@@ -318,42 +240,149 @@ export default function SettingsPage() {
 
                   <div className="flex items-center justify-between">
                     <div className="space-y-0.5">
-                      <Label className="text-base">Notificações em Tempo Real</Label>
+                      <Label className="text-base">Relatórios Semanais</Label>
                       <p className="text-sm text-muted-foreground">
-                        Ativar notificações WebSocket
+                        Receber relatórios semanais por email
                       </p>
                     </div>
                     <Switch defaultChecked />
                   </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="maxFileSize">Tamanho Máximo de Arquivo (MB)</Label>
-                    <Input id="maxFileSize" type="number" defaultValue="10" />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="cacheTimeout">Cache Timeout (minutos)</Label>
-                    <Input id="cacheTimeout" type="number" defaultValue="60" />
-                  </div>
                 </CardContent>
               </Card>
-            </div>
-          </TabsContent>
+            </TabsContent>
+          )}
 
-          {/* Configurações de Email */}
-          <TabsContent value="email" className="space-y-6">
-            <EmailTemplateEditor />
-          </TabsContent>
+          {/* Configurações de Segurança - disponível para todos */}
+          {allowedTabs.some(tab => tab.value === 'security') && (
+            <TabsContent value="security" className="space-y-6">
+              <PasswordChangeForm />
+            </TabsContent>
+          )}
 
-          {/* Histórico de Login */}
-          <TabsContent value="history" className="space-y-6">
-            <LoginHistoryTable />
-          </TabsContent>
+          {/* Configurações do Sistema - apenas para admin/gerente */}
+          {allowedTabs.some(tab => tab.value === 'system') && (
+            <TabsContent value="system" className="space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Configurações Gerais do Sistema */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Configurações Gerais</CardTitle>
+                    <CardDescription>
+                      Preferências básicas do sistema
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label className="text-base">Modo Escuro</Label>
+                        <p className="text-sm text-muted-foreground">
+                          Ativar tema escuro para toda a aplicação
+                        </p>
+                      </div>
+                      <Switch
+                        checked={darkMode}
+                        onCheckedChange={setDarkMode}
+                      />
+                    </div>
 
-          {/* Logs do Sistema */}
-          <TabsContent value="logs" className="space-y-6">
-            <SystemLogsViewer />
-          </TabsContent>
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label className="text-base">Salvamento Automático</Label>
+                        <p className="text-sm text-muted-foreground">
+                          Salvar automaticamente as alterações
+                        </p>
+                      </div>
+                      <Switch
+                        checked={autoSave}
+                        onCheckedChange={setAutoSave}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="language">Idioma</Label>
+                      <Select defaultValue="pt-br">
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione o idioma" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="pt-br">Português (Brasil)</SelectItem>
+                          <SelectItem value="en">English</SelectItem>
+                          <SelectItem value="es">Español</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="sessionTimeout">Timeout de Sessão (minutos)</Label>
+                      <Input id="sessionTimeout" type="number" defaultValue="30" />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Configurações Avançadas */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Configurações Avançadas</CardTitle>
+                    <CardDescription>
+                      Configurações técnicas do sistema
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label className="text-base">Logs de Auditoria</Label>
+                        <p className="text-sm text-muted-foreground">
+                          Manter logs detalhados de atividades
+                        </p>
+                      </div>
+                      <Switch defaultChecked />
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label className="text-base">Notificações em Tempo Real</Label>
+                        <p className="text-sm text-muted-foreground">
+                          Ativar notificações WebSocket
+                        </p>
+                      </div>
+                      <Switch defaultChecked />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="maxFileSize">Tamanho Máximo de Arquivo (MB)</Label>
+                      <Input id="maxFileSize" type="number" defaultValue="10" />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="cacheTimeout">Cache Timeout (minutos)</Label>
+                      <Input id="cacheTimeout" type="number" defaultValue="60" />
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+          )}
+
+          {/* Configurações de Email - apenas para admin/gerente */}
+          {allowedTabs.some(tab => tab.value === 'email') && (
+            <TabsContent value="email" className="space-y-6">
+              <EmailTemplateEditor />
+            </TabsContent>
+          )}
+
+          {/* Histórico de Login - apenas para admin/gerente */}
+          {allowedTabs.some(tab => tab.value === 'history') && (
+            <TabsContent value="history" className="space-y-6">
+              <LoginHistoryTable />
+            </TabsContent>
+          )}
+
+          {/* Logs do Sistema - apenas para admin/gerente */}
+          {allowedTabs.some(tab => tab.value === 'logs') && (
+            <TabsContent value="logs" className="space-y-6">
+              <SystemLogsViewer />
+            </TabsContent>
+          )}
         </Tabs>
 
 
