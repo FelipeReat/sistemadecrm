@@ -41,8 +41,8 @@ async function checkTriggers() {
     // Verificar se os triggers específicos existem
     console.log('\n🔍 Verificando triggers específicos mencionados no código...');
     const specificTriggers = [
-      'opportunity_insert_notify_trigger',
-      'opportunity_update_notify_trigger', 
+      'opportunity_insert_trigger',
+      'opportunity_update_trigger', 
       'opportunity_update_timestamps_trigger'
     ];
     

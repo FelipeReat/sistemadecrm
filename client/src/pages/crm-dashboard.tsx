@@ -353,258 +353,225 @@ export default function CrmDashboard() {
 
   return (
     <div className="bg-background min-h-screen font-inter">
-      {/* Header */}
+      {/* Header Compacto */}
       <header className="bg-card shadow-sm border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
+          <div className="flex justify-between items-center py-2">
             <div className="flex items-center">
-              <h1 className="text-2xl font-bold text-foreground" data-testid="title-crm">
+              <h1 className="text-lg font-bold text-foreground" data-testid="title-crm">
                 CRM - Funil de Vendas
               </h1>
             </div>
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2">
               <SyncStatus />
               <Button
+                size="sm"
                 onClick={() => setIsNewOpportunityModalOpen(true)}
                 data-testid="button-new-opportunity"
               >
-                <Plus className="mr-2 h-4 w-4" />
+                <Plus className="mr-1 h-3 w-3" />
                 Nova Oportunidade
               </Button>
               {user && ['admin', 'gerente'].includes(user.role) && (
                 <Button
+                  size="sm"
                   variant="outline"
                   onClick={() => setIsImportModalOpen(true)}
                   data-testid="button-import-data"
                 >
-                  <Upload className="mr-2 h-4 w-4" />
-                  Importar Dados
+                  <Upload className="mr-1 h-3 w-3" />
+                  Importar
                 </Button>
               )}
-              <Button
-                variant="outline"
-                onClick={() => setIsSettingsModalOpen(true)}
-                data-testid="button-settings"
-              >
-                <Settings className="mr-2 h-4 w-4" />
-                Configurações
-              </Button>
             </div>
           </div>
         </div>
       </header>
 
-      {/* Filter Section */}
+      {/* Filter Section Compacta */}
       <div className="bg-muted/50 border-b border-border">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="space-y-4">
-            {/* Filter Controls and Results Summary */}
-            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-              {/* Left side: Filter Button and Clear Filters */}
-              <div className="flex flex-wrap items-center gap-4">
-                <Button
-                  variant="outline"
-                  onClick={() => setIsAdvancedFiltersModalOpen(true)}
-                  className="flex items-center space-x-2"
-                  data-testid="advanced-filters-button"
-                >
-                  <Filter className="h-4 w-4" />
-                  <span>Filtros Avançados</span>
-                  {(selectedUsers.length > 0 || selectedPhases.length > 0 || searchTerm || selectedBusinessTemp || minValue || maxValue || dateRange.from || dateRange.to || filteredPhaseOnly) && (
-                    <Badge variant="destructive" className="h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs">
-                      {(selectedUsers.length + selectedPhases.length + (searchTerm ? 1 : 0) + (selectedBusinessTemp && selectedBusinessTemp !== 'all' ? 1 : 0) + ((minValue || maxValue) ? 1 : 0) + ((dateRange.from || dateRange.to) ? 1 : 0) + (filteredPhaseOnly ? 1 : 0))}
-                    </Badge>
-                  )}
-                </Button>
-
-                {/* Clear All Filters Button */}
-                {(selectedUsers.length > 0 || selectedPhases.length > 0 || searchTerm || selectedBusinessTemp || minValue || maxValue || dateRange.from || dateRange.to || filteredPhaseOnly) && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={clearAllFilters}
-                    data-testid="clear-all-filters"
-                  >
-                    <X className="mr-2 h-4 w-4" />
-                    Limpar Filtros
-                  </Button>
-                )}
-              </div>
-
-              {/* Right side: Results Summary */}
-              <div className="text-sm text-muted-foreground flex-shrink-0">
-                Mostrando {sortedAndFilteredOpportunities.length} de {opportunities.length} oportunidades
-                {projectedRevenue > 0 && (
-                  <span className="ml-4">
-                    • Receita projetada: <span className="font-medium text-foreground">
-                      R$ {projectedRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                    </span>
-                  </span>
-                )}
-              </div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-2 sm:space-y-0">
+            <div className="flex items-center space-x-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setIsAdvancedFiltersModalOpen(true)}
+                data-testid="button-advanced-filters"
+              >
+                <Filter className="mr-1 h-3 w-3" />
+                Filtros Avançados
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={clearAllFilters}
+                data-testid="button-clear-filters"
+              >
+                <X className="mr-1 h-3 w-3" />
+                Limpar Filtros
+              </Button>
             </div>
-
-            {/* Active Filters Display */}
-            {(selectedUsers.length > 0 || selectedPhases.length > 0 || searchTerm || selectedBusinessTemp || minValue || maxValue || dateRange.from || dateRange.to || filteredPhaseOnly) && (
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-sm text-muted-foreground">Filtros ativos:</span>
-                
-                {filteredPhaseOnly && (
-                  <Badge variant="destructive" className="flex items-center gap-1">
-                    <Filter className="h-3 w-3" />
-                    Fase: {phaseConfig.find(p => p.key === filteredPhaseOnly)?.title || filteredPhaseOnly}
-                    <button onClick={() => setFilteredPhaseOnly(null)} className="ml-1 hover:bg-destructive-foreground/20 rounded-full p-0.5">
-                      <X className="h-3 w-3" />
-                    </button>
-                  </Badge>
-                )}
-
-                {searchTerm && (
-                  <Badge variant="secondary" className="flex items-center gap-1">
-                    Busca: "{searchTerm}"
-                    <button onClick={() => setSearchTerm('')} className="ml-1 hover:bg-secondary-foreground/20 rounded-full p-0.5">
-                      <X className="h-3 w-3" />
-                    </button>
-                  </Badge>
-                )}
-
-                {selectedUsers.map((userName) => (
-                  <Badge key={userName} variant="secondary" className="flex items-center gap-1">
-                    Vendedor: {userName}
-                    <button onClick={() => handleUserRemove(userName)} className="ml-1 hover:bg-secondary-foreground/20 rounded-full p-0.5">
-                      <X className="h-3 w-3" />
-                    </button>
-                  </Badge>
-                ))}
-
-                {!filteredPhaseOnly && selectedPhases.map((phase) => (
-                  <Badge key={phase} variant="secondary" className="flex items-center gap-1">
-                    {phaseConfig.find(p => p.key === phase)?.title || phase}
-                    <button onClick={() => handlePhaseRemove(phase)} className="ml-1 hover:bg-secondary-foreground/20 rounded-full p-0.5">
-                      <X className="h-3 w-3" />
-                    </button>
-                  </Badge>
-                ))}
-
-                {selectedBusinessTemp && selectedBusinessTemp !== 'all' && (
-                  <Badge variant="secondary" className="flex items-center gap-1">
-                    {selectedBusinessTemp}
-                    <button onClick={() => setSelectedBusinessTemp('')} className="ml-1 hover:bg-secondary-foreground/20 rounded-full p-0.5">
-                      <X className="h-3 w-3" />
-                    </button>
-                  </Badge>
-                )}
-
-                {(minValue || maxValue) && (
-                  <Badge variant="secondary" className="flex items-center gap-1">
-                    R$ {minValue || '0'} - {maxValue || '∞'}
-                    <button onClick={() => { setMinValue(''); setMaxValue(''); }} className="ml-1 hover:bg-secondary-foreground/20 rounded-full p-0.5">
-                      <X className="h-3 w-3" />
-                    </button>
-                  </Badge>
-                )}
-              </div>
-            )}
+            <div className="text-xs text-muted-foreground">
+              {sortedAndFilteredOpportunities.length} de {opportunities?.length || 0} oportunidades
+            </div>
           </div>
+
+          {/* Active Filters - Compacto */}
+          {(selectedPhases.length > 0 || searchTerm || selectedUsers.length > 0 || selectedBusinessTemp || minValue || maxValue) && (
+            <div className="flex flex-wrap gap-1 mt-2">
+              {selectedPhases.map((phase) => {
+                const phaseInfo = phaseConfig.find(p => p.key === phase);
+                return (
+                  <Badge key={phase} variant="secondary" className="text-xs px-2 py-0">
+                    {phaseInfo?.title}
+                    <button
+                      onClick={() => handlePhaseRemove(phase)}
+                      className="ml-1 hover:text-destructive"
+                    >
+                      <X className="h-2 w-2" />
+                    </button>
+                  </Badge>
+                );
+              })}
+              {searchTerm && (
+                <Badge variant="secondary" className="text-xs px-2 py-0">
+                  Busca: {searchTerm}
+                  <button
+                    onClick={() => setSearchTerm('')}
+                    className="ml-1 hover:text-destructive"
+                  >
+                    <X className="h-2 w-2" />
+                  </button>
+                </Badge>
+              )}
+              {selectedUsers.map((user) => (
+                <Badge key={user} variant="secondary" className="text-xs px-2 py-0">
+                  {user}
+                  <button
+                    onClick={() => handleUserRemove(user)}
+                    className="ml-1 hover:text-destructive"
+                  >
+                    <X className="h-2 w-2" />
+                  </button>
+                </Badge>
+              ))}
+              {selectedBusinessTemp && selectedBusinessTemp !== 'all' && (
+                <Badge variant="secondary" className="text-xs px-2 py-0">
+                  {selectedBusinessTemp}
+                  <button
+                    onClick={() => setSelectedBusinessTemp('')}
+                    className="ml-1 hover:text-destructive"
+                  >
+                    <X className="h-2 w-2" />
+                  </button>
+                </Badge>
+              )}
+              {(minValue || maxValue) && (
+                <Badge variant="secondary" className="text-xs px-2 py-0">
+                  R$ {minValue || '0'} - {maxValue || '∞'}
+                  <button
+                    onClick={() => {
+                      setMinValue('');
+                      setMaxValue('');
+                    }}
+                    className="ml-1 hover:text-destructive"
+                  >
+                    <X className="h-2 w-2" />
+                  </button>
+                </Badge>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
       {/* Main Content */}
-      <main className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Stats Overview */}
-        <div className="mb-8 grid grid-cols-2 md:grid-cols-5 gap-4">
-          <div className="bg-card rounded-lg shadow-sm p-4 border border-border">
+      <main className="w-full px-2 py-2">
+        {/* Statistics Section - Compacta */}
+        <div className="grid grid-cols-5 gap-2 mb-3">
+          <Card className="p-2">
             <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/20 rounded-full flex items-center justify-center">
-                  <ChartLine className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                </div>
+              <div className="p-1 bg-blue-100 rounded-md">
+                <ChartLine className="h-4 w-4 text-blue-600" />
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-muted-foreground">Total de Oportunidades</p>
-                <p className="text-2xl font-bold text-foreground" data-testid="stat-total-opportunities">
-                  {(stats as any)?.totalOpportunities || 0}
+              <div className="ml-2">
+                <p className="text-xs font-medium text-muted-foreground">Total</p>
+                <p className="text-sm font-bold">{sortedAndFilteredOpportunities.length}</p>
+              </div>
+            </div>
+          </Card>
+          <Card className="p-2">
+            <div className="flex items-center">
+              <div className="p-1 bg-green-100 rounded-md">
+                <Trophy className="h-4 w-4 text-green-600" />
+              </div>
+              <div className="ml-2">
+                <p className="text-xs font-medium text-muted-foreground">Ganhas</p>
+                <p className="text-sm font-bold">
+                  {sortedAndFilteredOpportunities.filter(o => o.phase === 'ganho').length}
                 </p>
               </div>
             </div>
-          </div>
-
-          <div className="bg-card rounded-lg shadow-sm p-4 border border-border">
+          </Card>
+          <Card className="p-2">
             <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <div className="w-8 h-8 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center">
-                  <Trophy className="h-4 w-4 text-green-600 dark:text-green-400" />
-                </div>
+              <div className="p-1 bg-orange-100 rounded-md">
+                <Clock className="h-4 w-4 text-orange-600" />
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-muted-foreground">Oportunidades Ganhas</p>
-                <p className="text-2xl font-bold text-foreground" data-testid="stat-won-opportunities">
-                  {(stats as any)?.wonOpportunities || 0}
+              <div className="ml-2">
+                <p className="text-xs font-medium text-muted-foreground">Ativas</p>
+                <p className="text-sm font-bold">
+                  {sortedAndFilteredOpportunities.filter(o => !['ganho', 'perdido'].includes(o.phase)).length}
                 </p>
               </div>
             </div>
-          </div>
-
-          <div className="bg-card rounded-lg shadow-sm p-4 border border-border">
+          </Card>
+          <Card className="p-2">
             <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <div className="w-8 h-8 bg-yellow-100 dark:bg-yellow-900/20 rounded-full flex items-center justify-center">
-                  <Clock className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
-                </div>
+              <div className="p-1 bg-purple-100 rounded-md">
+                <DollarSign className="h-4 w-4 text-purple-600" />
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-muted-foreground">Em Andamento</p>
-                <p className="text-2xl font-bold text-foreground" data-testid="stat-active-opportunities">
-                  {(stats as any)?.activeOpportunities || 0}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Receita Projetada */}
-          <div className="bg-card rounded-lg shadow-sm p-4 border border-border">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/20 rounded-full flex items-center justify-center">
-                  <DollarSign className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                </div>
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-muted-foreground">Receita Projetada</p>
-                <p className="text-2xl font-bold text-foreground" data-testid="stat-projected-revenue">
-                  {newIntl.NumberFormat("pt-BR", {
-                    style: "currency",
-                    currency: "BRL",
+              <div className="ml-2">
+                <p className="text-xs font-medium text-muted-foreground">Projetado</p>
+                <p className="text-sm font-bold">
+                  {new newIntl.NumberFormat('pt-BR', {
+                    style: 'currency',
+                    currency: 'BRL',
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0,
                   }).format(projectedRevenue)}
                 </p>
               </div>
             </div>
-          </div>
-
-          {/* Valor Total (Oportunidades Ganhas) */}
-          <div className="bg-card rounded-lg shadow-sm p-4 border border-border">
+          </Card>
+          <Card className="p-2">
             <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <div className="w-8 h-8 bg-emerald-100 dark:bg-emerald-900/20 rounded-full flex items-center justify-center">
-                  <DollarSign className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                </div>
+              <div className="p-1 bg-green-100 rounded-md">
+                <DollarSign className="h-4 w-4 text-green-600" />
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-muted-foreground">Valor Total</p>
-                <p className="text-2xl font-bold text-foreground" data-testid="stat-total-won-value">
-                  {newIntl.NumberFormat("pt-BR", {
-                    style: "currency",
-                    currency: "BRL",
-                  }).format((stats as any)?.totalWonValue || 0)}
+              <div className="ml-2">
+                <p className="text-xs font-medium text-muted-foreground">Faturado</p>
+                <p className="text-sm font-bold">
+                  {new newIntl.NumberFormat('pt-BR', {
+                    style: 'currency',
+                    currency: 'BRL',
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0,
+                  }).format(
+                    sortedAndFilteredOpportunities
+                      .filter(o => o.phase === 'ganho' && o.budget)
+                      .reduce((sum, o) => sum + parseFloat(o.budget!.toString()), 0)
+                  )}
                 </p>
               </div>
             </div>
-          </div>
+          </Card>
         </div>
 
-        {/* Sales Funnel Pipeline */}
+        {/* Sales Funnel Pipeline - Altura Otimizada */}
         <div className="overflow-x-auto overflow-y-hidden" data-testid="sales-pipeline">
-          <div className="flex space-x-4 pb-4 min-w-max h-[calc(100vh-420px)]">
+          <div className="flex space-x-2 pb-4 w-full h-[calc(100vh-280px)]">
             {phaseConfig.map((phase) => (
               <SalesPipelineColumn
                 key={phase.key}

@@ -448,8 +448,8 @@ export class PostgresStorage implements IStorage {
         const result = await db.transaction(async (tx) => {
           // Desabilitar triggers de notificação durante bulk insert
           await tx.execute(sql`
-            ALTER TABLE opportunities DISABLE TRIGGER opportunity_insert_notify_trigger;
-            ALTER TABLE opportunities DISABLE TRIGGER opportunity_update_notify_trigger;
+            ALTER TABLE opportunities DISABLE TRIGGER opportunity_insert_trigger;
+            ALTER TABLE opportunities DISABLE TRIGGER opportunity_update_trigger;
             ALTER TABLE opportunities DISABLE TRIGGER opportunity_update_timestamps_trigger;
           `);
 
@@ -464,8 +464,8 @@ export class PostgresStorage implements IStorage {
           } finally {
             // Reabilitar triggers após bulk insert
             await tx.execute(sql`
-              ALTER TABLE opportunities ENABLE TRIGGER opportunity_insert_notify_trigger;
-              ALTER TABLE opportunities ENABLE TRIGGER opportunity_update_notify_trigger;
+              ALTER TABLE opportunities ENABLE TRIGGER opportunity_insert_trigger;
+              ALTER TABLE opportunities ENABLE TRIGGER opportunity_update_trigger;
               ALTER TABLE opportunities ENABLE TRIGGER opportunity_update_timestamps_trigger;
             `);
           }

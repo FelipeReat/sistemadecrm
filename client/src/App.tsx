@@ -7,11 +7,12 @@ import { useAuth } from "@/hooks/useAuth";
 import NotFound from "@/pages/not-found";
 import CrmDashboard from "@/pages/crm-dashboard";
 import ReportsDashboard from "@/pages/reports-dashboard";
+import SettingsPage from "@/pages/settings-page";
 import Login from "@/pages/login";
 import UserManagement from "@/pages/user-management";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { LogOut, Users, Home, BarChart3 } from "lucide-react";
+import { LogOut, Users, Home, BarChart3, Settings } from "lucide-react";
 import { useEffect } from "react";
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
@@ -52,6 +53,7 @@ function NavBar() {
     { path: "/", label: "Dashboard", icon: Home },
     { path: "/reports", label: "Relatórios", icon: BarChart3 },
     { path: "/users", label: "Usuários", icon: Users },
+    { path: "/settings", label: "Configurações", icon: Settings },
   ];
 
   return (
@@ -130,6 +132,9 @@ function Router() {
         </Route>
         <Route path="/reports">
           <ProtectedRoute component={ReportsDashboard} />
+        </Route>
+        <Route path="/settings">
+          <ProtectedRoute component={SettingsPage} />
         </Route>
         <Route path="/">
           <ProtectedRoute component={CrmDashboard} />

@@ -132,9 +132,9 @@ const validatePhaseCompletion = (opportunity: Opportunity): { isComplete: boolea
       if (!opportunity.negotiationInfo) missingFields.push('Informações da negociação');
       break;
 
+    case 'ganho':
     case 'perdido':
-      // Campos da fase perdido não são obrigatórios para movimentação
-      // Eles serão preenchidos opcionalmente após a oportunidade estar na fase
+      // Fases finais sempre consideradas completas para movimentação
       break;
   }
 
@@ -374,22 +374,27 @@ export default function SalesPipelineColumn({ phase, opportunities, isLoading, o
     }
   };
 
+  const { setNodeRef } = useDroppable({
+    id: phase.key,
+  });
+
   return (
     <div
-      className="flex-shrink-0 w-80 h-full"
+      ref={setNodeRef}
+      className="flex-1 min-w-0 h-full"
       onDragOver={handleDragOver}
       onDrop={handleDrop}
       data-testid={`column-${phase.key}`}
     >
       <div className={`${phase.bgColor} rounded-lg ${phase.borderColor} border shadow-sm h-full flex flex-col`}>
-        {/* Header */}
-        <div className={`p-4 border-b ${phase.borderColor} flex-shrink-0`}>
+        {/* Header - mais compacto */}
+        <div className={`p-3 border-b ${phase.borderColor} flex-shrink-0`}>
           <div className="flex items-center justify-between">
             <div className="flex items-center">
               {renderIcon()}
-              <h3 className="text-lg font-semibold text-black dark:text-black">{phase.title}</h3>
+              <h3 className="text-base font-semibold text-black dark:text-black">{phase.title}</h3>
             </div>
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-1.5">
               <Badge className={phase.badgeColor} data-testid={`count-${phase.key}`}>
                 {opportunities.length}
               </Badge>
@@ -429,25 +434,25 @@ export default function SalesPipelineColumn({ phase, opportunities, isLoading, o
             </div>
           </div>
           {phase.description && (
-            <p className="text-sm text-white dark:text-white mt-1 opacity-90">{phase.description}</p>
+            <p className="text-xs text-white dark:text-white mt-1 opacity-90">{phase.description}</p>
           )}
         </div>
 
-        {/* Opportunity Cards */}
-        <div className="p-4 space-y-3 flex-1 overflow-y-auto" data-testid={`opportunities-${phase.key}`}>
+        {/* Opportunity Cards - espaçamento reduzido */}
+        <div className="p-3 space-y-2 flex-1 overflow-y-auto" data-testid={`opportunities-${phase.key}`}>
           {isLoading ? (
-            <div className="space-y-3">
+            <div className="space-y-2">
               {[1, 2].map((i) => (
-                <div key={i} className="bg-white rounded-lg border border-gray-200 p-3 animate-pulse">
-                  <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-                  <div className="h-3 bg-gray-200 rounded w-1/2 mb-1"></div>
-                  <div className="h-3 bg-gray-200 rounded w-2/3"></div>
+                <div key={i} className="bg-white rounded-lg border border-gray-200 py-2 px-3 animate-pulse">
+                  <div className="h-3 bg-gray-200 rounded w-3/4 mb-1"></div>
+                  <div className="h-2 bg-gray-200 rounded w-1/2 mb-1"></div>
+                  <div className="h-2 bg-gray-200 rounded w-2/3"></div>
                 </div>
               ))}
             </div>
           ) : opportunities.length === 0 ? (
-            <div className="text-center py-6">
-              <p className="text-sm text-gray-500 dark:text-gray-300">Nenhuma oportunidade nesta fase</p>
+            <div className="text-center py-4">
+              <p className="text-xs text-gray-500 dark:text-gray-300">Nenhuma oportunidade nesta fase</p>
             </div>
           ) : (
             <>
@@ -466,16 +471,16 @@ export default function SalesPipelineColumn({ phase, opportunities, isLoading, o
           )}
         </div>
 
-        {/* Success/Loss Messages */}
+        {/* Success/Loss Messages - mais compacto */}
         {phase.successMessage && (
-          <div className={`p-4 border-t ${phase.borderColor} flex-shrink-0`}>
-            <p className="text-sm text-white dark:text-white text-center opacity-90">{phase.successMessage}</p>
+          <div className={`p-2 border-t ${phase.borderColor} flex-shrink-0`}>
+            <p className="text-xs text-white dark:text-white text-center opacity-90">{phase.successMessage}</p>
           </div>
         )}
 
         {phase.lossMessage && (
-          <div className={`p-4 border-t ${phase.borderColor} flex-shrink-0`}>
-            <p className="text-sm text-white dark:text-white text-center opacity-90">{phase.lossMessage}</p>
+          <div className={`p-2 border-t ${phase.borderColor} flex-shrink-0`}>
+            <p className="text-xs text-white dark:text-white text-center opacity-90">{phase.lossMessage}</p>
           </div>
         )}
       </div>

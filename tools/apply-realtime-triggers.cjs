@@ -15,7 +15,7 @@ async function applyRealtimeTriggers() {
     console.log('✅ Conectado ao PostgreSQL');
 
     // Ler o arquivo SQL
-    const sqlPath = path.join(__dirname, 'migrations', '0008_add_realtime_triggers.sql');
+    const sqlPath = path.join(__dirname, '..', 'migrations', '0008_add_realtime_triggers.sql');
     const sql = fs.readFileSync(sqlPath, 'utf8');
     
     console.log('📄 Executando SQL dos triggers...');

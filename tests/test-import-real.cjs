@@ -67,8 +67,8 @@ async function testRealImportPerformance() {
   console.log('');
   
   console.log('🔍 ANÁLISE DETALHADA DOS TRIGGERS:');
-  console.log('   - opportunity_insert_notify_trigger: EXISTE');
-  console.log('   - opportunity_update_notify_trigger: EXISTE');
+  console.log('   - opportunity_insert_trigger: EXISTE');
+  console.log('   - opportunity_update_trigger: EXISTE');
   console.log('   - opportunity_update_timestamps_trigger: EXISTE');
   console.log('   - Todos são desabilitados durante bulk insert');
   console.log('');
