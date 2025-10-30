@@ -110,11 +110,11 @@ export default function SettingsPage() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs defaultValue={defaultTabValue} className="space-y-6">
-          <TabsList className={`grid w-full grid-cols-${allowedTabs.length}`}>
+          <TabsList className="flex w-full justify-start gap-1 overflow-x-auto">
             {allowedTabs.map((tab) => {
               const IconComponent = tab.icon;
               return (
-                <TabsTrigger key={tab.value} value={tab.value} className="flex items-center space-x-2">
+                <TabsTrigger key={tab.value} value={tab.value} className="flex items-center space-x-2 flex-shrink-0 min-w-fit px-4">
                   <IconComponent className="h-4 w-4" />
                   <span>{tab.label}</span>
                 </TabsTrigger>
