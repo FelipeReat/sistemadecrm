@@ -1,0 +1,57 @@
+11:34:54 AM [express] 🔍 Iniciando coleta de status do realtime service...
+11:34:54 AM [express] 🔍 Status coletado com sucesso, serializando...
+❌ Falha na tentativa 1/5:
+📋 Detalhes do erro: {
+  message: 'Failed to launch the browser process!\n' +
+    '\n' +
+    '\n' +
+    'TROUBLESHOOTING: https://pptr.dev/troubleshooting\n',
+  stack: 'Error: Failed to launch the browser process!\n\n'
+}
+❌ Falha na tentativa 2/5:
+📋 Detalhes do erro: {
+  message: 'Failed to launch the browser process!\n' +
+    '\n' +
+    '\n' +
+    'TROUBLESHOOTING: https://pptr.dev/troubleshooting\n',
+  stack: 'Error: Failed to launch the browser process!\n\n'
+}
+❌ Falha na tentativa 3/5:
+📋 Detalhes do erro: {
+  message: 'Failed to launch the browser process!\n' +
+    '\n' +
+    '\n' +
+    'TROUBLESHOOTING: https://pptr.dev/troubleshooting\n',
+  stack: 'Error: Failed to launch the browser process!\n\n'
+}
+❌ Falha na tentativa 4/5:
+📋 Detalhes do erro: {
+  message: 'Could not find Chrome (ver. 127.0.6533.88). This can occur if either\n' +
+    ' 1. you did not perform an installation before running the script (e.g. `npx puppeteer browsers install chrome`) or\n' +
+    ' 2. your cache path is incorrectly configured (which is: C:\\Users\\Administrator\\.cache\\puppeteer).\n' +
+    'For (2), check out our guide on configuring puppeteer at https://pptr.dev/guides/configuration.',
+  stack: 'Error: Could not find Chrome (ver. 127.0.6533.88). This can occur if either\n' +
+    ' 1. you did not perform an installation before running the script (e.g. `npx puppeteer browsers install chrome`) or\n' +
+    ' 2. your cache path is incorrectly configured (which is: C:\\Users\\Administrator\\.cache\\puppeteer).'
+}
+❌ Falha na tentativa 5/5:
+📋 Detalhes do erro: {
+  message: 'Could not find Chrome (ver. 127.0.6533.88). This can occur if either\n' +
+    ' 1. you did not perform an installation before running the script (e.g. `npx puppeteer browsers install chrome`) or\n' +
+    ' 2. your cache path is incorrectly configured (which is: C:\\Users\\Administrator\\.cache\\puppeteer).\n' +
+    'For (2), check out our guide on configuring puppeteer at https://pptr.dev/guides/configuration.',
+  stack: 'Error: Could not find Chrome (ver. 127.0.6533.88). This can occur if either\n' +
+    ' 1. you did not perform an installation before running the script (e.g. `npx puppeteer browsers install chrome`) or\n' +
+    ' 2. your cache path is incorrectly configured (which is: C:\\Users\\Administrator\\.cache\\puppeteer).'
+}
+💥 ERRO CRÍTICO: Falha ao inicializar o navegador após 5 tentativas em ambiente PRODUÇÃO. Último erro: Could not find Chrome (ver. 127.0.6533.88). This can occur if either
+ 1. you did not perform an installation before running the script (e.g. `npx puppeteer browsers install chrome`) or
+ 2. your cache path is incorrectly configured (which is: C:\Users\Administrator\.cache\puppeteer).
+For (2), check out our guide on configuring puppeteer at https://pptr.dev/guides/configuration.
+🔍 Informações do sistema: {
+  platform: 'win32',
+  nodeVersion: 'v22.17.0',
+  cwd: 'C:\\locador\\webapps\\crm',
+  env: 'production',
+  puppeteerCache: 'C:\\locador\\webapps\\crm\\.puppeteer-cache'
+}

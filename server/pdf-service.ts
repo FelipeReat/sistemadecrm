@@ -4,6 +4,7 @@ import { join } from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import { tmpdir } from 'os';
+import { execSync } from 'child_process';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -16,42 +17,116 @@ interface PDFGenerationOptions {
   summary?: Array<{ label: string; value: string }>;
 }
 
-// Função para detectar navegadores disponíveis no Windows
+// Função para instalar Chrome automaticamente via Puppeteer
+async function installChromeAutomatically(): Promise<boolean> {
+  try {
+    console.log('🔄 Tentando instalar Chrome automaticamente via Puppeteer...');
+    
+    // Tenta instalar o Chrome usando npx puppeteer browsers install chrome
+    const command = 'npx puppeteer browsers install chrome';
+    console.log(`📦 Executando: ${command}`);
+    
+    execSync(command, { 
+      stdio: 'inherit',
+      timeout: 300000, // 5 minutos timeout
+      cwd: process.cwd()
+    });
+    
+    console.log('✅ Chrome instalado com sucesso via Puppeteer!');
+    return true;
+  } catch (error) {
+    console.error('❌ Falha ao instalar Chrome automaticamente:', error);
+    
+    // Tenta método alternativo usando o próprio puppeteer
+    try {
+      console.log('🔄 Tentando método alternativo de instalação...');
+      const { execSync: exec } = await import('child_process');
+      exec('npm install puppeteer --force', { 
+        stdio: 'inherit',
+        timeout: 300000,
+        cwd: process.cwd()
+      });
+      console.log('✅ Puppeteer reinstalado com sucesso!');
+      return true;
+    } catch (altError) {
+      console.error('❌ Método alternativo também falhou:', altError);
+      return false;
+    }
+  }
+}
+
+// Função para detectar navegadores disponíveis no Windows - versão ultra-robusta
 function detectAvailableBrowser(): string | null {
   const browsers = [
     {
-      name: 'Brave',
+      name: 'Google Chrome',
       paths: [
-        'C:\\Program Files\\BraveSoftware\\Brave-Browser\\Application\\brave.exe',
-        'C:\\Program Files (x86)\\BraveSoftware\\Brave-Browser\\Application\\brave.exe'
+        'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+        'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+        // Caminhos alternativos para instalações personalizadas
+        'C:\\Users\\Administrator\\AppData\\Local\\Google\\Chrome\\Application\\chrome.exe',
+        'C:\\Users\\Default\\AppData\\Local\\Google\\Chrome\\Application\\chrome.exe'
       ]
     },
     {
       name: 'Microsoft Edge',
       paths: [
         'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
-        'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe'
+        'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe',
+        // Edge é instalado por padrão no Windows 10/11
+        'C:\\Windows\\SystemApps\\Microsoft.MicrosoftEdge_8wekyb3d8bbwe\\MicrosoftEdge.exe'
       ]
     },
     {
-      name: 'Google Chrome',
+      name: 'Brave',
       paths: [
-        'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
-        'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe'
+        'C:\\Program Files\\BraveSoftware\\Brave-Browser\\Application\\brave.exe',
+        'C:\\Program Files (x86)\\BraveSoftware\\Brave-Browser\\Application\\brave.exe',
+        'C:\\Users\\Administrator\\AppData\\Local\\BraveSoftware\\Brave-Browser\\Application\\brave.exe'
+      ]
+    },
+    {
+      name: 'Chromium',
+      paths: [
+        'C:\\Program Files\\Chromium\\Application\\chrome.exe',
+        'C:\\Program Files (x86)\\Chromium\\Application\\chrome.exe'
       ]
     }
   ];
 
+  console.log('🔍 Iniciando detecção de navegadores disponíveis...');
+  
   for (const browser of browsers) {
+    console.log(`🔎 Verificando ${browser.name}...`);
     for (const path of browser.paths) {
-      if (existsSync(path)) {
-        console.log(`✅ Navegador detectado: ${browser.name} em ${path}`);
-        return path;
+      try {
+        if (existsSync(path)) {
+          console.log(`✅ Navegador detectado: ${browser.name} em ${path}`);
+          return path;
+        }
+      } catch (error) {
+        console.warn(`⚠️ Erro ao verificar caminho ${path}:`, error);
       }
     }
   }
 
+  // Tenta detectar usando variáveis de ambiente
+  console.log('🔍 Tentando detectar via variáveis de ambiente...');
+  const envPaths = [
+    process.env.CHROME_BIN,
+    process.env.GOOGLE_CHROME_BIN,
+    process.env.CHROMIUM_BIN
+  ].filter(Boolean);
+
+  for (const envPath of envPaths) {
+    if (envPath && existsSync(envPath)) {
+      console.log(`✅ Navegador detectado via variável de ambiente: ${envPath}`);
+      return envPath;
+    }
+  }
+
   console.warn('⚠️ Nenhum navegador compatível encontrado nos caminhos padrão');
+  console.log('💡 Puppeteer tentará usar o Chrome integrado ou baixar automaticamente');
   return null;
 }
 
@@ -87,15 +162,51 @@ class PDFService {
     const currentPath = process.cwd();
     const isWindowsServer = currentPath.includes('locador') || currentPath.includes('webapps') || process.platform === 'win32';
     
+    console.log('🔍 Detectando ambiente de execução:', {
+      NODE_ENV: process.env.NODE_ENV,
+      isProduction,
+      currentPath,
+      platform: process.platform,
+      isWindowsServer,
+      userProfile: process.env.USERPROFILE,
+      homePath: process.env.HOME
+    });
+    
     // Configura diretório de cache específico para produção
     let customCacheDir = '';
     if (isProduction && isWindowsServer) {
+      // Usa o mesmo caminho identificado no erro: C:\locador\webapps\crm\.puppeteer-cache
       customCacheDir = join(currentPath, '.puppeteer-cache');
       try {
         if (!existsSync(customCacheDir)) {
           mkdirSync(customCacheDir, { recursive: true });
         }
         console.log(`📁 Diretório de cache Puppeteer criado: ${customCacheDir}`);
+        
+        // Configura também o cache do usuário Administrator se necessário
+        const adminCacheDir = 'C:\\Users\\Administrator\\.cache\\puppeteer';
+        try {
+          if (!existsSync(adminCacheDir)) {
+            mkdirSync(adminCacheDir, { recursive: true });
+            console.log(`📁 Diretório de cache Administrator criado: ${adminCacheDir}`);
+          }
+        } catch (adminError) {
+          console.warn('⚠️ Não foi possível criar cache do Administrator:', adminError);
+        }
+        
+        // Tenta também criar cache no diretório do usuário atual
+        const userCacheDir = process.env.USERPROFILE ? join(process.env.USERPROFILE, '.cache', 'puppeteer') : null;
+        if (userCacheDir) {
+          try {
+            if (!existsSync(userCacheDir)) {
+              mkdirSync(userCacheDir, { recursive: true });
+              console.log(`📁 Diretório de cache do usuário criado: ${userCacheDir}`);
+            }
+          } catch (userError) {
+            console.warn('⚠️ Não foi possível criar cache do usuário:', userError);
+          }
+        }
+        
       } catch (error) {
         console.warn('⚠️ Não foi possível criar diretório de cache personalizado:', error);
         customCacheDir = '';
@@ -114,7 +225,7 @@ class PDFService {
     
     console.log(`🔍 Ambiente detectado: Produção=${isProduction}, WindowsServer=${isWindowsServer}, CacheDir=${customCacheDir || 'padrão'}`);
     
-    // Argumentos ultra-robustos para Windows Server/Produção
+    // Argumentos ultra-robustos para Windows Server/Produção - baseados na análise do erro
     const baseArgs = [
       '--no-sandbox',
       '--disable-setuid-sandbox',
@@ -133,7 +244,7 @@ class PDFService {
       '--disable-features=VizDisplayCompositor',
       '--disable-features=AudioServiceOutOfProcess',
       '--disable-features=VizServiceDisplayCompositor',
-      '--disable-features=HttpsFirstBalancedModeAutoEnable', // Novo argumento crítico
+      '--disable-features=HttpsFirstBalancedModeAutoEnable',
       '--disable-web-security',
       '--disable-features=site-per-process',
       '--no-default-browser-check',
@@ -155,30 +266,88 @@ class PDFService {
       '--disable-translate',
       '--disable-web-resources',
       '--hide-scrollbars',
-      '--no-crash-upload'
+      '--no-crash-upload',
+      // Argumentos específicos para resolver "Failed to launch the browser process!"
+      '--disable-blink-features=AutomationControlled',
+      '--disable-features=VizDisplayCompositor,VizServiceDisplayCompositor',
+      '--disable-infobars',
+      '--disable-notifications',
+      '--disable-popup-blocking',
+      '--disable-save-password-bubble',
+      '--disable-session-crashed-bubble',
+      '--disable-password-generation',
+      '--disable-background-mode',
+      '--disable-add-to-shelf',
+      '--disable-background-downloads',
+      '--disable-component-cloud-policy',
+      '--disable-datasaver-prompt',
+      '--disable-desktop-notifications',
+      '--disable-domain-blocking-for-3d-apis',
+      '--disable-extensions-file-access-check',
+      '--disable-extensions-http-throttling',
+      '--disable-extensions-except',
+      '--disable-file-system',
+      '--disable-fine-grained-time-zone-detection',
+      '--disable-geolocation',
+      '--disable-gl-extensions',
+      '--disable-histogram-customizer',
+      '--disable-in-process-stack-traces',
+      '--disable-lcd-text',
+      '--disable-local-storage',
+      '--disable-logging',
+      '--disable-login-animations',
+      '--disable-new-bookmark-apps',
+      '--disable-new-channel-layout',
+      '--disable-new-video-renderer',
+      '--disable-partial-raster',
+      '--disable-plugins-discovery',
+      '--disable-preconnect',
+      '--disable-print-preview',
+      '--disable-renderer-accessibility',
+      '--disable-speech-api',
+      '--disable-threaded-animation',
+      '--disable-threaded-scrolling',
+      '--disable-v8-idle-tasks',
+      '--disable-webgl',
+      '--disable-webgl2'
     ];
 
     // Configuração específica para Windows Server/Produção
     if (isProduction && isWindowsServer) {
       baseArgs.push(
-        '--single-process', // Crítico apenas para Windows Server
+        '--single-process', // Crítico para Windows Server
         '--disable-extensions',
         '--disable-plugins',
         '--disable-images',
-        '--disable-javascript',
         '--memory-pressure-off',
-        '--max_old_space_size=4096'
+        '--max_old_space_size=4096',
+        '--js-flags=--max-old-space-size=4096',
+        // Argumentos específicos para o ambiente C:\locador\webapps\crm
+        '--disable-crash-reporter',
+        '--disable-in-process-stack-traces',
+        '--disable-logging',
+        '--disable-dev-tools',
+        '--disable-extensions-file-access-check',
+        '--allow-running-insecure-content',
+        '--ignore-certificate-errors',
+        '--ignore-ssl-errors',
+        '--ignore-certificate-errors-spki-list',
+        '--ignore-certificate-errors-skip-list'
       );
     }
 
     const config: any = {
       headless: true,
       args: baseArgs,
-      timeout: 120000, // Timeout muito aumentado para produção
-      protocolTimeout: 120000,
+      timeout: 180000, // 3 minutos para produção
+      protocolTimeout: 180000,
       handleSIGINT: false,
       handleSIGTERM: false,
-      handleSIGHUP: false
+      handleSIGHUP: false,
+      // Configurações específicas para resolver problemas de inicialização
+      slowMo: isProduction ? 100 : 0, // Adiciona delay em produção
+      devtools: false,
+      pipe: false // Usa WebSocket ao invés de pipe para melhor compatibilidade
     };
 
     // Configura cache directory se disponível
@@ -193,6 +362,10 @@ class PDFService {
       console.log(`🚀 Usando navegador personalizado: ${browserExecutable}`);
     } else {
       console.log('🔄 Usando Puppeteer padrão (tentará baixar Chrome automaticamente)');
+      // Em produção, força o download do Chrome se não encontrado
+      if (isProduction) {
+        console.log('🔧 Ambiente de produção detectado - forçando instalação do Chrome...');
+      }
     }
 
     // Em produção Windows, adiciona configurações ultra-específicas
@@ -465,9 +638,10 @@ class PDFService {
     return compiledTemplate(variables);
   }
 
-  private async launchBrowserWithRetry(config: any, maxRetries: number = 5): Promise<any> {
+  private async launchBrowserWithRetry(config: any, maxRetries: number = 7): Promise<any> {
     let lastError: Error | null = null;
     const { isProduction, isWindowsServer } = this.detectProductionEnvironment();
+    let chromeInstallAttempted = false;
     
     console.log(`🔄 Iniciando processo de retry para ambiente: Produção=${isProduction}, WindowsServer=${isWindowsServer}`);
     
@@ -513,6 +687,29 @@ class PDFService {
           stack: error instanceof Error ? error.stack?.split('\n').slice(0, 3).join('\n') : 'N/A'
         });
         
+        // Verifica se é erro de Chrome não encontrado e tenta instalar automaticamente
+        const errorMessage = error instanceof Error ? error.message : '';
+        const isChromeNotFoundError = errorMessage.includes('Could not find Chrome') || 
+                                     errorMessage.includes('chrome') ||
+                                     errorMessage.includes('browser process');
+        
+        if (isChromeNotFoundError && !chromeInstallAttempted && attempt <= 3) {
+          console.log('🔧 Detectado erro de Chrome não encontrado. Tentando instalação automática...');
+          chromeInstallAttempted = true;
+          
+          try {
+            const installSuccess = await installChromeAutomatically();
+            if (installSuccess) {
+              console.log('✅ Chrome instalado! Tentando novamente...');
+              // Não conta como tentativa, tenta novamente
+              attempt--;
+              continue;
+            }
+          } catch (installError) {
+            console.error('❌ Falha na instalação automática do Chrome:', installError);
+          }
+        }
+        
         if (attempt < maxRetries) {
           // Backoff exponencial mais agressivo para produção
           const baseDelay = isProduction ? 3000 : 2000;
@@ -550,18 +747,44 @@ class PDFService {
             
           } else if (attempt === 3) {
             // Quarta tentativa: configuração mínima absoluta
-            config.args = ['--no-sandbox', '--disable-setuid-sandbox'];
+            config.args = ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'];
             config.ignoreDefaultArgs = false;
             config.timeout = 240000; // 4 minutos
             delete config.executablePath; // Força uso do Chrome padrão do Puppeteer
             console.log('🔄 Estratégia 3: Configuração mínima + Chrome padrão');
             
           } else if (attempt === 4) {
-            // Quinta tentativa: última chance com configuração ultra-mínima
+            // Quinta tentativa: configuração ultra-mínima
             config.args = ['--no-sandbox'];
             config.ignoreDefaultArgs = true;
             config.timeout = 300000; // 5 minutos
-            console.log('🔄 Estratégia 4: Ultra-mínima (última chance)');
+            console.log('🔄 Estratégia 4: Ultra-mínima');
+            
+          } else if (attempt === 5) {
+            // Sexta tentativa: força reinstalação do Puppeteer
+            console.log('🔄 Estratégia 5: Forçando reinstalação do Puppeteer...');
+            try {
+              execSync('npm install puppeteer --force', { 
+                stdio: 'inherit',
+                timeout: 180000,
+                cwd: process.cwd()
+              });
+              console.log('✅ Puppeteer reinstalado com sucesso!');
+            } catch (reinstallError) {
+              console.error('❌ Falha na reinstalação do Puppeteer:', reinstallError);
+            }
+            
+            config.args = ['--no-sandbox', '--disable-setuid-sandbox'];
+            config.ignoreDefaultArgs = false;
+            config.timeout = 360000; // 6 minutos
+            
+          } else if (attempt === 6) {
+            // Sétima tentativa: última chance com configuração de emergência
+            config.args = [];
+            config.ignoreDefaultArgs = true;
+            config.timeout = 420000; // 7 minutos
+            delete config.executablePath;
+            console.log('🔄 Estratégia 6: Configuração de emergência (última chance)');
           }
           
           console.log(`📊 Nova configuração (tentativa ${attempt + 1}): ${config.args?.length || 0} argumentos`);
@@ -577,7 +800,8 @@ class PDFService {
       nodeVersion: process.version,
       cwd: process.cwd(),
       env: process.env.NODE_ENV,
-      puppeteerCache: process.env.PUPPETEER_CACHE_DIR
+      puppeteerCache: process.env.PUPPETEER_CACHE_DIR,
+      chromeInstallAttempted: chromeInstallAttempted
     });
     
     throw new Error(errorMessage);
