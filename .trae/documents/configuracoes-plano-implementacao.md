@@ -3,29 +3,48 @@
 ## 1. Análise da Situação Atual
 
 ### 1.1 Componentes Existentes
-- **settings-page.tsx**: Estrutura básica com abas, mas sem funcionalidades implementadas
-- **settings-modal.tsx**: Funcionalidades parciais implementadas (perfil, notificações, dados, sistema)
+
+* **settings-page.tsx**: Estrutura básica com abas, mas sem funcionalidades implementadas
+
+* **settings-modal.tsx**: Funcionalidades parciais implementadas (perfil, notificações, dados, sistema)
 
 ### 1.2 Funcionalidades Já Implementadas
-- ✅ Atualização de perfil do usuário
-- ✅ Configurações básicas de notificações
-- ✅ Exportação de dados
-- ✅ Limpeza de dados (admin)
-- ✅ Logout e informações do sistema
+
+* ✅ Atualização de perfil do usuário
+
+* ✅ Configurações básicas de notificações
+
+* ✅ Exportação de dados
+
+* ✅ Limpeza de dados (admin)
+
+* ✅ Logout e informações do sistema
 
 ### 1.3 Funcionalidades Não Implementadas
-- ❌ Configurações da empresa
-- ❌ Upload de foto de perfil
-- ❌ Alteração de senha
-- ❌ Templates de email
-- ❌ Webhooks
-- ❌ Autenticação de dois fatores (2FA)
-- ❌ Histórico de login
-- ❌ Sessões ativas
-- ❌ Logs do sistema
-- ❌ Métricas de performance
-- ❌ Importação de dados funcional
-- ❌ Configurações monetárias e fuso horário
+
+* ❌ Configurações da empresa
+
+* ❌ Upload de foto de perfil
+
+* ❌ Alteração de senha
+
+* ❌ Templates de email
+
+* ❌ Webhooks
+
+* ❌ Autenticação de dois fatores (2FA)
+
+* ❌ Histórico de login
+
+* ❌ Sessões ativas
+
+* ❌ Logs do sistema
+
+* ❌ Métricas de performance
+
+* ❌ Importação de dados funcional
+
+* ❌ Configurações monetárias e fuso horário
 
 ## 2. Estrutura de Implementação
 
@@ -108,11 +127,15 @@ src/components/settings/
 ### 3.1 Aba Geral
 
 **Componentes:**
-- `CompanySettingsForm`: Configurações da empresa
-- `CurrencyTimezoneSettings`: Moeda e fuso horário
-- `BackupSettings`: Configurações de backup automático
+
+* `CompanySettingsForm`: Configurações da empresa
+
+* `CurrencyTimezoneSettings`: Moeda e fuso horário
+
+* `BackupSettings`: Configurações de backup automático
 
 **Funcionalidades:**
+
 ```typescript
 interface CompanySettings {
   name: string;
@@ -130,11 +153,15 @@ interface CompanySettings {
 ### 3.2 Aba Perfil
 
 **Componentes:**
-- `ProfilePhotoUpload`: Upload com preview e crop
-- `PasswordChangeForm`: Alteração de senha com validação
-- Formulário de informações pessoais (já existente)
+
+* `ProfilePhotoUpload`: Upload com preview e crop
+
+* `PasswordChangeForm`: Alteração de senha com validação
+
+* Formulário de informações pessoais (já existente)
 
 **Funcionalidades:**
+
 ```typescript
 interface ProfilePhoto {
   file: File;
@@ -152,11 +179,15 @@ interface PasswordChange {
 ### 3.3 Aba Notificações
 
 **Componentes:**
-- `EmailTemplateEditor`: Editor WYSIWYG para templates
-- `WebhookManager`: Gerenciamento de webhooks
-- Configurações de notificação (já existente)
+
+* `EmailTemplateEditor`: Editor WYSIWYG para templates
+
+* `WebhookManager`: Gerenciamento de webhooks
+
+* Configurações de notificação (já existente)
 
 **Funcionalidades:**
+
 ```typescript
 interface EmailTemplate {
   id: string;
@@ -179,11 +210,15 @@ interface Webhook {
 ### 3.4 Aba Segurança
 
 **Componentes:**
-- `TwoFactorAuth`: Configuração de 2FA com QR code
-- `LoginHistoryTable`: Histórico com filtros e paginação
-- `ActiveSessionsTable`: Sessões ativas com opção de logout
+
+* `TwoFactorAuth`: Configuração de 2FA com QR code
+
+* `LoginHistoryTable`: Histórico com filtros e paginação
+
+* `ActiveSessionsTable`: Sessões ativas com opção de logout
 
 **Funcionalidades:**
+
 ```typescript
 interface TwoFactorSetup {
   enabled: boolean;
@@ -214,12 +249,17 @@ interface ActiveSession {
 ### 3.5 Aba Sistema
 
 **Componentes:**
-- `SystemLogsViewer`: Visualizador de logs com filtros
-- `PerformanceMetrics`: Gráficos de métricas em tempo real
-- `DataImportWizard`: Assistente de importação melhorado
-- `MaintenanceTools`: Ferramentas de manutenção
+
+* `SystemLogsViewer`: Visualizador de logs com filtros
+
+* `PerformanceMetrics`: Gráficos de métricas em tempo real
+
+* `DataImportWizard`: Assistente de importação melhorado
+
+* `MaintenanceTools`: Ferramentas de manutenção
 
 **Funcionalidades:**
+
 ```typescript
 interface SystemLog {
   id: string;
@@ -404,57 +444,94 @@ const usePhotoUpload = () => {
 ## 6. Cronograma de Implementação
 
 ### Semana 1: Backend Foundation
-- [ ] Criar novos modelos de dados
-- [ ] Implementar endpoints básicos
-- [ ] Configurar middleware de segurança
-- [ ] Testes unitários dos endpoints
+
+* [ ] Criar novos modelos de dados
+
+* [ ] Implementar endpoints básicos
+
+* [ ] Configurar middleware de segurança
+
+* [ ] Testes unitários dos endpoints
 
 ### Semana 2: Componentes Core
-- [ ] CompanySettingsForm
-- [ ] ProfilePhotoUpload
-- [ ] PasswordChangeForm
-- [ ] CurrencyTimezoneSettings
+
+* [ ] CompanySettingsForm
+
+* [ ] ProfilePhotoUpload
+
+* [ ] PasswordChangeForm
+
+* [ ] CurrencyTimezoneSettings
 
 ### Semana 3: Funcionalidades Avançadas
-- [ ] EmailTemplateEditor
-- [ ] WebhookManager
-- [ ] TwoFactorAuth
-- [ ] LoginHistoryTable
+
+* [ ] EmailTemplateEditor
+
+* [ ] WebhookManager
+
+* [ ] TwoFactorAuth
+
+* [ ] LoginHistoryTable
 
 ### Semana 4: Sistema e Finalização
-- [ ] SystemLogsViewer
-- [ ] PerformanceMetrics
-- [ ] DataImportWizard
-- [ ] Integração completa e testes
+
+* [ ] SystemLogsViewer
+
+* [ ] PerformanceMetrics
+
+* [ ] DataImportWizard
+
+* [ ] Integração completa e testes
 
 ### Semana 5: Polimento e Deploy
-- [ ] Testes de integração
-- [ ] Otimizações de performance
-- [ ] Documentação
-- [ ] Deploy e monitoramento
+
+* [ ] Testes de integração
+
+* [ ] Otimizações de performance
+
+* [ ] Documentação
+
+* [ ] Deploy e monitoramento
 
 ## 7. Critérios de Aceitação
 
 ### 7.1 Funcionalidades Básicas
-- [ ] Todos os campos e botões devem ter funcionalidade
-- [ ] Validações em tempo real
-- [ ] Feedback visual para todas as ações
-- [ ] Responsividade em todos os dispositivos
+
+* [ ] Todos os campos e botões devem ter funcionalidade
+
+* [ ] Validações em tempo real
+
+* [ ] Feedback visual para todas as ações
+
+* [ ] Responsividade em todos os dispositivos
 
 ### 7.2 Segurança
-- [ ] Autenticação obrigatória para todas as operações
-- [ ] Validação de permissões por papel de usuário
-- [ ] Logs de auditoria para ações sensíveis
-- [ ] Proteção contra uploads maliciosos
+
+* [ ] Autenticação obrigatória para todas as operações
+
+* [ ] Validação de permissões por papel de usuário
+
+* [ ] Logs de auditoria para ações sensíveis
+
+* [ ] Proteção contra uploads maliciosos
 
 ### 7.3 Performance
-- [ ] Carregamento inicial < 2 segundos
-- [ ] Operações de CRUD < 1 segundo
-- [ ] Upload de foto < 5 segundos
-- [ ] Paginação para listas grandes
+
+* [ ] Carregamento inicial < 2 segundos
+
+* [ ] Operações de CRUD < 1 segundo
+
+* [ ] Upload de foto < 5 segundos
+
+* [ ] Paginação para listas grandes
 
 ### 7.4 Usabilidade
-- [ ] Interface intuitiva e consistente
-- [ ] Mensagens de erro claras
-- [ ] Confirmações para ações destrutivas
-- [ ] Atalhos de teclado para ações comuns
+
+* [ ] Interface intuitiva e consistente
+
+* [ ] Mensagens de erro claras
+
+* [ ] Confirmações para ações destrutivas
+
+* [ ] Atalhos de teclado para ações comuns
+
