@@ -55,8 +55,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Setup session middleware
   app.use(getSession());
 
-  // Health check endpoint for deployment monitoring
+  // Health check endpoints for deployment monitoring
   app.get("/healthz", (_req, res) => res.status(200).send("ok"));
+  app.get("/health", (_req, res) => res.status(200).send("ok"));
 
   // Auth routes
   app.post("/api/auth/login", async (req, res) => {
@@ -1460,16 +1461,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
         };
       });
 
-      // Calculate performance by salesperson
-      const performanceBySalesperson = users
-        .filter(u => u.isActive && (u.role === 'usuario' || u.role === 'gerente' || u.role === 'admin'))
-        .map(user => {
-          // Use both assignedTo and salesperson fields to find opportunities
-          const userOpps = opportunities.filter(o => 
-            o.assignedTo === user.id || 
-            o.salesperson === user.id || 
-            o.salesperson === user.name
-          );
+      // Calculate performance by salesperson (group by opportunities, resolve IDs to names)
+      const resolveSalespersonNameForDownload = (opp: any) => {
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+        const assigned = (opp.assignedTo || '').toString().trim();
+        const salesperson = (opp.salesperson || '').toString().trim();
+
+        const resolveFromId = (id: string) => {
+          const u = users.find(u => u.id === id);
+          if (!u) return null;
+          if (u.role === 'admin') return 'Não atribuído';
+          return u.name || null;
+        };
+
+        if (assigned && uuidRegex.test(assigned)) {
+          const name = resolveFromId(assigned);
+          if (name) return name;
+        }
+
+        if (salesperson) {
+          if (uuidRegex.test(salesperson)) {
+            const name = resolveFromId(salesperson);
+            if (name) return name;
+            return 'Não atribuído';
+          } else {
+            const u = users.find(u => u.name === salesperson);
+            if (u && u.role === 'admin') return 'Não atribuído';
+            const lower = salesperson.toLowerCase();
+            if (lower.includes('admin')) return 'Não atribuído';
+            return salesperson;
+          }
+        }
+
+        return 'Não atribuído';
+      };
+
+      const salesMapDownload = new Map<string, any[]>();
+      opportunities.forEach(opp => {
+        const name = resolveSalespersonNameForDownload(opp);
+        if (!salesMapDownload.has(name)) salesMapDownload.set(name, []);
+        salesMapDownload.get(name)!.push(opp);
+      });
+
+      const performanceBySalesperson = Array.from(salesMapDownload.entries())
+        .map(([name, userOpps]) => {
           const userClosedOpps = userOpps.filter(o => {
             const p = (o.phase || '').toString().toLowerCase();
             return p === 'fechamento' || p === 'ganho';
@@ -1483,14 +1518,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const conversionRate = userOpps.length > 0 ? (userClosedOpps.length / userOpps.length * 100) : 0;
 
           return {
-            name: user.name || 'Usuário sem nome',
+            name: name || 'Usuário sem nome',
             totalOpportunities: userOpps.length,
             closedOpportunities: userClosedOpps.length,
             conversionRate: isNaN(conversionRate) ? 0 : Math.round(conversionRate * 10) / 10, // Round to 1 decimal
             totalValue: isNaN(userTotalValue) ? 0 : userTotalValue
           };
         })
-        .filter(performance => performance.totalOpportunities > 0) // Only include users with opportunities
+        .filter(item => item.totalOpportunities > 0)
         .sort((a, b) => b.totalValue - a.totalValue);
 
       // Calculate performance by creator
@@ -1641,6 +1676,205 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error('Erro ao gerar relatório PDF:', error);
       res.status(500).json({ message: "Erro ao gerar relatório PDF para download" });
+    }
+  });
+
+  // Performance by Salesperson API (JSON)
+  app.post("/api/reports/performance-by-salesperson", async (req, res) => {
+    try {
+      const { startDate, endDate } = req.body || {};
+      let opportunities = await storage.getOpportunities();
+      const users = await storage.getUsers();
+
+      // Optional date filtering
+      if (startDate || endDate) {
+        const start = startDate ? new Date(startDate) : new Date(0);
+        const end = endDate ? new Date(endDate) : new Date();
+        opportunities = opportunities.filter(opp => {
+          const created = opp.createdAt ? new Date(opp.createdAt) : null;
+          return created && created >= start && created <= end;
+        });
+      }
+
+      // Calculate performance by salesperson (group by opportunities, resolve IDs to names)
+      const resolveSalespersonNameForApi = (opp: any) => {
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+        const assigned = (opp.assignedTo || '').toString().trim();
+        const salesperson = (opp.salesperson || '').toString().trim();
+
+        const resolveFromId = (id: string) => {
+          const u = users.find(u => u.id === id);
+          if (!u) return null;
+          if (u.role === 'admin') return 'Não atribuído';
+          return u.name || null;
+        };
+
+        if (assigned && uuidRegex.test(assigned)) {
+          const name = resolveFromId(assigned);
+          if (name) return name;
+        }
+
+        if (salesperson) {
+          if (uuidRegex.test(salesperson)) {
+            const name = resolveFromId(salesperson);
+            if (name) return name;
+            return 'Não atribuído';
+          } else {
+            const u = users.find(u => u.name === salesperson);
+            if (u && u.role === 'admin') return 'Não atribuído';
+            const lower = salesperson.toLowerCase();
+            if (lower.includes('admin')) return 'Não atribuído';
+            return salesperson;
+          }
+        }
+
+        return 'Não atribuído';
+      };
+
+      const salesMapApi = new Map<string, any[]>();
+      opportunities.forEach(opp => {
+        const name = resolveSalespersonNameForApi(opp);
+        if (!salesMapApi.has(name)) salesMapApi.set(name, []);
+        salesMapApi.get(name)!.push(opp);
+      });
+
+      const performanceBySalesperson = Array.from(salesMapApi.entries())
+        .map(([name, userOpps]) => {
+          const userClosedOpps = userOpps.filter(o => {
+            const p = (o.phase || '').toString().toLowerCase();
+            return p === 'fechamento' || p === 'ganho';
+          });
+          const userTotalValue = userClosedOpps.reduce((sum, opp) => {
+            const finalValue = opp.finalValue ? parseFloat(opp.finalValue.toString()) : 0;
+            const budgetValue = opp.budget ? parseFloat(opp.budget.toString()) : 0;
+            const value = finalValue || budgetValue;
+            return sum + (isNaN(value) ? 0 : value);
+          }, 0);
+          const conversionRate = userOpps.length > 0 ? (userClosedOpps.length / userOpps.length * 100) : 0;
+
+          return {
+            name: name || 'Usuário sem nome',
+            totalOpportunities: userOpps.length,
+            closedOpportunities: userClosedOpps.length,
+            conversionRate: isNaN(conversionRate) ? 0 : Math.round(conversionRate * 10) / 10,
+            totalValue: isNaN(userTotalValue) ? 0 : userTotalValue
+          };
+        })
+        .filter(item => item.totalOpportunities > 0)
+        .sort((a, b) => b.totalValue - a.totalValue);
+
+      res.json({
+        opportunities,
+        performanceBySalesperson
+      });
+    } catch (error) {
+      console.error('Performance by salesperson API error:', error);
+      res.status(500).json({ message: 'Erro ao gerar dados de performance por vendedor' });
+    }
+  });
+
+  // Performance by Salesperson PDF
+  app.post("/api/reports/performance-by-salesperson/pdf", async (req, res) => {
+    try {
+      const { startDate, endDate } = req.body || {};
+      let opportunities = await storage.getOpportunities();
+      const users = await storage.getUsers();
+
+      // Optional date filtering
+      if (startDate || endDate) {
+        const start = startDate ? new Date(startDate) : new Date(0);
+        const end = endDate ? new Date(endDate) : new Date();
+        opportunities = opportunities.filter(opp => {
+          const created = opp.createdAt ? new Date(opp.createdAt) : null;
+          return created && created >= start && created <= end;
+        });
+      }
+
+      // Calculate performance by salesperson (group by opportunities, resolve IDs to names)
+      const resolveSalespersonNameForPdf = (opp: any) => {
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+        const assigned = (opp.assignedTo || '').toString().trim();
+        const salesperson = (opp.salesperson || '').toString().trim();
+
+        const resolveFromId = (id: string) => {
+          const u = users.find(u => u.id === id);
+          if (!u) return null;
+          if (u.role === 'admin') return 'Não atribuído';
+          return u.name || null;
+        };
+
+        if (assigned && uuidRegex.test(assigned)) {
+          const name = resolveFromId(assigned);
+          if (name) return name;
+        }
+
+        if (salesperson) {
+          if (uuidRegex.test(salesperson)) {
+            const name = resolveFromId(salesperson);
+            if (name) return name;
+            return 'Não atribuído';
+          } else {
+            const u = users.find(u => u.name === salesperson);
+            if (u && u.role === 'admin') return 'Não atribuído';
+            const lower = salesperson.toLowerCase();
+            if (lower.includes('admin')) return 'Não atribuído';
+            return salesperson;
+          }
+        }
+
+        return 'Não atribuído';
+      };
+
+      const salesMapPdf = new Map<string, any[]>();
+      opportunities.forEach(opp => {
+        const name = resolveSalespersonNameForPdf(opp);
+        if (!salesMapPdf.has(name)) salesMapPdf.set(name, []);
+        salesMapPdf.get(name)!.push(opp);
+      });
+
+      const performanceBySalesperson = Array.from(salesMapPdf.entries())
+        .map(([name, userOpps]) => {
+          const userClosedOpps = userOpps.filter(o => {
+            const p = (o.phase || '').toString().toLowerCase();
+            return p === 'fechamento' || p === 'ganho';
+          });
+          const userTotalValue = userClosedOpps.reduce((sum, opp) => {
+            const finalValue = opp.finalValue ? parseFloat(opp.finalValue.toString()) : 0;
+            const budgetValue = opp.budget ? parseFloat(opp.budget.toString()) : 0;
+            const value = finalValue || budgetValue;
+            return sum + (isNaN(value) ? 0 : value);
+          }, 0);
+          const conversionRate = userOpps.length > 0 ? (userClosedOpps.length / userOpps.length * 100) : 0;
+
+          return {
+            name: name || 'Usuário sem nome',
+            totalOpportunities: userOpps.length,
+            closedOpportunities: userClosedOpps.length,
+            conversionRate: isNaN(conversionRate) ? 0 : Math.round(conversionRate * 10) / 10,
+            totalValue: isNaN(userTotalValue) ? 0 : userTotalValue
+          };
+        })
+        .filter(item => item.totalOpportunities > 0)
+        .sort((a, b) => b.totalValue - a.totalValue);
+
+      const reportData = {
+        opportunities,
+        performanceBySalesperson
+      };
+
+      const pdfBuffer = await pdfService.generatePDF({
+        title: 'Relatório de Performance por Vendedor',
+        type: 'performance',
+        data: reportData
+      });
+
+      res.setHeader('Content-Disposition', 'attachment; filename="relatorio-performance-vendedor.pdf"');
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Length', pdfBuffer.length);
+      res.send(pdfBuffer);
+    } catch (error) {
+      console.error('Performance by salesperson PDF error:', error);
+      res.status(500).json({ message: 'Erro ao gerar PDF de performance por vendedor' });
     }
   });
 

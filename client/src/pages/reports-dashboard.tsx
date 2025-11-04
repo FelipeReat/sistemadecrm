@@ -220,29 +220,63 @@ export default function ReportsDashboard() {
     }).filter(phase => phase.count > 0);
   }, [filteredOpportunities]);
 
-  // Performance by salesperson
+  // Performance by salesperson (resolve assignedTo or salesperson, exclui admin)
   const performanceBySalesperson = useMemo(() => {
-    const salespeople = users.reduce((acc, user) => {
-      acc[user.name] = { name: user.name, total: 0, won: 0, value: 0 };
-      return acc;
-    }, {} as Record<string, { name: string; total: number; won: number; value: number }>);
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-    filteredOpportunities.forEach(opp => {
-      const salesperson = opp.salesperson || 'Não atribuído';
-      if (!salespeople[salesperson]) {
-        salespeople[salesperson] = { name: salesperson, total: 0, won: 0, value: 0 };
+    const resolveRespName = (opp: Opportunity): string => {
+      const anyOpp = opp as any;
+      const assigned = (anyOpp?.assignedTo || '').toString().trim();
+      const salesperson = (opp.salesperson || '').toString().trim();
+
+      const resolveFromId = (id: string) => {
+        const u = users.find(u => u.id === id);
+        if (!u) return null;
+        if (u.role === 'admin') return 'Não atribuído';
+        return u.name || null;
+      };
+
+      if (assigned && uuidRegex.test(assigned)) {
+        const name = resolveFromId(assigned);
+        if (name) return name;
       }
 
-      salespeople[salesperson].total++;
-      if (opp.phase === 'ganho') {
-        salespeople[salesperson].won++;
+      if (salesperson) {
+        if (uuidRegex.test(salesperson)) {
+          const name = resolveFromId(salesperson);
+          if (name) return name;
+          return 'Não atribuído';
+        } else {
+          const u = users.find(u => u.name === salesperson);
+          if (u && u.role === 'admin') return 'Não atribuído';
+          const lower = salesperson.toLowerCase();
+          if (lower.includes('admin')) return 'Não atribuído';
+          return salesperson;
+        }
+      }
+
+      return 'Não atribuído';
+    };
+
+    const map: Record<string, { name: string; total: number; won: number; value: number }> = {};
+
+    filteredOpportunities.forEach(opp => {
+      const name = resolveRespName(opp);
+      if (!map[name]) {
+        map[name] = { name, total: 0, won: 0, value: 0 };
+      }
+
+      map[name].total++;
+      const phase = (opp.phase || '').toString().toLowerCase();
+      if (phase === 'ganho' || phase === 'fechamento') {
+        map[name].won++;
         const value = parseFloat(opp.finalValue?.toString() || opp.budget?.toString() || '0');
-        salespeople[salesperson].value += isNaN(value) ? 0 : value;
+        map[name].value += isNaN(value) ? 0 : value;
       }
     });
 
-    return Object.values(salespeople)
-      .filter(s => s.total > 0)
+    return Object.values(map)
+      .filter(s => s.total > 0 && s.name !== 'Não atribuído')
       .map(s => ({
         ...s,
         conversionRate: s.total > 0 ? (s.won / s.total) * 100 : 0
