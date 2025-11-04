@@ -88,6 +88,10 @@ export interface IStorage {
   clearAllOpportunities(): Promise<number>;
   clearAllAutomations(): Promise<number>;
   clearAllSavedReports(): Promise<number>;
+
+  // Kanban Cards Management
+  getOpportunitiesCount(): Promise<number>;
+  createOpportunitiesBackup(userId: string): Promise<number>;
 }
 
 export class MemStorage implements IStorage {
@@ -562,6 +566,17 @@ export class MemStorage implements IStorage {
     user.updatedAt = new Date();
     
     return true;
+  }
+
+  // Kanban Cards Management
+  async getOpportunitiesCount(): Promise<number> {
+    return this.opportunities.size;
+  }
+
+  async createOpportunitiesBackup(userId: string): Promise<number> {
+    // For memory storage, we'll just return a mock backup ID
+    // In a real implementation, this would create a backup record
+    return Math.floor(Math.random() * 1000000);
   }
 }
 

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste Settings - Usuário Comum</title>
+</head>
+<body>
+    <h1>Teste de Login - Usuário Comum</h1>
+    <div id="status">Fazendo login...</div>
+    
+    <script>
+        async function loginAndRedirect() {
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: 'usuario@teste.com',
+                        password: 'Usuario123!'
+                    }),
+                    credentials: 'include'
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    document.getElementById('status').innerHTML = `
+                        <p>✅ Login realizado com sucesso!</p>
+                        <p>Usuário: ${data.user.name} (${data.user.role})</p>
+                        <p>Redirecionando para settings...</p>
+                    `;
+                    
+                    // Redirecionar após 2 segundos
+                    setTimeout(() => {
+                        window.location.href = '/settings';
+                    }, 2000);
+                } else {
+                    document.getElementById('status').innerHTML = `❌ Erro no login: ${response.status}`;
+                }
+            } catch (error) {
+                document.getElementById('status').innerHTML = `❌ Erro: ${error.message}`;
+            }
+        }
+        
+        // Executar login automaticamente
+        loginAndRedirect();
+    </script>
+</body>
+</html>

@@ -20,6 +20,7 @@ import path from 'path';
 import { promises as fs } from 'fs';
 import * as fsSync from 'fs';
 import { nanoid } from 'nanoid';
+import * as XLSX from 'xlsx';
 
 // Mock DB and schema for demonstration purposes. Replace with your actual database logic.
 // Assuming 'db' and 'opportunities' are available and configured for your ORM (e.g., Drizzle ORM)
@@ -59,8 +60,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Auth routes
   app.post("/api/auth/login", async (req, res) => {
+    console.log("🔍 [LOGIN] Login attempt received");
+    console.log(`🔍 [LOGIN] Request headers: ${JSON.stringify(req.headers)}`);
+    console.log(`🔍 [LOGIN] Request body: ${JSON.stringify(req.body)}`);
+    console.log(`🔍 [LOGIN] Request raw body: ${req.body}`);
+    
     try {
       const { email, password } = loginSchema.parse(req.body);
+      console.log(`🔍 [LOGIN] Parsed email: ${email}`);
 
       // Verifica rate limiting
       if (rateLimiter.isBlocked(email)) {
@@ -70,7 +77,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
+      console.log("🔍 [LOGIN] Validating user password...");
       const user = await storage.validateUserPassword(email, password);
+      console.log(`🔍 [LOGIN] User validation result: ${user ? 'valid' : 'invalid'}`);
 
       if (!user) {
         rateLimiter.recordFailedAttempt(email);
@@ -765,18 +774,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/user/settings", isAuthenticated, async (req, res) => {
-    try {
-      const userId = req.session.userId!;
-      const settings = req.body;
-
-      // In a real application, you would store these settings in a separate table
-      // For now, we'll just return success
-      res.json({ message: "Configurações salvas com sucesso", settings });
-    } catch (error) {
-      res.status(500).json({ message: "Erro ao salvar configurações" });
-    }
-  });
+  // Duplicate /api/user/settings basic PUT removed — consolidated handler is defined later.
 
   // Change password endpoint
   app.put("/api/user/change-password", isAuthenticated, async (req, res) => {
@@ -1409,109 +1407,197 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       filename += '.pdf';
 
-      // Prepare data for PDF generation
-      const phases = ['prospecção', 'qualificação', 'proposta', 'negociação', 'fechamento'];
-      const temperatures = ['fria', 'morna', 'quente'];
+      // Prepare data for PDF generation (normalized keys)
+      const phaseDefs = [
+        { key: 'prospeccao', name: 'Prospecção' },
+        { key: 'qualificacao', name: 'Qualificação' },
+        { key: 'proposta', name: 'Proposta' },
+        { key: 'negociacao', name: 'Negociação' },
+        { key: 'ganho', name: 'Ganho' },
+        { key: 'perdido', name: 'Perdido' }
+      ];
+      const tempDefs = [
+        { key: 'frio', name: 'Frio' },
+        { key: 'morno', name: 'Morno' },
+        { key: 'quente', name: 'Quente' }
+      ];
 
-      // Calculate phase distribution
-      const phaseDistribution = phases.map(phase => {
-        const phaseOpps = opportunities.filter(o => o.phase === phase);
+      // Calculate phase distribution with validation and normalized keys
+      const phaseDistribution = phaseDefs.map(({ key, name }) => {
+        const phaseOpps = opportunities.filter(o => (o.phase || '').toString().toLowerCase() === key);
         const phaseValue = phaseOpps.reduce((sum, opp) => {
-          return sum + (opp.budget ? parseFloat(opp.budget.toString()) : 0);
+          const finalValue = opp.finalValue ? parseFloat(opp.finalValue.toString()) : 0;
+          const budgetValue = opp.budget ? parseFloat(opp.budget.toString()) : 0;
+          const value = finalValue || budgetValue;
+          return sum + (isNaN(value) ? 0 : value);
         }, 0);
         const percentage = opportunities.length > 0 ? (phaseOpps.length / opportunities.length * 100) : 0;
         
         return {
-          phase: phase.charAt(0).toUpperCase() + phase.slice(1),
+          phase: name,
           count: phaseOpps.length,
-          percentage,
-          totalValue: phaseValue
+          percentage: isNaN(percentage) ? 0 : Math.round(percentage * 10) / 10, // Round to 1 decimal
+          totalValue: isNaN(phaseValue) ? 0 : phaseValue
         };
-      });
+      }).filter(item => item.count > 0);
 
-      // Calculate temperature distribution
-      const temperatureDistribution = temperatures.map(temp => {
-        const tempOpps = opportunities.filter(o => o.businessTemperature === temp);
+      // Calculate temperature distribution with validation and normalized keys
+      const temperatureDistribution = tempDefs.map(({ key, name }) => {
+        const tempOpps = opportunities.filter(o => (o.businessTemperature || 'morno').toString().toLowerCase() === key);
         const tempValue = tempOpps.reduce((sum, opp) => {
-          return sum + (opp.budget ? parseFloat(opp.budget.toString()) : 0);
+          const finalValue = opp.finalValue ? parseFloat(opp.finalValue.toString()) : 0;
+          const budgetValue = opp.budget ? parseFloat(opp.budget.toString()) : 0;
+          const value = finalValue || budgetValue;
+          return sum + (isNaN(value) ? 0 : value);
         }, 0);
         const percentage = opportunities.length > 0 ? (tempOpps.length / opportunities.length * 100) : 0;
         
         return {
-          temperature: temp.charAt(0).toUpperCase() + temp.slice(1),
+          temperature: name,
           count: tempOpps.length,
-          percentage,
-          totalValue: tempValue
+          percentage: isNaN(percentage) ? 0 : Math.round(percentage * 10) / 10, // Round to 1 decimal
+          totalValue: isNaN(tempValue) ? 0 : tempValue
         };
       });
 
       // Calculate performance by salesperson
       const performanceBySalesperson = users
-        .filter(u => u.isActive && u.role !== 'admin')
+        .filter(u => u.isActive && (u.role === 'usuario' || u.role === 'gerente' || u.role === 'admin'))
         .map(user => {
-          const userOpps = opportunities.filter(o => o.assignedTo === user.id);
-          const userClosedOpps = userOpps.filter(o => o.phase === 'fechamento');
+          // Use both assignedTo and salesperson fields to find opportunities
+          const userOpps = opportunities.filter(o => 
+            o.assignedTo === user.id || 
+            o.salesperson === user.id || 
+            o.salesperson === user.name
+          );
+          const userClosedOpps = userOpps.filter(o => {
+            const p = (o.phase || '').toString().toLowerCase();
+            return p === 'fechamento' || p === 'ganho';
+          });
           const userTotalValue = userClosedOpps.reduce((sum, opp) => {
-            return sum + (opp.finalValue ? parseFloat(opp.finalValue.toString()) : 
-                         opp.budget ? parseFloat(opp.budget.toString()) : 0);
+            const finalValue = opp.finalValue ? parseFloat(opp.finalValue.toString()) : 0;
+            const budgetValue = opp.budget ? parseFloat(opp.budget.toString()) : 0;
+            const value = finalValue || budgetValue;
+            return sum + (isNaN(value) ? 0 : value);
           }, 0);
           const conversionRate = userOpps.length > 0 ? (userClosedOpps.length / userOpps.length * 100) : 0;
 
           return {
-            name: user.name,
+            name: user.name || 'Usuário sem nome',
             totalOpportunities: userOpps.length,
             closedOpportunities: userClosedOpps.length,
-            conversionRate,
-            totalValue: userTotalValue
+            conversionRate: isNaN(conversionRate) ? 0 : Math.round(conversionRate * 10) / 10, // Round to 1 decimal
+            totalValue: isNaN(userTotalValue) ? 0 : userTotalValue
           };
         })
+        .filter(performance => performance.totalOpportunities > 0) // Only include users with opportunities
         .sort((a, b) => b.totalValue - a.totalValue);
 
       // Calculate performance by creator
-      const performanceByCreator = users
-        .filter(u => u.isActive)
-        .map(user => {
-          const userOpps = opportunities.filter(o => o.createdBy === user.id);
+      // First, get all unique creators from opportunities (including imported ones)
+      const allCreators = new Map<string, { name: string; opportunities: any[] }>();
+      
+      // Add opportunities to creators based on createdByName (for imported) or user lookup (for regular)
+      opportunities.forEach(opp => {
+        let creatorName = '';
+        
+        if (opp.createdByName && opp.createdByName.trim() !== '' && opp.createdByName !== 'Sistema') {
+          // Use createdByName for imported opportunities or when explicitly set
+          creatorName = opp.createdByName;
+        } else if (opp.createdBy) {
+          // Try to find user by ID for regular opportunities
+          const creator = users.find(u => u.id === opp.createdBy);
+          creatorName = creator?.name || opp.createdBy;
+        } else {
+          creatorName = 'Sistema';
+        }
+        
+        if (!allCreators.has(creatorName)) {
+          allCreators.set(creatorName, { name: creatorName, opportunities: [] });
+        }
+        allCreators.get(creatorName)!.opportunities.push(opp);
+      });
+      
+      // Calculate performance for each creator
+      const performanceByCreator = Array.from(allCreators.values())
+        .map(creator => {
+          const userOpps = creator.opportunities;
           const userClosedOpps = userOpps.filter(o => o.phase === 'fechamento');
           const userTotalValue = userClosedOpps.reduce((sum, opp) => {
-            return sum + (opp.finalValue ? parseFloat(opp.finalValue.toString()) : 
-                         opp.budget ? parseFloat(opp.budget.toString()) : 0);
+            const finalValue = opp.finalValue ? parseFloat(opp.finalValue.toString()) : 0;
+            const budgetValue = opp.budget ? parseFloat(opp.budget.toString()) : 0;
+            const value = finalValue || budgetValue;
+            return sum + (isNaN(value) ? 0 : value);
           }, 0);
           const conversionRate = userOpps.length > 0 ? (userClosedOpps.length / userOpps.length * 100) : 0;
 
           return {
-            name: user.name,
+            name: creator.name || 'Criador sem nome',
             totalOpportunities: userOpps.length,
             closedOpportunities: userClosedOpps.length,
-            conversionRate,
-            totalValue: userTotalValue
+            conversionRate: isNaN(conversionRate) ? 0 : Math.round(conversionRate * 10) / 10, // Round to 1 decimal
+            totalValue: isNaN(userTotalValue) ? 0 : userTotalValue
           };
         })
+        .filter(performance => performance.totalOpportunities > 0) // Only include creators with opportunities
         .sort((a, b) => b.totalValue - a.totalValue);
 
       // Prepare opportunities data with user names
       const opportunitiesWithUsers = opportunities.map(opp => {
         const assignedUser = users.find(u => u.id === opp.assignedTo);
-        const createdByUser = users.find(u => u.id === opp.createdBy);
+        
+        // For creator, prioritize createdByName (for imported opportunities) over user lookup
+        let createdByUserName = 'N/A';
+        if (opp.createdByName && opp.createdByName.trim() !== '' && opp.createdByName !== 'Sistema') {
+          createdByUserName = opp.createdByName;
+        } else if (opp.createdBy) {
+          const createdByUser = users.find(u => u.id === opp.createdBy);
+          createdByUserName = createdByUser?.name || opp.createdBy;
+        }
+        
+        // Validate and parse budget value
+        const budgetValue = opp.budget ? parseFloat(opp.budget.toString()) : 0;
+        const validatedValue = isNaN(budgetValue) ? 0 : budgetValue;
         
         return {
           ...opp,
           assignedUser: assignedUser?.name || 'N/A',
-          createdByUser: createdByUser?.name || 'N/A',
-          value: opp.budget ? parseFloat(opp.budget.toString()) : 0,
+          createdByUser: createdByUserName || 'N/A',
+          value: validatedValue,
           phase: opp.phase || 'N/A',
           temperature: opp.businessTemperature || 'N/A'
         };
       });
 
+      // Validate report data before generating PDF
+      const validateReportData = (data: any) => {
+        // Ensure arrays are not null/undefined
+        if (!Array.isArray(data.opportunities)) data.opportunities = [];
+        if (!Array.isArray(data.phaseDistribution)) data.phaseDistribution = [];
+        if (!Array.isArray(data.temperatureDistribution)) data.temperatureDistribution = [];
+        if (!Array.isArray(data.performanceBySalesperson)) data.performanceBySalesperson = [];
+        if (!Array.isArray(data.performanceByCreator)) data.performanceByCreator = [];
+        
+        // Log data summary for debugging
+        console.log('📊 Report Data Summary:', {
+          opportunities: data.opportunities.length,
+          phases: data.phaseDistribution.length,
+          temperatures: data.temperatureDistribution.length,
+          salespeople: data.performanceBySalesperson.length,
+          creators: data.performanceByCreator.length
+        });
+        
+        return data;
+      };
+
       // Prepare report data
-      const reportData = {
+      const reportData = validateReportData({
         opportunities: opportunitiesWithUsers,
         phaseDistribution,
         temperatureDistribution,
         performanceBySalesperson,
         performanceByCreator
-      };
+      });
 
       // Map Portuguese types to English types for PDF service
       const typeMapping: { [key: string]: string } = {
@@ -1591,33 +1677,78 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Kanban Cards Management - Admin only
+  app.get("/api/admin/kanban-cards-count", isAuthenticated, isManagerOrAdmin, async (req, res) => {
+    try {
+      const count = await storage.getOpportunitiesCount();
+      res.json({ count });
+    } catch (error: any) {
+      console.error("[ADMIN] Erro ao contar cards do Kanban:", error);
+      res.status(500).json({ message: "Erro ao contar cards do Kanban" });
+    }
+  });
+
+  app.delete("/api/admin/clear-kanban-cards", isAuthenticated, isManagerOrAdmin, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const userName = req.session.user!.name;
+      
+      console.log(`[ADMIN] Usuário ${userName} iniciando limpeza dos cards do Kanban`);
+      
+      // Create backup before clearing
+      let backupId = 0;
+      try {
+        backupId = await storage.createOpportunitiesBackup(userId);
+        console.log(`[ADMIN] Backup criado com ID: ${backupId}`);
+      } catch (error) {
+        console.error('[ADMIN] Erro ao criar backup:', error);
+        console.log('[ADMIN] Continuando sem backup...');
+      }
+      
+      // Clear all opportunities (Kanban cards)
+      const deletedCount = await storage.clearAllOpportunities();
+      console.log(`[ADMIN] ${deletedCount} cards do Kanban removidos`);
+      
+      // Log the action for audit
+      console.log(`[ADMIN] Limpeza de cards do Kanban finalizada por ${userName}. Backup ID: ${backupId}`);
+      
+      res.json({ 
+        message: "Todos os cards do Kanban foram removidos com sucesso",
+        deletedCount,
+        backupId,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error: any) {
+      console.error("[ADMIN] Erro ao limpar cards do Kanban:", error);
+      res.status(500).json({ message: "Erro ao limpar cards do Kanban" });
+    }
+  });
+
+  app.post("/api/backup/create-cards-backup", isAuthenticated, isManagerOrAdmin, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const userName = req.session.user!.name;
+      
+      console.log(`[BACKUP] Usuário ${userName} criando backup manual dos cards`);
+      
+      const backupId = await storage.createOpportunitiesBackup(userId);
+      
+      console.log(`[BACKUP] Backup manual criado com ID: ${backupId} por ${userName}`);
+      
+      res.json({ 
+        message: "Backup dos cards criado com sucesso",
+        backupId,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error: any) {
+      console.error("[BACKUP] Erro ao criar backup dos cards:", error);
+      res.status(500).json({ message: "Erro ao criar backup dos cards" });
+    }
+  });
+
   // Enhanced API routes for new features
 
-  // User Settings
-  app.get("/api/user/settings", isAuthenticated, async (req, res) => {
-    try {
-      const settings = await storage.getUserSettings(req.session.userId!);
-      res.json(settings || {
-        emailNotifications: true,
-        smsNotifications: false,
-        pushNotifications: false,
-        autoBackup: true,
-        language: "pt-BR",
-        timezone: "America/Sao_Paulo"
-      });
-    } catch (error) {
-      res.status(500).json({ message: "Erro ao buscar configurações" });
-    }
-  });
-
-  app.put("/api/user/settings", isAuthenticated, async (req, res) => {
-    try {
-      const settings = await storage.updateUserSettings(req.session.userId!, req.body);
-      res.json(settings);
-    } catch (error) {
-      res.status(500).json({ message: "Erro ao atualizar configurações" });
-    }
-  });
+  // User Settings (duplicate removed — consolidated endpoint defined later)
 
   // Manual backup
   app.post("/api/backup/create", isAuthenticated, isAdmin, async (req, res) => {
@@ -2759,11 +2890,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // User Settings endpoints
+  // User Settings endpoints (consolidated)
   app.get("/api/user/settings", isAuthenticated, async (req, res) => {
     try {
       const settings = await storage.getUserSettings(req.session.userId!);
-      res.json(settings);
+      // Return sensible defaults when user settings don't exist yet
+      res.json(settings || {
+        emailNotifications: true,
+        smsNotifications: false,
+        pushNotifications: false,
+        autoBackup: true,
+        language: "pt-BR",
+        timezone: "America/Sao_Paulo"
+      });
     } catch (error: any) {
       console.error('Error fetching user settings:', error);
       res.status(500).json({ message: "Erro ao buscar configurações do usuário" });
@@ -2775,6 +2914,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validatedData = z.object({
         notifications: z.boolean().optional(),
         emailNotifications: z.boolean().optional(),
+        smsNotifications: z.boolean().optional(),
+        pushNotifications: z.boolean().optional(),
         language: z.string().optional(),
         timezone: z.string().optional(),
         autoBackup: z.boolean().optional(),
@@ -2783,14 +2924,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         profilePhoto: z.string().optional()
       }).parse(req.body);
 
-      const settings = await storage.updateUserSettings(req.session.userId!, validatedData);
+      const userId = req.session.userId!;
+      const existing = await storage.getUserSettings(userId);
+
+      let settings;
+      if (!existing) {
+        settings = await storage.createUserSettings({ userId, ...validatedData });
+      } else {
+        settings = await storage.updateUserSettings(userId, validatedData);
+      }
       
       // Log da ação
       await storage.createSystemLog({
         level: 'info',
         message: 'Configurações do usuário atualizadas',
         category: 'settings',
-        userId: req.session.userId!,
+        userId,
         metadata: { updatedFields: Object.keys(validatedData) }
       });
 

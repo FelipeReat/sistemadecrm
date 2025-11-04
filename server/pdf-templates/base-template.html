@@ -53,47 +53,76 @@
         }
         
         .summary-section {
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            padding: 20px;
-            margin: 20px 0;
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            border: 2px solid #cbd5e1;
+            border-radius: 12px;
+            padding: 25px;
+            margin: 25px 0;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         }
         
         .summary-title {
-            font-size: 18px;
-            font-weight: bold;
+            font-size: 22px;
+            font-weight: 800;
             color: #1e40af;
-            margin-bottom: 15px;
-            border-bottom: 2px solid #2563eb;
-            padding-bottom: 5px;
+            margin-bottom: 20px;
+            border-bottom: 3px solid #2563eb;
+            padding-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
         
         .summary-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 18px;
         }
         
         .summary-item {
-            background: white;
-            padding: 15px;
-            border-radius: 6px;
-            border-left: 4px solid #2563eb;
+            background: linear-gradient(135deg, white 0%, #f8fafc 100%);
+            padding: 18px;
+            border-radius: 10px;
+            border-left: 5px solid #2563eb;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            transition: transform 0.2s ease;
+        }
+        
+        .summary-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         }
         
         .summary-label {
-            font-size: 12px;
-            color: #6b7280;
+            font-size: 11px;
+            color: #64748b;
             text-transform: uppercase;
-            font-weight: 600;
-            margin-bottom: 5px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            letter-spacing: 0.8px;
         }
         
         .summary-value {
-            font-size: 20px;
-            font-weight: bold;
+            font-size: 24px;
+            font-weight: 900;
             color: #1e40af;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .summary-item.highlight {
+            border-left-color: #10b981;
+        }
+        
+        .summary-item.highlight .summary-value {
+            color: #059669;
+        }
+        
+        .summary-item.warning {
+            border-left-color: #f59e0b;
+        }
+        
+        .summary-item.warning .summary-value {
+            color: #d97706;
         }
         
         .section {
@@ -113,63 +142,195 @@
         .table {
             width: 100%;
             border-collapse: collapse;
-            margin: 15px 0;
+            margin: 20px 0;
             background: white;
             border-radius: 8px;
             overflow: hidden;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border: 1px solid #e2e8f0;
         }
         
         .table th {
-            background: #2563eb;
+            background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
             color: white;
-            padding: 12px 8px;
+            padding: 15px 12px;
             text-align: left;
-            font-weight: 600;
+            font-weight: 700;
             font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid #1e40af;
+        }
+        
+        .table th.text-center {
+            text-align: center;
+        }
+        
+        .table th.text-right {
+            text-align: right;
         }
         
         .table td {
-            padding: 10px 8px;
+            padding: 12px;
             border-bottom: 1px solid #e5e7eb;
             font-size: 13px;
+            vertical-align: middle;
         }
         
-        .table tr:nth-child(even) {
-            background: #f9fafb;
+        .table td.text-center {
+            text-align: center;
         }
         
-        .table tr:hover {
-            background: #f3f4f6;
+        .table td.text-right {
+            text-align: right;
+        }
+        
+        .table tbody tr:nth-child(even) {
+            background: #f8fafc;
+        }
+        
+        .table tbody tr:nth-child(odd) {
+            background: white;
+        }
+        
+        .table tbody tr:hover {
+            background: #e0f2fe;
+            transition: background-color 0.2s ease;
+        }
+        
+        .table tbody tr:last-child td {
+            border-bottom: none;
         }
         
         .currency {
             color: #059669;
-            font-weight: 600;
+            font-weight: 700;
+            font-family: 'Courier New', monospace;
         }
         
         .percentage {
             color: #dc2626;
-            font-weight: 600;
+            font-weight: 700;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .progress-bar {
+            display: inline-block;
+            width: 60px;
+            height: 8px;
+            background: #e5e7eb;
+            border-radius: 4px;
+            margin-left: 8px;
+            position: relative;
+            vertical-align: middle;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #10b981, #059669);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+        
+        .ranking-position {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            font-weight: bold;
+            font-size: 12px;
+            color: white;
+        }
+        
+        .ranking-position.first {
+            background: linear-gradient(135deg, #ffd700, #ffb300);
+            color: #8b4513;
+        }
+        
+        .ranking-position.second {
+            background: linear-gradient(135deg, #c0c0c0, #a0a0a0);
+            color: #4a4a4a;
+        }
+        
+        .ranking-position.third {
+            background: linear-gradient(135deg, #cd7f32, #b8860b);
+            color: white;
+        }
+        
+        .ranking-position.other {
+            background: linear-gradient(135deg, #6b7280, #4b5563);
+            color: white;
         }
         
         .status {
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 12px;
-            font-weight: 600;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
             text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            border: 2px solid transparent;
         }
         
-        .status.prospecção { background: #fef3c7; color: #92400e; }
-        .status.qualificação { background: #dbeafe; color: #1e40af; }
-        .status.proposta { background: #fde68a; color: #92400e; }
-        .status.negociação { background: #fed7aa; color: #ea580c; }
-        .status.fechamento { background: #dcfce7; color: #166534; }
+        .status.prospecção { 
+            background: linear-gradient(135deg, #fef3c7, #fde68a); 
+            color: #92400e; 
+            border-color: #f59e0b;
+        }
+        .status.qualificação { 
+            background: linear-gradient(135deg, #dbeafe, #bfdbfe); 
+            color: #1e40af; 
+            border-color: #3b82f6;
+        }
+        .status.proposta { 
+            background: linear-gradient(135deg, #fde68a, #fcd34d); 
+            color: #92400e; 
+            border-color: #f59e0b;
+        }
+        .status.negociação { 
+            background: linear-gradient(135deg, #fed7aa, #fdba74); 
+            color: #ea580c; 
+            border-color: #f97316;
+        }
+        .status.fechamento { 
+            background: linear-gradient(135deg, #dcfce7, #bbf7d0); 
+            color: #166534; 
+            border-color: #22c55e;
+        }
         
-        .temperature.fria { background: #dbeafe; color: #1e40af; }
-        .temperature.morna { background: #fef3c7; color: #92400e; }
-        .temperature.quente { background: #fecaca; color: #dc2626; }
+        .temperature {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            border: 2px solid transparent;
+        }
+        
+        .temperature.fria { 
+            background: linear-gradient(135deg, #dbeafe, #bfdbfe); 
+            color: #1e40af; 
+            border-color: #3b82f6;
+        }
+        .temperature.morna { 
+            background: linear-gradient(135deg, #fef3c7, #fde68a); 
+            color: #92400e; 
+            border-color: #f59e0b;
+        }
+        .temperature.quente { 
+            background: linear-gradient(135deg, #fecaca, #fca5a5); 
+            color: #dc2626; 
+            border-color: #ef4444;
+        }
         
         .footer {
             position: fixed;
@@ -177,10 +338,27 @@
             left: 20mm;
             right: 20mm;
             text-align: center;
-            font-size: 12px;
-            color: #6b7280;
-            border-top: 1px solid #e5e7eb;
-            padding-top: 10px;
+            font-size: 11px;
+            color: #64748b;
+            border-top: 2px solid #e2e8f0;
+            padding-top: 12px;
+            background: linear-gradient(135deg, #f8fafc 0%, white 100%);
+        }
+        
+        .page-number {
+            position: fixed;
+            bottom: 8mm;
+            right: 20mm;
+            font-size: 10px;
+            color: #64748b;
+            background: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .page-number:before {
+            content: "Página " counter(page);
         }
         
         .page-break {
@@ -194,6 +372,11 @@
             padding: 15px;
             margin: 20px 0;
             font-size: 14px;
+        }
+        
+        /* Reserva de espaço para o rodapé fixo */
+        .content-area {
+            padding-bottom: 40mm; /* espaço para rodapé + número da página */
         }
         
         .filters-title {
@@ -233,7 +416,7 @@
             <div class="summary-title">📊 Resumo Executivo</div>
             <div class="summary-grid">
                 {{#each summary}}
-                <div class="summary-item">
+                <div class="summary-item {{#if type}}{{type}}{{/if}}">
                     <div class="summary-label">{{label}}</div>
                     <div class="summary-value">{{value}}</div>
                 </div>
@@ -242,12 +425,16 @@
         </div>
         {{/if}}
         
-        {{{content}}}
+        <div class="content-area">
+            {{{content}}}
+        </div>
         
         <div class="footer">
             <div>Sistema CRM - Relatório gerado automaticamente em {{generatedAt}}</div>
             <div>{{#if filters}}Filtros: {{filters}}{{/if}}</div>
         </div>
+        
+        <div class="page-number"></div>
     </div>
 </body>
 </html>

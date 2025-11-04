@@ -21,6 +21,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "@/hooks/useTheme";
 import { apiRequest } from "@/lib/queryClient";
+import NotificationPreferences from "@/components/settings/notification-preferences";
 import { 
   User, 
   Settings2, 
@@ -375,81 +376,7 @@ export default function SettingsModal({ open, onOpenChange }: SettingsModalProps
 
           {/* Notifications Tab */}
           <TabsContent value="notifications" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Preferências de Notificação</CardTitle>
-                <CardDescription>
-                  Configure quando e como você quer receber notificações
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <Label htmlFor="email-notifications">Notificações por Email</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Receba emails sobre novas oportunidades e atualizações
-                    </p>
-                  </div>
-                  <Switch
-                    id="email-notifications"
-                    checked={systemSettings.emailNotifications}
-                    onCheckedChange={(checked) => {
-                      setSystemSettings(prev => ({ ...prev, emailNotifications: checked }));
-                      localStorage.setItem("emailNotifications", checked.toString());
-                    }}
-                    data-testid="switch-email-notifications"
-                  />
-                </div>
-
-                <Separator />
-
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <Label htmlFor="push-notifications">Notificações Push</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Receba notificações instantâneas no navegador
-                    </p>
-                  </div>
-                  <Switch
-                    id="push-notifications"
-                    checked={systemSettings.pushNotifications}
-                    onCheckedChange={(checked) => {
-                      setSystemSettings(prev => ({ ...prev, pushNotifications: checked }));
-                      localStorage.setItem("pushNotifications", checked.toString());
-                    }}
-                    data-testid="switch-push-notifications"
-                  />
-                </div>
-
-                <Separator />
-
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <Label htmlFor="auto-save">Salvamento Automático</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Salve automaticamente as alterações nos formulários
-                    </p>
-                  </div>
-                  <Switch
-                    id="auto-save"
-                    checked={systemSettings.autoSave}
-                    onCheckedChange={(checked) => {
-                      setSystemSettings(prev => ({ ...prev, autoSave: checked }));
-                      localStorage.setItem("autoSave", checked.toString());
-                    }}
-                    data-testid="switch-auto-save"
-                  />
-                </div>
-
-                <Button 
-                  onClick={handleSaveSystemSettings}
-                  disabled={updateSystemSettingsMutation.isPending}
-                  data-testid="button-save-notifications"
-                >
-                  {updateSystemSettingsMutation.isPending ? "Salvando..." : "Salvar Configurações"}
-                </Button>
-              </CardContent>
-            </Card>
+            <NotificationPreferences userId={currentUser?.id} />
           </TabsContent>
 
           {/* Data Tab */}

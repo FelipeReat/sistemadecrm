@@ -134,11 +134,42 @@ class PDFService {
   private baseTemplate: string;
 
   constructor() {
-    // Carrega o template base
-    this.baseTemplate = readFileSync(
-      join(__dirname, 'pdf-templates', 'base-template.html'),
-      'utf-8'
-    );
+    // Carrega o template base - tenta diferentes caminhos para desenvolvimento e produção
+    let templatePath: string;
+    
+    // Primeiro tenta o caminho de desenvolvimento
+    const devPath = join(__dirname, 'pdf-templates', 'base-template.html');
+    
+    // Depois tenta o caminho de produção (relativo ao arquivo compilado)
+    const prodPath = join(process.cwd(), 'server', 'pdf-templates', 'base-template.html');
+    
+    // Tenta também o caminho alternativo de produção
+    const altProdPath = join(process.cwd(), 'dist', 'server', 'pdf-templates', 'base-template.html');
+    
+    if (existsSync(devPath)) {
+      templatePath = devPath;
+      console.log('📄 Template carregado (desenvolvimento):', templatePath);
+    } else if (existsSync(prodPath)) {
+      templatePath = prodPath;
+      console.log('📄 Template carregado (produção):', templatePath);
+    } else if (existsSync(altProdPath)) {
+      templatePath = altProdPath;
+      console.log('📄 Template carregado (produção alternativa):', templatePath);
+    } else {
+      console.error('❌ Template não encontrado em nenhum dos caminhos:');
+      console.error('  - Dev:', devPath);
+      console.error('  - Prod:', prodPath);
+      console.error('  - Alt Prod:', altProdPath);
+      throw new Error('Template base-template.html não encontrado');
+    }
+    
+    try {
+      this.baseTemplate = readFileSync(templatePath, 'utf-8');
+      console.log('✅ Template HTML carregado com sucesso');
+    } catch (error) {
+      console.error('❌ Erro ao carregar template:', error);
+      throw error;
+    }
   }
 
   private createTempDirectory(): string {
@@ -392,42 +423,135 @@ class PDFService {
   }
 
   private formatCurrency(value: number): string {
+    const sanitizedValue = this.sanitizeNumber(value, 0);
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
       currency: 'BRL'
-    }).format(value);
+    }).format(sanitizedValue);
   }
 
-  private formatDate(date: Date): string {
-    return new Intl.DateTimeFormat('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    }).format(date);
+  private formatDate(date: Date | string | null): string {
+    if (!date) return 'N/A';
+    
+    try {
+      const dateObj = typeof date === 'string' ? new Date(date) : date;
+      if (isNaN(dateObj.getTime())) {
+        return 'N/A';
+      }
+      
+      return new Intl.DateTimeFormat('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      }).format(dateObj);
+    } catch (error) {
+      console.warn('⚠️ Erro ao formatar data:', date, error);
+      return 'N/A';
+    }
   }
 
   private formatPercentage(value: number): string {
+    if (typeof value !== 'number' || isNaN(value) || !isFinite(value)) {
+      return '0,00%';
+    }
     return `${value.toFixed(1)}%`;
+  }
+
+  // Função para validar e sanitizar dados de entrada
+  private validateAndSanitizeData(data: any): any {
+    if (!data || typeof data !== 'object') {
+      console.warn('⚠️ Dados inválidos recebidos para geração de PDF:', data);
+      return {
+        opportunities: [],
+        phaseDistribution: [],
+        temperatureDistribution: [],
+        performanceBySalesperson: [],
+        performanceByCreator: []
+      };
+    }
+
+    const sanitized = {
+      opportunities: this.sanitizeArray(data.opportunities),
+      phaseDistribution: this.sanitizeArray(data.phaseDistribution),
+      temperatureDistribution: this.sanitizeArray(data.temperatureDistribution),
+      performanceBySalesperson: this.sanitizeArray(data.performanceBySalesperson),
+      performanceByCreator: this.sanitizeArray(data.performanceByCreator)
+    };
+
+    console.log('📊 Dados sanitizados para PDF:', {
+      opportunities: sanitized.opportunities.length,
+      phaseDistribution: sanitized.phaseDistribution.length,
+      temperatureDistribution: sanitized.temperatureDistribution.length,
+      performanceBySalesperson: sanitized.performanceBySalesperson.length,
+      performanceByCreator: sanitized.performanceByCreator.length
+    });
+
+    return sanitized;
+  }
+
+  // Função para sanitizar arrays
+  private sanitizeArray(arr: any[]): any[] {
+    if (!Array.isArray(arr)) {
+      return [];
+    }
+    return arr.filter(item => item != null && typeof item === 'object');
+  }
+
+  // Função para sanitizar valores numéricos
+  private sanitizeNumber(value: any, defaultValue: number = 0): number {
+    if (typeof value === 'number' && !isNaN(value) && isFinite(value)) {
+      return value;
+    }
+    if (typeof value === 'string') {
+      const parsed = parseFloat(value.replace(/[^\d.-]/g, ''));
+      if (!isNaN(parsed) && isFinite(parsed)) {
+        return parsed;
+      }
+    }
+    return defaultValue;
+  }
+
+  // Função para sanitizar strings
+  private sanitizeString(value: any, defaultValue: string = 'N/A'): string {
+    if (typeof value === 'string' && value.trim().length > 0) {
+      return value.trim();
+    }
+    if (typeof value === 'number') {
+      return value.toString();
+    }
+    return defaultValue;
   }
 
   private generateOpportunitiesTable(opportunities: any[]): string {
     if (!opportunities || opportunities.length === 0) {
-      return '<div class="no-data">Nenhuma oportunidade encontrada</div>';
+      return '<div class="no-data">📋 Nenhuma oportunidade encontrada para os filtros aplicados</div>';
     }
 
-    const rows = opportunities.map(opp => `
-      <tr>
-        <td>${opp.title || 'N/A'}</td>
-        <td>${opp.company || 'N/A'}</td>
-        <td><span class="status ${opp.phase?.toLowerCase() || ''}">${opp.phase || 'N/A'}</span></td>
-        <td><span class="temperature ${opp.temperature?.toLowerCase() || ''}">${opp.temperature || 'N/A'}</span></td>
-        <td class="currency">${this.formatCurrency(opp.value || 0)}</td>
-        <td>${opp.assignedUser || 'N/A'}</td>
-        <td>${opp.createdAt ? new Date(opp.createdAt).toLocaleDateString('pt-BR') : 'N/A'}</td>
-      </tr>
-    `).join('');
+    const rows = opportunities.map(opp => {
+      const title = this.sanitizeString(opp.title);
+      const company = this.sanitizeString(opp.company);
+      const phase = this.sanitizeString(opp.phase);
+      const temperature = this.sanitizeString(opp.temperature);
+      const value = this.sanitizeNumber(opp.value);
+      const assignedUser = this.sanitizeString(opp.assignedUser);
+      const createdBy = this.sanitizeString(opp.createdByUser || opp.createdByName);
+      const createdAt = this.formatDate(opp.createdAt);
+      
+      return `
+        <tr>
+          <td><strong>${title}</strong></td>
+          <td>${company}</td>
+          <td class="text-center"><span class="status ${phase.toLowerCase()}">${phase}</span></td>
+          <td class="text-center"><span class="temperature ${temperature.toLowerCase()}">${temperature}</span></td>
+          <td class="text-right currency">${this.formatCurrency(value)}</td>
+          <td>${assignedUser}</td>
+          <td>${createdBy}</td>
+          <td class="text-center">${createdAt}</td>
+        </tr>
+      `;
+    }).join('');
 
     return `
       <table class="table">
@@ -435,11 +559,12 @@ class PDFService {
           <tr>
             <th>Título</th>
             <th>Empresa</th>
-            <th>Fase</th>
-            <th>Temperatura</th>
-            <th>Valor</th>
+            <th class="text-center">Fase</th>
+            <th class="text-center">Temperatura</th>
+            <th class="text-right">Valor</th>
             <th>Responsável</th>
-            <th>Data Criação</th>
+            <th>Criador</th>
+            <th class="text-center">Data Criação</th>
           </tr>
         </thead>
         <tbody>
@@ -451,26 +576,50 @@ class PDFService {
 
   private generatePhaseDistributionTable(phaseData: any[]): string {
     if (!phaseData || phaseData.length === 0) {
-      return '<div class="no-data">Nenhum dado de fase encontrado</div>';
+      return '<div class="no-data">📊 Nenhum dado de distribuição por fase encontrado</div>';
     }
 
-    const rows = phaseData.map(phase => `
-      <tr>
-        <td><span class="status ${phase.phase?.toLowerCase() || ''}">${phase.phase || 'N/A'}</span></td>
-        <td>${phase.count || 0}</td>
-        <td class="percentage">${this.formatPercentage(phase.percentage || 0)}</td>
-        <td class="currency">${this.formatCurrency(phase.totalValue || 0)}</td>
-      </tr>
-    `).join('');
+    // Calcular totais para estatísticas
+    const totalCount = phaseData.reduce((sum, phase) => sum + (phase.count || 0), 0);
+    const totalValue = phaseData.reduce((sum, phase) => sum + (phase.totalValue || 0), 0);
+    const avgValue = totalCount > 0 ? totalValue / totalCount : 0;
+
+    const rows = phaseData.map(phase => {
+      const count = this.sanitizeNumber(phase.count);
+      const totalValue = this.sanitizeNumber(phase.totalValue);
+      const phaseName = this.sanitizeString(phase.phase);
+      const percentage = phase.percentage || 0;
+      const progressWidth = Math.min(percentage, 100);
+      const avgValue = count > 0 ? totalValue / count : 0;
+      
+      return `
+        <tr>
+          <td><span class="status ${phaseName.toLowerCase()}">${phaseName}</span></td>
+          <td class="text-center"><strong>${count}</strong></td>
+          <td class="text-center">
+            <span class="percentage">${this.formatPercentage(percentage)}</span>
+            <div class="progress-bar">
+              <div class="progress-fill" style="width: ${progressWidth}%"></div>
+            </div>
+          </td>
+          <td class="text-right currency">${this.formatCurrency(totalValue)}</td>
+          <td class="text-right currency">${this.formatCurrency(avgValue)}</td>
+        </tr>
+      `;
+    }).join('');
 
     return `
+      <div style="margin-bottom: 15px; padding: 10px; background: #f1f5f9; border-radius: 6px; font-size: 12px;">
+        <strong>📈 Resumo:</strong> ${totalCount} oportunidades • ${this.formatCurrency(totalValue)} valor total • ${this.formatCurrency(avgValue)} valor médio
+      </div>
       <table class="table">
         <thead>
           <tr>
             <th>Fase</th>
-            <th>Quantidade</th>
-            <th>Percentual</th>
-            <th>Valor Total</th>
+            <th class="text-center">Quantidade</th>
+            <th class="text-center">Percentual</th>
+            <th class="text-right">Valor Total</th>
+            <th class="text-right">Valor Médio</th>
           </tr>
         </thead>
         <tbody>
@@ -482,26 +631,58 @@ class PDFService {
 
   private generateTemperatureDistributionTable(tempData: any[]): string {
     if (!tempData || tempData.length === 0) {
-      return '<div class="no-data">Nenhum dado de temperatura encontrado</div>';
+      return '<div class="no-data">🌡️ Nenhum dado de distribuição por temperatura encontrado</div>';
     }
 
-    const rows = tempData.map(temp => `
-      <tr>
-        <td><span class="temperature ${temp.temperature?.toLowerCase() || ''}">${temp.temperature || 'N/A'}</span></td>
-        <td>${temp.count || 0}</td>
-        <td class="percentage">${this.formatPercentage(temp.percentage || 0)}</td>
-        <td class="currency">${this.formatCurrency(temp.totalValue || 0)}</td>
-      </tr>
-    `).join('');
+    // Calcular totais para estatísticas
+    const totalCount = tempData.reduce((sum, temp) => sum + (temp.count || 0), 0);
+    const totalValue = tempData.reduce((sum, temp) => sum + (temp.totalValue || 0), 0);
+    const avgValue = totalCount > 0 ? totalValue / totalCount : 0;
+
+    // Ordenar por prioridade de temperatura (Quente > Morna > Fria)
+    const temperatureOrder = { 'Quente': 1, 'Morna': 2, 'Fria': 3 };
+    const sortedTempData = [...tempData].sort((a, b) => {
+      const orderA = temperatureOrder[a.temperature] || 999;
+      const orderB = temperatureOrder[b.temperature] || 999;
+      return orderA - orderB;
+    });
+
+    const rows = sortedTempData.map(temp => {
+      const count = this.sanitizeNumber(temp.count);
+      const totalValue = this.sanitizeNumber(temp.totalValue);
+      const temperature = this.sanitizeString(temp.temperature);
+      const percentage = temp.percentage || 0;
+      const progressWidth = Math.min(percentage, 100);
+      const avgValue = count > 0 ? totalValue / count : 0;
+      
+      return `
+        <tr>
+          <td><span class="temperature ${temperature.toLowerCase()}">${temperature}</span></td>
+          <td class="text-center"><strong>${count}</strong></td>
+          <td class="text-center">
+            <span class="percentage">${this.formatPercentage(percentage)}</span>
+            <div class="progress-bar">
+              <div class="progress-fill" style="width: ${progressWidth}%"></div>
+            </div>
+          </td>
+          <td class="text-right currency">${this.formatCurrency(totalValue)}</td>
+          <td class="text-right currency">${this.formatCurrency(avgValue)}</td>
+        </tr>
+      `;
+    }).join('');
 
     return `
+      <div style="margin-bottom: 15px; padding: 10px; background: #f1f5f9; border-radius: 6px; font-size: 12px;">
+        <strong>🌡️ Resumo:</strong> ${totalCount} oportunidades • ${this.formatCurrency(totalValue)} valor total • ${this.formatCurrency(avgValue)} valor médio
+      </div>
       <table class="table">
         <thead>
           <tr>
             <th>Temperatura</th>
-            <th>Quantidade</th>
-            <th>Percentual</th>
-            <th>Valor Total</th>
+            <th class="text-center">Quantidade</th>
+            <th class="text-center">Percentual</th>
+            <th class="text-right">Valor Total</th>
+            <th class="text-right">Valor Médio</th>
           </tr>
         </thead>
         <tbody>
@@ -513,30 +694,65 @@ class PDFService {
 
   private generatePerformanceTable(performanceData: any[]): string {
     if (!performanceData || performanceData.length === 0) {
-      return '<div class="no-data">Nenhum dado de performance encontrado</div>';
+      return '<div class="no-data">🏆 Nenhum dado de performance encontrado</div>';
     }
 
-    const rows = performanceData.map((perf, index) => `
-      <tr>
-        <td>${index + 1}º</td>
-        <td>${perf.name || 'N/A'}</td>
-        <td>${perf.totalOpportunities || 0}</td>
-        <td>${perf.closedOpportunities || 0}</td>
-        <td class="percentage">${this.formatPercentage(perf.conversionRate || 0)}</td>
-        <td class="currency">${this.formatCurrency(perf.totalValue || 0)}</td>
-      </tr>
-    `).join('');
+    // Calcular estatísticas gerais
+    const totalOpportunities = performanceData.reduce((sum, perf) => sum + (perf.totalOpportunities || 0), 0);
+    const totalClosed = performanceData.reduce((sum, perf) => sum + (perf.closedOpportunities || 0), 0);
+    const totalValue = performanceData.reduce((sum, perf) => sum + (perf.totalValue || 0), 0);
+    const avgConversion = totalOpportunities > 0 ? (totalClosed / totalOpportunities) * 100 : 0;
+
+    const rows = performanceData.map((perf, index) => {
+      const position = index + 1;
+      let positionClass = 'other';
+      if (position === 1) positionClass = 'first';
+      else if (position === 2) positionClass = 'second';
+      else if (position === 3) positionClass = 'third';
+
+      const name = this.sanitizeString(perf.name);
+      const totalOpportunities = this.sanitizeNumber(perf.totalOpportunities);
+      const closedOpportunities = this.sanitizeNumber(perf.closedOpportunities);
+      const totalValue = this.sanitizeNumber(perf.totalValue);
+      
+      const conversionRate = perf.conversionRate || 0;
+      const avgTicket = closedOpportunities > 0 ? totalValue / closedOpportunities : 0;
+      const progressWidth = Math.min(conversionRate, 100);
+
+      return `
+        <tr>
+          <td class="text-center">
+            <span class="ranking-position ${positionClass}">${position}</span>
+          </td>
+          <td><strong>${name}</strong></td>
+          <td class="text-center">${totalOpportunities}</td>
+          <td class="text-center"><strong>${closedOpportunities}</strong></td>
+          <td class="text-center">
+            <span class="percentage">${this.formatPercentage(conversionRate)}</span>
+            <div class="progress-bar">
+              <div class="progress-fill" style="width: ${progressWidth}%"></div>
+            </div>
+          </td>
+          <td class="text-right currency">${this.formatCurrency(totalValue)}</td>
+          <td class="text-right currency">${this.formatCurrency(avgTicket)}</td>
+        </tr>
+      `;
+    }).join('');
 
     return `
+      <div style="margin-bottom: 15px; padding: 10px; background: #f1f5f9; border-radius: 6px; font-size: 12px;">
+        <strong>🏆 Resumo Geral:</strong> ${totalOpportunities} oportunidades • ${totalClosed} fechadas • ${this.formatPercentage(avgConversion)} conversão média • ${this.formatCurrency(totalValue)} valor total
+      </div>
       <table class="table">
         <thead>
           <tr>
-            <th>Posição</th>
+            <th class="text-center">Ranking</th>
             <th>Nome</th>
-            <th>Total Oportunidades</th>
-            <th>Fechadas</th>
-            <th>Taxa Conversão</th>
-            <th>Valor Total</th>
+            <th class="text-center">Total Oport.</th>
+            <th class="text-center">Fechadas</th>
+            <th class="text-center">Taxa Conversão</th>
+            <th class="text-right">Valor Total</th>
+            <th class="text-right">Ticket Médio</th>
           </tr>
         </thead>
         <tbody>
@@ -584,46 +800,101 @@ class PDFService {
   }
 
   private generateCompleteReport(data: any): string {
-    return `
-      <div class="section">
-        <div class="section-title">📊 Distribuição por Fase</div>
-        ${this.generatePhaseDistributionTable(data.phaseDistribution)}
-      </div>
-      
-      <div class="page-break"></div>
-      
-      <div class="section">
-        <div class="section-title">🌡️ Distribuição por Temperatura</div>
-        ${this.generateTemperatureDistributionTable(data.temperatureDistribution)}
-      </div>
-      
-      <div class="page-break"></div>
-      
-      <div class="section">
-        <div class="section-title">🏆 Performance por Vendedor</div>
-        ${this.generatePerformanceTable(data.performanceBySalesperson)}
-      </div>
-      
-      <div class="page-break"></div>
-      
-      <div class="section">
-        <div class="section-title">👤 Performance por Criador</div>
-        ${this.generatePerformanceTable(data.performanceByCreator)}
-      </div>
-    `;
+    const sections = [];
+    
+    // Seção de Distribuições
+    if (data.phaseDistribution && data.phaseDistribution.length > 0) {
+      sections.push(`
+        <div class="section">
+          <div class="section-title">📊 Distribuição por Fase do Funil</div>
+          ${this.generatePhaseDistributionTable(data.phaseDistribution)}
+        </div>
+      `);
+    }
+    
+    if (data.temperatureDistribution && data.temperatureDistribution.length > 0) {
+      sections.push(`
+        <div class="section">
+          <div class="section-title">🌡️ Distribuição por Temperatura de Negócio</div>
+          ${this.generateTemperatureDistributionTable(data.temperatureDistribution)}
+        </div>
+      `);
+    }
+    
+    // Seção de Performance
+    if (data.performanceBySalesperson && data.performanceBySalesperson.length > 0) {
+      sections.push(`
+        <div class="section">
+          <div class="section-title">🏆 Ranking de Performance por Vendedor</div>
+          ${this.generatePerformanceTable(data.performanceBySalesperson)}
+        </div>
+      `);
+    }
+    
+    if (data.performanceByCreator && data.performanceByCreator.length > 0) {
+      sections.push(`
+        <div class="section">
+          <div class="section-title">👤 Ranking de Performance por Criador</div>
+          ${this.generatePerformanceTable(data.performanceByCreator)}
+        </div>
+      `);
+    }
+    
+    // Seção de Oportunidades (se disponível)
+    if (data.opportunities && data.opportunities.length > 0) {
+      sections.push(`
+        <div class="section">
+          <div class="section-title">📋 Detalhamento das Oportunidades</div>
+          ${this.generateOpportunitiesTable(data.opportunities)}
+        </div>
+      `);
+    }
+    
+    // Juntar seções com quebras de página entre elas
+    return sections.join('<div class="page-break"></div>');
   }
 
-  private generateSummary(data: any): Array<{ label: string; value: string }> {
-    const totalOpportunities = data.opportunities?.length || 0;
-    const totalValue = data.opportunities?.reduce((sum: number, opp: any) => sum + (opp.value || 0), 0) || 0;
-    const closedOpportunities = data.opportunities?.filter((opp: any) => opp.phase === 'Fechamento')?.length || 0;
+  private generateSummary(data: any): Array<{ label: string; value: string; type?: string }> {
+    const sanitizedData = this.validateAndSanitizeData(data);
+    const opportunities = sanitizedData.opportunities || [];
+    
+    const totalOpportunities = opportunities.length;
+    const totalValue = opportunities.reduce((sum: number, opp: any) => {
+      return sum + this.sanitizeNumber(opp.value);
+    }, 0);
+    
+    const closedOpportunities = opportunities.filter((opp: any) => 
+      this.sanitizeString(opp.phase).toLowerCase() === 'fechamento'
+    ).length;
+    
     const conversionRate = totalOpportunities > 0 ? (closedOpportunities / totalOpportunities) * 100 : 0;
-
+    
+    // Métricas adicionais
+    const avgTicket = totalOpportunities > 0 ? totalValue / totalOpportunities : 0;
+    const pipelineValue = opportunities
+      .filter((opp: any) => this.sanitizeString(opp.phase).toLowerCase() !== 'fechamento')
+      .reduce((sum: number, opp: any) => sum + this.sanitizeNumber(opp.value), 0);
+    
+    const hotOpportunities = opportunities.filter((opp: any) => 
+      this.sanitizeString(opp.temperature).toLowerCase() === 'quente'
+    ).length;
+    
+    const hotPercentage = totalOpportunities > 0 ? (hotOpportunities / totalOpportunities) * 100 : 0;
+    
+    // Oportunidades em negociação (fase mais avançada antes do fechamento)
+    const negotiationOpportunities = opportunities.filter((opp: any) => 
+      this.sanitizeString(opp.phase).toLowerCase() === 'negociação'
+    ).length;
+    
     return [
-      { label: 'Total de Oportunidades', value: totalOpportunities.toString() },
-      { label: 'Valor Total', value: this.formatCurrency(totalValue) },
-      { label: 'Oportunidades Fechadas', value: closedOpportunities.toString() },
-      { label: 'Taxa de Conversão', value: this.formatPercentage(conversionRate) }
+      { label: 'Total de Oportunidades', value: totalOpportunities.toString(), type: 'default' },
+      { label: 'Valor Total do Pipeline', value: this.formatCurrency(totalValue), type: 'highlight' },
+      { label: 'Oportunidades Fechadas', value: closedOpportunities.toString(), type: 'highlight' },
+      { label: 'Taxa de Conversão', value: this.formatPercentage(conversionRate), type: conversionRate >= 20 ? 'highlight' : 'warning' },
+      { label: 'Ticket Médio', value: this.formatCurrency(avgTicket), type: 'default' },
+      { label: 'Pipeline Ativo', value: this.formatCurrency(pipelineValue), type: 'default' },
+      { label: 'Oportunidades Quentes', value: `${hotOpportunities} (${this.formatPercentage(hotPercentage)})`, type: hotPercentage >= 30 ? 'highlight' : 'warning' },
+      { label: 'Em Negociação', value: negotiationOpportunities.toString(), type: 'default' }
     ];
   }
 
@@ -829,13 +1100,16 @@ class PDFService {
       TMP: process.env.TMP
     });
     
+    // Validar e sanitizar dados de entrada
+    const sanitizedData = this.validateAndSanitizeData(data);
+    
     // Gerar conteúdo específico do tipo
     console.log('📝 Gerando conteúdo do relatório...');
-    const content = this.generateContent(type, data);
+    const content = this.generateContent(type, sanitizedData);
     console.log('PDF Generation - Content length:', content.length);
     
     // Gerar resumo se for relatório completo
-    const summary = type === 'complete' ? this.generateSummary(data) : undefined;
+    const summary = type === 'complete' ? this.generateSummary(sanitizedData) : undefined;
     
     // Preparar variáveis do template
     const templateVariables = {
@@ -944,7 +1218,13 @@ class PDFService {
       console.error('📋 Detalhes do erro:', {
         message: error instanceof Error ? error.message : 'Erro desconhecido',
         name: error instanceof Error ? error.name : 'N/A',
-        stack: error instanceof Error ? error.stack?.split('\n').slice(0, 5).join('\n') : 'N/A'
+        stack: error instanceof Error ? error.stack?.split('\n').slice(0, 5).join('\n') : 'N/A',
+        options: {
+          title: options.title,
+          type: options.type,
+          hasData: !!options.data,
+          dataKeys: options.data ? Object.keys(options.data) : []
+        }
       });
       console.error('🔍 Contexto do erro:', {
         ambiente: isProduction ? 'PRODUÇÃO' : 'DESENVOLVIMENTO',
@@ -955,6 +1235,64 @@ class PDFService {
         memoriaUsada: process.memoryUsage(),
         tempoExecucao: process.uptime()
       });
+      
+      // Tentar diagnóstico adicional
+      if (error instanceof Error) {
+        if (error.message.includes('Navigation timeout')) {
+          console.error('🕐 Timeout detectado - possível problema de performance');
+        } else if (error.message.includes('Protocol error')) {
+          console.error('🔌 Erro de protocolo - possível problema com o browser');
+        } else if (error.message.includes('Target closed')) {
+          console.error('🎯 Target fechado - browser foi encerrado inesperadamente');
+        } else if (error.message.includes('Cannot read properties')) {
+          console.error('📊 Erro de dados - possível problema com estrutura de dados');
+        }
+      }
+      
+      // Retornar um PDF de erro em caso de falha crítica
+      try {
+        console.log('🔄 Tentando gerar PDF de erro...');
+        const errorHtml = `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="UTF-8">
+            <title>Erro na Geração do Relatório</title>
+            <style>
+              body { font-family: Arial, sans-serif; padding: 40px; text-align: center; }
+              .error-container { background: #fee; border: 2px solid #f00; padding: 20px; border-radius: 8px; }
+              .error-title { color: #c00; font-size: 24px; margin-bottom: 10px; }
+              .error-message { color: #666; font-size: 14px; }
+            </style>
+          </head>
+          <body>
+            <div class="error-container">
+              <div class="error-title">❌ Erro na Geração do Relatório</div>
+              <div class="error-message">
+                <p>Não foi possível gerar o relatório solicitado.</p>
+                <p><strong>Tipo:</strong> ${this.sanitizeString(options.type)}</p>
+                <p><strong>Título:</strong> ${this.sanitizeString(options.title)}</p>
+                <p><strong>Erro:</strong> ${error instanceof Error ? error.message : 'Erro desconhecido'}</p>
+                <p><strong>Timestamp:</strong> ${this.formatDate(new Date())}</p>
+              </div>
+            </div>
+          </body>
+          </html>
+        `;
+        
+        if (browser) {
+          const errorPage = await browser.newPage();
+          await errorPage.setContent(errorHtml);
+          const errorPdf = await errorPage.pdf({
+            format: 'A4',
+            printBackground: true,
+            margin: { top: '20mm', right: '15mm', bottom: '20mm', left: '15mm' }
+          });
+          return errorPdf;
+        }
+      } catch (errorPdfError) {
+        console.error('❌ Falha ao gerar PDF de erro:', errorPdfError);
+      }
       
       throw new Error(`Falha na geração do PDF: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
     } finally {

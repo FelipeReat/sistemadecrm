@@ -1030,10 +1030,7 @@ export class PostgresStorage implements IStorage {
     return updated || null;
   }
 
-  async clearAllOpportunities(): Promise<number> {
-    const result = await db.delete(opportunities);
-    return result.rowCount || 0;
-  }
+
 
   async clearAllAutomations(): Promise<number> {
     const result = await db.delete(automations);
@@ -1093,13 +1090,24 @@ export class PostgresStorage implements IStorage {
 
   async updateUserSettings(userId: string, updates: Partial<InsertUserSettings>): Promise<UserSettings | undefined> {
     try {
-      const result = await db
+      // Attempt update first
+      const updateResult = await db
         .update(userSettings)
         .set(updates)
         .where(eq(userSettings.userId, userId))
         .returning();
 
-      return result[0] || undefined;
+      if (updateResult && updateResult[0]) {
+        return updateResult[0];
+      }
+
+      // No existing row updated — create new settings (upsert behavior)
+      const insertResult = await db
+        .insert(userSettings)
+        .values({ userId, ...(updates as any) })
+        .returning();
+
+      return insertResult[0] || undefined;
     } catch (error) {
       console.error('Error updating user settings:', error);
       return undefined;
@@ -1694,6 +1702,100 @@ export class PostgresStorage implements IStorage {
     } catch (error) {
       console.error('Error updating password:', error);
       return false;
+    }
+  }
+
+  // Kanban Cards Management
+  async getOpportunitiesCount(): Promise<number> {
+    try {
+      console.log('[DEBUG] Getting opportunities count...');
+      const client = createDirectConnection();
+      await client.connect();
+      
+      // Use direct query instead of function for now
+      const result = await client.query('SELECT COUNT(*) as count FROM opportunities');
+      console.log('[DEBUG] Query result:', result.rows[0]);
+      
+      await client.end();
+      const count = parseInt(result.rows[0].count) || 0;
+      console.log('[DEBUG] Final count:', count);
+      return count;
+    } catch (error) {
+      console.error('Error getting opportunities count:', error);
+      return 0;
+    }
+  }
+
+  async createOpportunitiesBackup(userId: string): Promise<number> {
+    try {
+      console.log('[DEBUG] Creating opportunities backup...');
+      const client = createDirectConnection();
+      await client.connect();
+      
+      // Create backups table if it doesn't exist
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS backups (
+          id SERIAL PRIMARY KEY,
+          backup_type VARCHAR(50) NOT NULL DEFAULT 'opportunities',
+          backup_data JSONB NOT NULL,
+          created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+          created_by VARCHAR(255),
+          metadata JSONB DEFAULT '{}',
+          restored_at TIMESTAMP WITH TIME ZONE NULL,
+          is_active BOOLEAN DEFAULT true
+        )
+      `);
+      console.log('[DEBUG] Backups table created/verified');
+      
+      // Get all opportunities data
+      const opportunitiesResult = await client.query('SELECT * FROM opportunities');
+      const opportunitiesData = opportunitiesResult.rows;
+      console.log(`[DEBUG] Found ${opportunitiesData.length} opportunities to backup`);
+      
+      // Create backup record
+      const backupResult = await client.query(`
+        INSERT INTO backups (backup_type, backup_data, created_by, metadata)
+        VALUES ($1, $2, $3, $4)
+        RETURNING id
+      `, [
+        'opportunities',
+        JSON.stringify(opportunitiesData),
+        userId,
+        JSON.stringify({
+          total_count: opportunitiesData.length,
+          backup_reason: 'clear_all_cards',
+          timestamp: new Date().toISOString()
+        })
+      ]);
+      
+      const backupId = parseInt(backupResult.rows[0].id) || 0;
+      console.log(`[DEBUG] Backup created with ID: ${backupId}`);
+      
+      await client.end();
+      return backupId;
+    } catch (error) {
+      console.error('Error creating opportunities backup:', error);
+      throw error;
+    }
+  }
+
+  async clearAllOpportunities(): Promise<number> {
+    try {
+      const client = createDirectConnection();
+      await client.connect();
+      
+      // Get count before deletion
+      const countResult = await client.query('SELECT COUNT(*) as count FROM opportunities');
+      const deletedCount = parseInt(countResult.rows[0].count) || 0;
+      
+      // Delete all opportunities
+      await client.query('DELETE FROM opportunities');
+      
+      await client.end();
+      return deletedCount;
+    } catch (error) {
+      console.error('Error clearing all opportunities:', error);
+      throw error;
     }
   }
 }

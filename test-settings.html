@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Settings</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        button { padding: 10px 20px; margin: 10px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .result { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 4px; background: #f9f9f9; }
+        .success { border-color: #28a745; background: #d4edda; }
+        .error { border-color: #dc3545; background: #f8d7da; }
+    </style>
+</head>
+<body>
+    <h1>Test Settings Page</h1>
+    <button onclick="testLogin()">1. Login as Admin</button>
+    <button onclick="testCardsCount()">2. Check Cards Count</button>
+    <button onclick="goToSettings()">3. Go to Settings</button>
+    <button onclick="testClearCards()">4. Test Clear Cards API</button>
+    <div id="result"></div>
+
+    <script>
+        let isLoggedIn = false;
+        
+        function showResult(message, isSuccess = true) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = `<div class="result ${isSuccess ? 'success' : 'error'}">${message}</div>`;
+        }
+        
+        async function testLogin() {
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        email: 'admin@crm.com',
+                        password: 'admin123'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    isLoggedIn = true;
+                    showResult(`✅ Login successful! User: ${data.user.name} (${data.user.role})`);
+                } else {
+                    showResult(`❌ Login failed: ${data.message}`, false);
+                }
+            } catch (error) {
+                showResult(`❌ Login error: ${error.message}`, false);
+            }
+        }
+        
+        async function testCardsCount() {
+            try {
+                const response = await fetch('/api/admin/kanban-cards-count', {
+                    credentials: 'include'
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showResult(`✅ Cards count: ${data.count} cards found`);
+                } else {
+                    showResult(`❌ Cards count failed: ${data.message}`, false);
+                }
+            } catch (error) {
+                showResult(`❌ Cards count error: ${error.message}`, false);
+            }
+        }
+        
+        async function goToSettings() {
+            if (!isLoggedIn) {
+                showResult('❌ Please login first!', false);
+                return;
+            }
+            
+            showResult('🔄 Navigating to settings page...');
+            setTimeout(() => {
+                window.location.href = '/settings';
+            }, 1000);
+        }
+        
+        async function testClearCards() {
+            if (!isLoggedIn) {
+                showResult('❌ Please login first!', false);
+                return;
+            }
+            
+            if (!confirm('Are you sure you want to clear all cards? This will delete all opportunities!')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/admin/clear-kanban-cards', {
+                    method: 'DELETE',
+                    credentials: 'include'
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showResult(`✅ Clear cards successful! Deleted: ${data.deletedCount} cards, Backup ID: ${data.backupId}`);
+                } else {
+                    showResult(`❌ Clear cards failed: ${data.message}`, false);
+                }
+            } catch (error) {
+                showResult(`❌ Clear cards error: ${error.message}`, false);
+            }
+        }
+    </script>
+</body>
+</html>

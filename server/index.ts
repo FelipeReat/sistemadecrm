@@ -20,6 +20,7 @@ app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: false, limit: "50mb" }));
 
 app.use((req, res, next) => {
+  console.log(`🔍 [REQUEST] ${req.method} ${req.path} - received`);
   const start = Date.now();
   const path = req.path;
   let capturedJsonResponse: Record<string, any> | undefined = undefined;
@@ -32,6 +33,7 @@ app.use((req, res, next) => {
 
   res.on("finish", () => {
     const duration = Date.now() - start;
+    console.log(`🔍 [RESPONSE] ${req.method} ${path} ${res.statusCode} in ${duration}ms`);
     if (path.startsWith("/api")) {
       let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
       if (capturedJsonResponse) {
@@ -67,10 +69,17 @@ app.use((req, res, next) => {
       : process.env.DEV_DATABASE_URL || process.env.DATABASE_URL;
     
     if (dbUrl) {
-      log("🚀 Inicializando serviço de tempo real...");
+      log("🚀 Inicializando serviço de tempo real (async, não bloqueante)...");
       realtimeService = new RealtimeService(server, dbUrl);
-      await realtimeService.initialize();
-      log("✅ Serviço de tempo real ativo");
+      // Inicializa de forma assíncrona para não bloquear o start do servidor HTTP
+      realtimeService.initialize()
+        .then(() => {
+          log("✅ Serviço de tempo real ativo");
+        })
+        .catch((error) => {
+          log("❌ Erro ao inicializar serviço de tempo real:", String(error));
+          log("⚠️ Continuando sem funcionalidades de tempo real");
+        });
     } else {
       log("⚠️ URL do banco não configurada, serviço de tempo real desabilitado");
     }
@@ -107,8 +116,8 @@ app.use((req, res, next) => {
   }
 
   // Configuração de porta para desenvolvimento local
-  // Backend usa porta 3000, frontend usa porta 5501
-  const port = parseInt(process.env.PORT || "3000", 10);
+  // Backend usa porta 5501 para alinhar com proxy do Vite e testes
+  const port = parseInt(process.env.PORT || "5501", 10);
   log("Using PORT:", port.toString());
 
   // Use configurable host binding with safe default
