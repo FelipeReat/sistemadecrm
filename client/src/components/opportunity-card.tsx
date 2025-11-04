@@ -6,6 +6,7 @@ import { ptBR } from "date-fns/locale";
 import type { Opportunity, User as UserType } from "@shared/schema";
 import { formatters } from "@/lib/formatters";
 import { useEffect } from "react";
+import { HoverCard, HoverCardTrigger, HoverCardContent } from "@/components/ui/hover-card";
 
 // Função para validar se uma fase está completa
 const validatePhaseCompletion = (opportunity: Opportunity): { isComplete: boolean; missingFields?: string[] } => {
@@ -153,13 +154,29 @@ export default function OpportunityCard({ opportunity, onViewDetails, users = []
           </h4>
           {/* Indicador de status da fase */}
           {opportunity.phase && !['ganho', 'perdido'].includes(opportunity.phase) && (
-            <div className="flex items-center flex-shrink-0" title={phaseValidation.isComplete ? 'Fase completa' : `Campos faltando: ${phaseValidation.missingFields?.join(', ')}`}>
-              {phaseValidation.isComplete ? (
-                <CheckCircle className="h-3 w-3 text-green-500" />
-              ) : (
-                <AlertCircle className="h-3 w-3 text-orange-500" />
+            <HoverCard openDelay={200} closeDelay={100}>
+              <HoverCardTrigger asChild>
+                <div className="flex items-center flex-shrink-0" title={phaseValidation.isComplete ? 'Fase completa' : 'Campos pendentes'}>
+                  {phaseValidation.isComplete ? (
+                    <CheckCircle className="h-3 w-3 text-green-500" />
+                  ) : (
+                    <AlertCircle className="h-3 w-3 text-orange-500" />
+                  )}
+                </div>
+              </HoverCardTrigger>
+              {!phaseValidation.isComplete && (
+                <HoverCardContent side="top" align="start" className="w-72">
+                  <div className="space-y-2">
+                    <div className="text-xs font-semibold text-orange-700 dark:text-orange-300">Campos pendentes nesta fase</div>
+                    <ul className="list-disc pl-4 text-xs text-muted-foreground">
+                      {(phaseValidation.missingFields || []).map((f) => (
+                        <li key={f}>{f}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </HoverCardContent>
               )}
-            </div>
+            </HoverCard>
           )}
         </div>
         <Button 
@@ -327,7 +344,10 @@ export default function OpportunityCard({ opportunity, onViewDetails, users = []
           <div className="mt-1 p-1.5 bg-orange-50 dark:bg-orange-900/30 border border-orange-200 dark:border-orange-800 rounded text-orange-700 dark:text-orange-300">
             <div className="flex items-center space-x-1">
               <AlertCircle className="h-3 w-3 flex-shrink-0" />
-              <span className="font-medium text-xs truncate">Campos pendentes</span>
+              <span className="font-medium text-xs">Campos pendentes</span>
+            </div>
+            <div className="mt-1 text-[11px] text-orange-800 dark:text-orange-200">
+              {(phaseValidation.missingFields || []).join(', ')}
             </div>
           </div>
         )}
