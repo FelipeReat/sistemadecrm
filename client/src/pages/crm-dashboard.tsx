@@ -13,13 +13,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { format } from "date-fns";
-import { Settings, ChartLine, Trophy, Clock, DollarSign, Plus, Filter, X, Search, ArrowUpDown, Upload } from "lucide-react";
+import { Settings, ChartLine, Trophy, Clock, DollarSign, Plus, Filter, X, Search, ArrowUpDown } from "lucide-react";
 import SalesPipelineColumn from "@/components/sales-pipeline-column";
 import NewOpportunityModal from "@/components/new-opportunity-modal";
 import NewProposalOpportunityModal from "@/components/new-proposal-opportunity-modal";
 import OpportunityDetailsModal from "@/components/opportunity-details-modal";
 import SettingsModal from "@/components/settings-modal";
-import { ImportModal } from "@/components/import-modal";
+
 import { PHASES } from "@shared/schema";
 import type { Opportunity, User } from "@shared/schema";
 import { useAuth } from "@/hooks/useAuth";
@@ -61,7 +61,6 @@ export default function CrmDashboard() {
   const [selectedOpportunity, setSelectedOpportunity] = useState<Opportunity | null>(null);
   const [isNewProposalOpportunityModalOpen, setIsNewProposalOpportunityModalOpen] = useState(false);
   const [isAdvancedFiltersModalOpen, setIsAdvancedFiltersModalOpen] = useState(false);
-  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [filteredPhaseOnly, setFilteredPhaseOnly] = useState<string | null>(null);
   
@@ -373,15 +372,8 @@ export default function CrmDashboard() {
                 Nova Oportunidade
               </Button>
               {user && ['admin', 'gerente'].includes(user.role) && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setIsImportModalOpen(true)}
-                  data-testid="button-import-data"
-                >
-                  <Upload className="mr-1 h-3 w-3" />
-                  Importar
-                </Button>
+                // Import button removed; import now resides in Settings > Sistema
+                <></>
               )}
               <Button
                 size="sm"
@@ -790,14 +782,6 @@ export default function CrmDashboard() {
       </Dialog>
 
       {/* Import Modal */}
-      <ImportModal
-        isOpen={isImportModalOpen}
-        onClose={() => setIsImportModalOpen(false)}
-        onImportComplete={() => {
-          queryClient.invalidateQueries({ queryKey: ["/api/opportunities"] });
-          queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
-        }}
-      />
     </div>
   );
 }
