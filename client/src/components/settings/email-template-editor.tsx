@@ -27,6 +27,7 @@ interface EmailTemplate {
   name: string;
   subject: string;
   body: string;
+  trigger?: string;
   type: 'welcome' | 'password_reset' | 'notification' | 'custom';
   variables: string[];
   created_at: string;
@@ -64,7 +65,9 @@ export function EmailTemplateEditor() {
     name: '',
     subject: '',
     body: '',
-    type: 'custom' as EmailTemplate['type']
+    type: 'custom' as EmailTemplate['type'],
+    trigger: 'custom' as string,
+    variables: [] as string[]
   });
 
   // Load templates
@@ -75,10 +78,21 @@ export function EmailTemplateEditor() {
   const loadTemplates = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch('/api/email/templates');
+      const response = await fetch('/api/email/templates', {
+        credentials: 'include'
+      });
       if (response.ok) {
         const data = await response.json();
-        setTemplates(data);
+        // Mapear tipo a partir do trigger quando possível
+        const mapped = (data || []).map((t: any) => ({
+          ...t,
+          type: (
+            t?.trigger && ['welcome', 'password_reset', 'notification', 'custom'].includes(t.trigger)
+              ? t.trigger
+              : 'custom'
+          ) as EmailTemplate['type']
+        }));
+        setTemplates(mapped);
       } else {
         toast({
           title: "Erro",
@@ -104,7 +118,9 @@ export function EmailTemplateEditor() {
       name: template.name,
       subject: template.subject,
       body: template.body,
-      type: template.type
+      type: template.type,
+      trigger: template.trigger || template.type || 'custom',
+      variables: Array.isArray(template.variables) ? template.variables : []
     });
     setIsEditing(false);
     setPreviewMode('edit');
@@ -116,7 +132,9 @@ export function EmailTemplateEditor() {
       name: '',
       subject: '',
       body: '',
-      type: 'custom'
+      type: 'custom',
+      trigger: 'custom',
+      variables: []
     });
     setIsEditing(true);
     setPreviewMode('edit');
@@ -143,13 +161,22 @@ export function EmailTemplateEditor() {
         : '/api/email/templates';
       
       const method = selectedTemplate ? 'PUT' : 'POST';
+      // Mapear trigger a partir do tipo selecionado
+      const payload = {
+        name: formData.name,
+        subject: formData.subject,
+        body: formData.body,
+        variables: formData.variables || [],
+        trigger: formData.type || 'custom'
+      };
       
       const response = await fetch(url, {
         method,
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(formData)
+        credentials: 'include',
+        body: JSON.stringify(payload)
       });
 
       if (response.ok) {
@@ -196,14 +223,15 @@ export function EmailTemplateEditor() {
 
     try {
       const response = await fetch(`/api/email/templates/${templateId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        credentials: 'include'
       });
 
       if (response.ok) {
         setTemplates(prev => prev.filter(t => t.id !== templateId));
         if (selectedTemplate?.id === templateId) {
           setSelectedTemplate(null);
-          setFormData({ name: '', subject: '', body: '', type: 'custom' });
+          setFormData({ name: '', subject: '', body: '', type: 'custom', trigger: 'custom', variables: [] });
         }
         toast({
           title: "Sucesso",

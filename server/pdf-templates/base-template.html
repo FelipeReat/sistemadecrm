@@ -332,18 +332,7 @@
             border-color: #ef4444;
         }
         
-        .footer {
-            position: fixed;
-            bottom: 15mm;
-            left: 20mm;
-            right: 20mm;
-            text-align: center;
-            font-size: 11px;
-            color: #64748b;
-            border-top: 2px solid #e2e8f0;
-            padding-top: 12px;
-            background: linear-gradient(135deg, #f8fafc 0%, white 100%);
-        }
+        /* Rodapé removido conforme solicitação */
         
         .page-number {
             position: fixed;
@@ -374,9 +363,9 @@
             font-size: 14px;
         }
         
-        /* Reserva de espaço para o rodapé fixo */
+        /* Ajuste de espaçamento inferior apenas para numeração da página */
         .content-area {
-            padding-bottom: 40mm; /* espaço para rodapé + número da página */
+            padding-bottom: 15mm; /* espaço para número da página */
         }
         
         .filters-title {
@@ -429,10 +418,7 @@
             {{{content}}}
         </div>
         
-        <div class="footer">
-            <div>Sistema CRM - Relatório gerado automaticamente em {{generatedAt}}</div>
-            <div>{{#if filters}}Filtros: {{filters}}{{/if}}</div>
-        </div>
+        <!-- Rodapé removido -->
         
         <div class="page-number"></div>
     </div>
