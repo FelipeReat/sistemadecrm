@@ -14,6 +14,7 @@
     "db:migrate:prod": "tsx scripts/migrate.ts",
     "db:generate:prod": "drizzle-kit generate --config=drizzle.config.ts",
     "seed:admin": "cross-env NODE_ENV=development tsx scripts/seed-admin.ts",
+    "seed:logs": "cross-env NODE_ENV=development tsx scripts/seed-logs.ts",
     "test:prod-connection": "cross-env NODE_ENV=production tsx scripts/test-prod-connection.ts",
     "diagnose:ssl": "cross-env NODE_ENV=production tsx scripts/diagnose-ssl.ts",
     "test:prod-exact": "cross-env NODE_ENV=production tsx scripts/test-production-exact.ts",

@@ -70,7 +70,14 @@ export interface IStorage {
   updateCompanySettings(settings: any): Promise<any>;
 
   // Login History
-  getLoginHistory(userId: string, options?: { limit?: number; offset?: number }): Promise<any[]>;
+  getLoginHistory(
+    userId: string,
+    options?: {
+      limit?: number;
+      offset?: number;
+      filters?: { success?: boolean; device_type?: string; dateFrom?: string; dateTo?: string; search?: string };
+    }
+  ): Promise<{ records: any[]; total: number; totalPages: number; currentPage: number }>;
   createLoginHistory(data: any): Promise<any>;
 
   // User Sessions
@@ -78,7 +85,7 @@ export interface IStorage {
   deleteUserSession(sessionId: string, userId: string): Promise<boolean>;
 
   // System Logs
-  getSystemLogs(filters?: { level?: string; category?: string; search?: string; dateFrom?: string; dateTo?: string; limit?: number; offset?: number }): Promise<{ logs: any[]; totalRecords: number; totalPages: number; currentPage: number }>;
+  getSystemLogs(filters?: { level?: string; category?: string; search?: string; dateFrom?: string; dateTo?: string; limit?: number; offset?: number }): Promise<{ records: any[]; total: number; totalPages: number; currentPage: number }>;
   createSystemLog(data: any): Promise<any>;
 
   // Password Management
@@ -527,8 +534,11 @@ export class MemStorage implements IStorage {
   }
 
   // Login History (stub implementations)
-  async getLoginHistory(userId: string, options: { limit?: number; offset?: number } = {}): Promise<any[]> {
-    return [];
+  async getLoginHistory(
+    userId: string,
+    options: { limit?: number; offset?: number; filters?: { success?: boolean; device_type?: string; dateFrom?: string; dateTo?: string; search?: string } } = {}
+  ): Promise<{ records: any[]; total: number; totalPages: number; currentPage: number }> {
+    return { records: [], total: 0, totalPages: 0, currentPage: 1 };
   }
 
   async createLoginHistory(data: any): Promise<any> {
@@ -545,8 +555,8 @@ export class MemStorage implements IStorage {
   }
 
   // System Logs (stub implementations)
-  async getSystemLogs(filters: { level?: string; category?: string; search?: string; dateFrom?: string; dateTo?: string; limit?: number; offset?: number } = {}): Promise<{ logs: any[]; totalRecords: number; totalPages: number; currentPage: number }> {
-    return { logs: [], totalRecords: 0, totalPages: 0, currentPage: 1 };
+  async getSystemLogs(filters: { level?: string; category?: string; search?: string; dateFrom?: string; dateTo?: string; limit?: number; offset?: number } = {}): Promise<{ records: any[]; total: number; totalPages: number; currentPage: number }> {
+    return { records: [], total: 0, totalPages: 0, currentPage: 1 };
   }
 
   async createSystemLog(data: any): Promise<any> {

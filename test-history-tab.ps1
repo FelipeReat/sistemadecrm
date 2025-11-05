@@ -28,13 +28,13 @@ Write-Host "`n2. Buscando historico de login..." -ForegroundColor Yellow
 try {
     $history = Invoke-RestMethod -Uri "$baseUrl/api/user/login-history" -Method GET -WebSession $session
     Write-Host "Historico carregado com sucesso" -ForegroundColor Green
-    Write-Host "Total de registros: $($history.data.Count)" -ForegroundColor Cyan
+    Write-Host "Total de registros: $($history.records.Count)" -ForegroundColor Cyan
     Write-Host "Total geral: $($history.total)" -ForegroundColor Cyan
     
-    if ($history.data.Count -gt 0) {
+    if ($history.records.Count -gt 0) {
         Write-Host "Ultimos logins:" -ForegroundColor Cyan
-        foreach ($login in $history.data | Select-Object -First 3) {
-            Write-Host "  - $($login.timestamp) | IP: $($login.ipAddress) | Status: $($login.success)" -ForegroundColor Gray
+        foreach ($login in $history.records | Select-Object -First 3) {
+            Write-Host "  - $($login.created_at) | IP: $($login.ip_address) | Status: $($login.success)" -ForegroundColor Gray
         }
     }
 } catch {
@@ -48,8 +48,8 @@ try {
     $uri = "$baseUrl/api/user/login-history" + "?page=2" + "&" + "limit=10"
     $historyPage2 = Invoke-RestMethod -Uri $uri -Method GET -WebSession $session
     Write-Host "Pagina 2 carregada com sucesso" -ForegroundColor Green
-    Write-Host "Registros na pagina 2: $($historyPage2.data.Count)" -ForegroundColor Cyan
-    Write-Host "Pagina atual: $($historyPage2.page)" -ForegroundColor Cyan
+    Write-Host "Registros na pagina 2: $($historyPage2.records.Count)" -ForegroundColor Cyan
+    Write-Host "Pagina atual: $($historyPage2.currentPage)" -ForegroundColor Cyan
     Write-Host "Total de paginas: $($historyPage2.totalPages)" -ForegroundColor Cyan
 } catch {
     Write-Host "Erro ao buscar pagina 2: $($_.Exception.Message)" -ForegroundColor Red
@@ -60,7 +60,7 @@ Write-Host "`n4. Testando limite personalizado..." -ForegroundColor Yellow
 try {
     $historyLimit = Invoke-RestMethod -Uri "$baseUrl/api/user/login-history?limit=5" -Method GET -WebSession $session
     Write-Host "Limite personalizado funcionando" -ForegroundColor Green
-    Write-Host "Registros retornados: $($historyLimit.data.Count)" -ForegroundColor Cyan
+    Write-Host "Registros retornados: $($historyLimit.records.Count)" -ForegroundColor Cyan
     Write-Host "Limite aplicado: 5" -ForegroundColor Cyan
 } catch {
     Write-Host "Erro ao testar limite: $($_.Exception.Message)" -ForegroundColor Red

@@ -90,6 +90,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (remaining <= 2) {
           message += `. Restam ${remaining} tentativas antes do bloqueio.`;
         }
+        // Registrar histórico de login (falha), se o usuário existir
+        try {
+          const existingUser = await storage.getUserByEmail(email);
+          if (existingUser) {
+            await storage.createLoginHistory({
+              userId: existingUser.id,
+              ipAddress: req.ip,
+              userAgent: req.headers['user-agent'] || '',
+              loginTime: new Date(),
+              success: false,
+            });
+          }
+        } catch (err) {
+          console.error('⚠️ [LOGIN] Failed to log failed login history:', err);
+        }
 
         return res.status(401).json({ message });
       }
@@ -106,6 +121,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       req.session.lastAccess = new Date().toISOString();
 
       console.log(`🔍 [LOGIN] User data stored in session: id=${user.id}, name=${user.name}, email=${user.email}, role=${user.role}`);
+
+      // Registrar histórico de login (sucesso)
+      try {
+        await storage.createLoginHistory({
+          userId: user.id,
+          ipAddress: req.ip,
+          userAgent: req.headers['user-agent'] || '',
+          loginTime: new Date(),
+          success: true,
+        });
+      } catch (err) {
+        console.error('⚠️ [LOGIN] Failed to log successful login history:', err);
+      }
 
       // Remove password from response
       const { password: _, ...userWithoutPassword } = user;
@@ -3284,8 +3312,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const limit = parseInt(req.query.limit as string) || 20;
       const offset = (page - 1) * limit;
 
-      const history = await storage.getLoginHistory(req.session.userId!, { limit, offset });
-      res.json(history);
+      const filters = {
+        success: typeof req.query.success !== 'undefined' ? req.query.success === 'true' : undefined,
+        device_type: (req.query.device_type as string) || undefined,
+        search: (req.query.search as string) || undefined,
+        dateFrom: (req.query.date_from as string) || undefined,
+        dateTo: (req.query.date_to as string) || undefined,
+      };
+
+      const { records, total, totalPages, currentPage } = await storage.getLoginHistory(
+        req.session.userId!,
+        { limit, offset, filters }
+      );
+
+      res.json({ records, total, totalPages, currentPage });
     } catch (error: any) {
       console.error('Error fetching login history:', error);
       res.status(500).json({ message: "Erro ao buscar histórico de login" });
@@ -3691,8 +3731,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         dateTo
       };
 
-      const result = await storage.getSystemLogs({ limit, offset, filters });
-      res.json(result);
+      const { records, total, totalPages, currentPage } = await storage.getSystemLogs({ limit, offset, filters });
+      res.json({ records, total, totalPages, currentPage });
     } catch (error: any) {
       console.error('Error fetching system logs:', error);
       res.status(500).json({ message: "Erro ao buscar logs do sistema" });

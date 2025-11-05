@@ -1487,25 +1487,142 @@ export class PostgresStorage implements IStorage {
     }
   }
 
-  // Login History
-  async getLoginHistory(userId: string, options: { limit?: number; offset?: number } = {}): Promise<any[]> {
+  // Login History - with pagination and filters
+  async getLoginHistory(
+    userId: string,
+    options: { limit?: number; offset?: number; filters?: { success?: boolean; device_type?: string; dateFrom?: string; dateTo?: string; search?: string } } = {}
+  ): Promise<{ records: any[]; total: number; totalPages: number; currentPage: number }> {
     try {
-      const { limit = 50, offset = 0 } = options;
+      const { limit = 20, offset = 0, filters = {} } = options;
+      const { success, device_type, dateFrom, dateTo, search } = filters;
+
       const client = createDirectConnection();
       await client.connect();
-      
-      const result = await client.query(`
-        SELECT * FROM login_history 
-        WHERE user_id = $1 
-        ORDER BY login_time DESC 
-        LIMIT $2 OFFSET $3
-      `, [userId, limit, offset]);
-      
+
+      // Detect available timestamp columns to avoid referencing non-existent columns
+      const colsRes = await client.query(
+        `SELECT column_name FROM information_schema.columns 
+         WHERE table_name = 'login_history' AND column_name IN ('login_time','login_at','created_at')`
+      );
+      const availableCols: string[] = colsRes.rows.map((r: any) => r.column_name);
+      const ordered = ['login_time', 'login_at', 'created_at'].filter(c => availableCols.includes(c));
+      const tsExpr = ordered.length === 0
+        ? 'lh.created_at'
+        : (ordered.length === 1
+            ? `lh.${ordered[0]}`
+            : `COALESCE(${ordered.map(c => `lh.${c}`).join(', ')})`);
+
+      let query = `
+        SELECT lh.*, u.name AS user_name, u.email AS user_email,
+               ${tsExpr} AS created_at
+        FROM login_history lh
+        LEFT JOIN users u ON u.id = lh.user_id
+        WHERE lh.user_id = $1
+      `;
+      const params: any[] = [userId];
+      let paramIndex = 2;
+
+      if (typeof success === 'boolean') {
+        query += ` AND lh.success = $${paramIndex}`;
+        params.push(success);
+        paramIndex++;
+      }
+
+      if (device_type) {
+        // device_type is derived from user_agent; filter approximate using ILIKE
+        if (device_type === 'mobile') {
+          query += ` AND lh.user_agent ILIKE $${paramIndex}`;
+          params.push('%Mobile%');
+          paramIndex++;
+        } else if (device_type === 'desktop') {
+          query += ` AND (lh.user_agent NOT ILIKE $${paramIndex})`;
+          params.push('%Mobile%');
+          paramIndex++;
+        } // tablet falls back to mobile-like, or no extra filter
+      }
+
+      if (search) {
+        query += ` AND (
+          lh.ip_address::text ILIKE $${paramIndex} OR
+          lh.location ILIKE $${paramIndex} OR
+          u.email ILIKE $${paramIndex} OR
+          u.name ILIKE $${paramIndex}
+        )`;
+        params.push(`%${search}%`);
+        paramIndex++;
+      }
+
+      if (dateFrom) {
+        query += ` AND ${tsExpr} >= $${paramIndex}`;
+        params.push(dateFrom);
+        paramIndex++;
+      }
+
+      if (dateTo) {
+        query += ` AND ${tsExpr} <= $${paramIndex}`;
+        params.push(dateTo);
+        paramIndex++;
+      }
+
+      const countQuery = query.replace(
+        /SELECT[\s\S]*FROM/,
+        'SELECT COUNT(*) AS count FROM'
+      );
+      const countResult = await client.query(countQuery, params);
+      const total = parseInt(countResult.rows[0].count, 10) || 0;
+
+      query += ` ORDER BY ${tsExpr} DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
+      params.push(limit, offset);
+
+      const result = await client.query(query, params);
       await client.end();
-      return result.rows;
+
+      // Enrich records: device_type, browser, os, session_duration formatting placeholder
+      const enriched = result.rows.map((row: any) => {
+        const ua: string = row.user_agent || '';
+        const isMobile = /Mobile|Android|iPhone|iPad/i.test(ua);
+        const deviceType = isMobile ? 'mobile' : 'desktop';
+        let browser = '';
+        if (/Chrome\//i.test(ua)) browser = 'Chrome';
+        else if (/Firefox\//i.test(ua)) browser = 'Firefox';
+        else if (/Safari\//i.test(ua)) browser = 'Safari';
+        else if (/Edg\//i.test(ua)) browser = 'Edge';
+        else browser = 'Desconhecido';
+
+        let os = '';
+        if (/Windows/i.test(ua)) os = 'Windows';
+        else if (/Android/i.test(ua)) os = 'Android';
+        else if (/iPhone|iPad|iOS/i.test(ua)) os = 'iOS';
+        else if (/Macintosh/i.test(ua)) os = 'macOS';
+        else os = 'Desconhecido';
+
+        return {
+          id: row.id,
+          user_id: row.user_id,
+          user_name: row.user_name || '',
+          user_email: row.user_email || '',
+          ip_address: row.ip_address,
+          user_agent: ua,
+          device_type: deviceType,
+          browser,
+          os,
+          location: row.location,
+          success: !!row.success,
+          failure_reason: row.failure_reason || undefined,
+          session_duration: row.session_duration || null,
+          created_at: row.created_at,
+        };
+      });
+
+      return {
+        records: enriched,
+        total,
+        totalPages: Math.ceil(total / limit) || 1,
+        currentPage: Math.floor(offset / limit) + 1,
+      };
     } catch (error) {
       console.error('Error getting login history:', error);
-      return [];
+      return { records: [], total: 0, totalPages: 0, currentPage: 1 };
     }
   }
 
@@ -1513,14 +1630,21 @@ export class PostgresStorage implements IStorage {
     try {
       const client = createDirectConnection();
       await client.connect();
-      
-      const result = await client.query(`
+      // Detect timestamp column (login_at vs login_time)
+      const colRes = await client.query(
+        `SELECT column_name FROM information_schema.columns 
+         WHERE table_name = 'login_history' AND column_name IN ('login_at','login_time') 
+         ORDER BY column_name LIMIT 1`
+      );
+      const timestampCol = colRes.rows[0]?.column_name || 'login_at';
+
+      const query = `
         INSERT INTO login_history (
-          id, user_id, ip_address, user_agent, login_time, success
-        ) VALUES ($1, $2, $3, $4, $5, $6)
+          user_id, ip_address, user_agent, ${timestampCol}, success
+        ) VALUES ($1, $2, $3, $4, $5)
         RETURNING *
-      `, [
-        randomUUID(),
+      `;
+      const result = await client.query(query, [
         data.userId,
         data.ipAddress,
         data.userAgent,
@@ -1575,7 +1699,7 @@ export class PostgresStorage implements IStorage {
   }
 
   // System Logs
-  async getSystemLogs(options: { limit?: number; offset?: number; filters?: any } = {}): Promise<any> {
+  async getSystemLogs(options: { limit?: number; offset?: number; filters?: any } = {}): Promise<{ records: any[]; total: number; totalPages: number; currentPage: number }> {
     try {
       const { limit = 100, offset = 0, filters = {} } = options;
       const { level, category, search, dateFrom, dateTo } = filters;
@@ -1620,7 +1744,7 @@ export class PostgresStorage implements IStorage {
       // Count total records
       const countQuery = query.replace('SELECT *', 'SELECT COUNT(*)');
       const countResult = await client.query(countQuery, params);
-      const totalRecords = parseInt(countResult.rows[0].count);
+      const total = parseInt(countResult.rows[0].count);
       
       query += ` ORDER BY created_at DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
       params.push(limit, offset);
@@ -1629,14 +1753,14 @@ export class PostgresStorage implements IStorage {
       await client.end();
       
       return {
-        logs: result.rows,
-        totalRecords,
-        totalPages: Math.ceil(totalRecords / limit),
-        currentPage: Math.floor(offset / limit) + 1
+        records: result.rows,
+        total,
+        totalPages: Math.ceil(total / limit) || 1,
+        currentPage: Math.floor(offset / limit) + 1,
       };
     } catch (error) {
       console.error('Error getting system logs:', error);
-      return [];
+      return { records: [], total: 0, totalPages: 0, currentPage: 1 };
     }
   }
 
