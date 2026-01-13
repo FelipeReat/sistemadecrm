@@ -64,6 +64,7 @@ export const opportunities = pgTable("opportunities", {
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
   updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`),
   phaseUpdatedAt: timestamp("phase_updated_at").default(sql`CURRENT_TIMESTAMP`),
+  priority: text("priority"),
 });
 
 export const automations = pgTable("automations", {
