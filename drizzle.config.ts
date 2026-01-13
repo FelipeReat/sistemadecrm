@@ -11,11 +11,22 @@ if (!databaseUrl) {
   throw new Error(`${envVar} must be set. Configure your PostgreSQL connection string for ${isProduction ? 'production' : 'development'} environment.`);
 }
 
+// Configuração de SSL para conexão
+let finalUrl = databaseUrl;
+if (isProduction || databaseUrl.includes('rds.amazonaws.com')) {
+  // Remove params existentes de SSL para evitar duplicação/conflito
+  finalUrl = finalUrl.replace(/[?&]ssl(mode)?=[^&]*/g, '');
+  // Adiciona ssl=true (node-postgres entende isso como enable SSL)
+  finalUrl += finalUrl.includes('?') ? '&ssl=true' : '?ssl=true';
+}
+
 export default defineConfig({
   out: "./migrations",
   schema: "./shared/schema.ts",
   dialect: "postgresql",
   dbCredentials: {
-    url: databaseUrl,
+    url: finalUrl,
+    // Mantemos o objeto SSL como fallback/reforço, embora drizzle-kit possa priorizar a URL
+    ssl: { rejectUnauthorized: false },
   },
 });

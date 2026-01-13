@@ -677,8 +677,8 @@ export const updateSavedReportSchema = createInsertSchema(savedReports).omit({
 }).partial();
 
 export type InsertSavedReport = z.infer<typeof insertSavedReportSchema>;
-export type UpdateSavedReport = z.infer<typeof updateSavedReportSchema>;
 export type SavedReport = typeof savedReports.$inferSelect;
+export type UpdateSavedReport = Partial<InsertSavedReport>;
 
 // Report categories
 export const REPORT_CATEGORIES = {

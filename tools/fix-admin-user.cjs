@@ -1,10 +1,14 @@
 
 const { Client } = require('pg');
 const bcrypt = require('bcrypt');
+require('dotenv').config();
+
+const dbUrl = process.env.DATABASE_URL || 'postgres://compras:Compras2025@54.232.194.197:5432/crm';
+const isProduction = process.env.NODE_ENV === 'production' || dbUrl.includes('amazonaws.com');
 
 const client = new Client({
-  connectionString: 'postgres://compras:Compras2025@54.232.194.197:5432/crm',
-  ssl: false,
+  connectionString: dbUrl,
+  ssl: isProduction ? { rejectUnauthorized: false } : false,
   connectionTimeoutMillis: 10000,
   statement_timeout: 30000,
   query_timeout: 30000,

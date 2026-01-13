@@ -36,8 +36,8 @@ function createDatabase() {
       };
     }
   } else {
-    // Em desenvolvimento, desabilitar SSL por padrão
-    sslConfig = false;
+    // Em desenvolvimento, habilitar SSL permissivo para suportar bancos remotos
+    sslConfig = { rejectUnauthorized: false };
   }
   
   const sql = postgres(databaseUrl, {

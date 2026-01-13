@@ -5,7 +5,7 @@ export function getPgPool() {
   let dbUrl =
     process.env.NODE_ENV === "production"
       ? process.env.PROD_DATABASE_URL || process.env.DATABASE_URL
-      : process.env.DEV_DATABASE_URL;
+      : process.env.DEV_DATABASE_URL || process.env.DATABASE_URL;
 
   // Em produção, remova qualquer parâmetro sslmode da URL
   if (process.env.NODE_ENV === "production" && dbUrl) {
@@ -28,8 +28,8 @@ export function getPgPool() {
       };
     }
   } else {
-    // Em desenvolvimento, desabilitar SSL por padrão
-    sslConfig = false;
+    // Em desenvolvimento, habilitar SSL permissivo para suportar bancos remotos (Neon, Supabase, etc)
+    sslConfig = { rejectUnauthorized: false };
   }
 
   return new Pool({
@@ -52,7 +52,7 @@ export function createDirectConnection() {
   let dbUrl =
     process.env.NODE_ENV === "production"
       ? process.env.PROD_DATABASE_URL || process.env.DATABASE_URL
-      : process.env.DEV_DATABASE_URL;
+      : process.env.DEV_DATABASE_URL || process.env.DATABASE_URL;
 
   // Em produção, remova qualquer parâmetro sslmode da URL
   if (process.env.NODE_ENV === "production" && dbUrl) {
@@ -75,8 +75,8 @@ export function createDirectConnection() {
       };
     }
   } else {
-    // Em desenvolvimento, desabilitar SSL por padrão
-    sslConfig = false;
+    // Em desenvolvimento, habilitar SSL permissivo para suportar bancos remotos (Neon, Supabase, etc)
+    sslConfig = { rejectUnauthorized: false };
   }
 
   return new Client({

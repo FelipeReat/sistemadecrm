@@ -1,8 +1,12 @@
 const { Client } = require('pg');
+require('dotenv').config();
+
+const dbUrl = process.env.DATABASE_URL || 'postgres://compras:Compras2025@54.232.194.197:5432/crm';
+const isProduction = process.env.NODE_ENV === 'production' || dbUrl.includes('amazonaws.com');
 
 const client = new Client({
-  connectionString: 'postgres://compras:Compras2025@54.232.194.197:5432/crm',
-  ssl: false
+  connectionString: dbUrl,
+  ssl: isProduction ? { rejectUnauthorized: false } : false
 });
 
 client.connect()

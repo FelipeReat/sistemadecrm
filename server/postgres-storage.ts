@@ -1,4 +1,4 @@
-import { type Opportunity, type InsertOpportunity, type Automation, type InsertAutomation, type User, type UpdateUser, type SavedReport, type InsertSavedReport, type UserSettings, type InsertUserSettings, type EmailTemplate, type InsertEmailTemplate, type AuditLog, type SalesReport, type SystemBackup } from "@shared/schema";
+import { type Opportunity, type InsertOpportunity, type Automation, type InsertAutomation, type User, type InsertUser, type UpdateUser, type SavedReport, type InsertSavedReport, type UpdateSavedReport, type UserSettings, type InsertUserSettings, type EmailTemplate, type InsertEmailTemplate, type AuditLog, type SalesReport, type SystemBackup } from "@shared/schema";
 import { db } from './db';
 import { opportunities, automations, users, savedReports, userSettings, emailTemplates, auditLogs, salesReports, systemBackups, emailLogs } from '@shared/schema';
 import { eq, desc, and, count, sum, sql } from 'drizzle-orm';
@@ -68,7 +68,7 @@ export class PostgresStorage implements IStorage {
       } catch (error: any) {
         await client.end().catch(() => {}); // Garantir que a conexão seja fechada
         retryCount++;
-        console.error(`❌ Erro ao inicializar admin padrão (tentativa ${retryCount}/${maxRetries}):`, error.message);
+        console.error(`❌ Erro ao inicializar admin padrão (tentativa ${retryCount}/${maxRetries}):`, error);
 
         // Se é um erro de conexão, aguarda mais tempo
         if (error.code === 'ECONNRESET' || error.code === 'ENOTFOUND' || error.code === 'ETIMEDOUT') {
@@ -221,14 +221,19 @@ export class PostgresStorage implements IStorage {
         needCategory: insertOpportunity.needCategory || null,
         clientNeeds: insertOpportunity.clientNeeds || null,
 
+        // Priority
+        priority: insertOpportunity.priority || 'medium',
+
         // Documents
         documents: insertOpportunity.documents ? 
-          insertOpportunity.documents.map(doc => 
+          insertOpportunity.documents.map((doc: any) => 
             typeof doc === 'string' ? doc : JSON.stringify(doc)
           ) : null,
 
         // Phase and workflow
         phase: insertOpportunity.phase || 'prospeccao',
+        cadastralUpdate: insertOpportunity.cadastralUpdate || false,
+        
         createdBy: insertOpportunity.createdBy || 'system',
         createdByName: finalCreatedByName,
         
@@ -242,8 +247,10 @@ export class PostgresStorage implements IStorage {
         // Visit technical data
         visitSchedule: insertOpportunity.visitSchedule || null,
         visitDate: insertOpportunity.visitDate || null,
+        visitDescription: insertOpportunity.visitDescription || null,
+        visitRealization: insertOpportunity.visitRealization || null,
         visitPhotos: insertOpportunity.visitPhotos ? 
-          insertOpportunity.visitPhotos.map(photo => 
+          insertOpportunity.visitPhotos.map((photo: any) => 
             typeof photo === 'string' ? photo : JSON.stringify(photo)
           ) : null,
 
@@ -556,17 +563,35 @@ export class PostgresStorage implements IStorage {
 
         // Remove undefined values
         Object.keys(updatedData).forEach(key => {
-          if (updatedData[key] === undefined) {
-            delete updatedData[key];
+          if ((updatedData as any)[key] === undefined) {
+            delete (updatedData as any)[key];
           }
         });
 
-        // Update the opportunity
-        const result = await db
-          .update(opportunities)
-          .set(updatedData)
-          .where(eq(opportunities.id, id))
-          .returning();
+        // Ensure documents and visitPhotos are properly stringified for the database
+      // The database expects JSON arrays to be stored as strings or JSONB depending on driver
+      // For drizzle-orm with postgres-js, JSON columns usually accept objects directly, 
+      // but sometimes we need to be explicit with types
+      const dataToUpdate: any = { ...updatedData };
+      
+      if (dataToUpdate.documents && Array.isArray(dataToUpdate.documents)) {
+        dataToUpdate.documents = dataToUpdate.documents.map((doc: any) => 
+          typeof doc === 'string' ? doc : JSON.stringify(doc)
+        );
+      }
+      
+      if (dataToUpdate.visitPhotos && Array.isArray(dataToUpdate.visitPhotos)) {
+        dataToUpdate.visitPhotos = dataToUpdate.visitPhotos.map((photo: any) => 
+          typeof photo === 'string' ? photo : JSON.stringify(photo)
+        );
+      }
+
+      // Update the opportunity
+      const result = await db
+        .update(opportunities)
+        .set(dataToUpdate)
+        .where(eq(opportunities.id, id))
+        .returning();
 
         if (!result[0]) return undefined;
 
@@ -625,12 +650,10 @@ export class PostgresStorage implements IStorage {
 
       const result = await db
         .delete(opportunities)
-        .where(eq(opportunities.id, id));
+        .where(eq(opportunities.id, id))
+        .returning({ id: opportunities.id });
 
-      // Para Drizzle ORM, verificar se o resultado é truthy ou se existe rowCount
-      const wasDeleted = result && (typeof result.rowCount === 'number' ? result.rowCount > 0 : true);
-
-      return wasDeleted;
+      return result.length > 0;
     } catch (error: any) {
       console.error(`❌ PostgresStorage: Erro ao excluir oportunidade:`, error?.message || error);
       return false;
@@ -732,9 +755,10 @@ export class PostgresStorage implements IStorage {
     try {
       const result = await db
         .delete(automations)
-        .where(eq(automations.id, id));
+        .where(eq(automations.id, id))
+        .returning({ id: automations.id });
 
-      return result.rowCount > 0;
+      return result.length > 0;
     } catch (error) {
       console.error('Error deleting automation:', error);
       return false;
@@ -835,8 +859,8 @@ export class PostgresStorage implements IStorage {
 
       // Remove undefined values
       Object.keys(updatedData).forEach(key => {
-        if (updatedData[key] === undefined) {
-          delete updatedData[key];
+        if ((updatedData as any)[key] === undefined) {
+          delete (updatedData as any)[key];
         }
       });
 
@@ -1012,34 +1036,35 @@ export class PostgresStorage implements IStorage {
     try {
       const result = await db
         .delete(savedReports)
-        .where(eq(savedReports.id, id));
+        .where(eq(savedReports.id, id))
+        .returning({ id: savedReports.id });
 
-      return result.rowCount > 0;
+      return result.length > 0;
     } catch (error) {
       console.error('Error deleting saved report:', error);
       return false;
     }
   }
 
-  async updateReportLastGenerated(id: string): Promise<SavedReport | null> {
+  async updateReportLastGenerated(id: string): Promise<SavedReport | undefined> {
     const [updated] = await db
       .update(savedReports)
       .set({ lastGenerated: new Date() })
       .where(eq(savedReports.id, id))
       .returning();
-    return updated || null;
+    return updated || undefined;
   }
 
 
 
   async clearAllAutomations(): Promise<number> {
-    const result = await db.delete(automations);
-    return result.rowCount || 0;
+    const result = await db.delete(automations).returning({ id: automations.id });
+    return result.length || 0;
   }
 
   async clearAllSavedReports(): Promise<number> {
-    const result = await db.delete(savedReports);
-    return result.rowCount || 0;
+    const result = await db.delete(savedReports).returning({ id: savedReports.id });
+    return result.length || 0;
   }
 
 
@@ -1193,9 +1218,10 @@ export class PostgresStorage implements IStorage {
     try {
       const result = await db
         .delete(emailTemplates)
-        .where(eq(emailTemplates.id, id));
+        .where(eq(emailTemplates.id, id))
+        .returning({ id: emailTemplates.id });
 
-      return result.rowCount > 0;
+      return result.length > 0;
     } catch (error) {
       console.error('Error deleting email template:', error);
       return false;
@@ -1275,14 +1301,15 @@ export class PostgresStorage implements IStorage {
   // Sales Reports
   async getSalesReports(period?: string, year?: number, month?: number): Promise<SalesReport[]> {
     try {
-      let query = db.select().from(salesReports);
-
       const conditions = [];
       if (period) conditions.push(eq(salesReports.period, period));
       if (year) conditions.push(eq(salesReports.year, year));
       if (month) conditions.push(eq(salesReports.month, month));
 
+      let query = db.select().from(salesReports);
+      
       if (conditions.length > 0) {
+        // @ts-ignore - Drizzle query builder type complexity
         query = query.where(and(...conditions));
       }
 
@@ -1691,7 +1718,7 @@ export class PostgresStorage implements IStorage {
       `, [sessionId, userId]);
       
       await client.end();
-      return result.rowCount > 0;
+      return (result.rowCount || 0) > 0;
     } catch (error) {
       console.error('Error deleting user session:', error);
       return false;
@@ -1822,7 +1849,7 @@ export class PostgresStorage implements IStorage {
       `, [hashedNewPassword, userId]);
       
       await client.end();
-      return updateResult.rowCount > 0;
+      return (updateResult.rowCount || 0) > 0;
     } catch (error) {
       console.error('Error updating password:', error);
       return false;
