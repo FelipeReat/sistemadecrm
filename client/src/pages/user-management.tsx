@@ -161,7 +161,7 @@ export default function UserManagement() {
     }
   };
 
-  if (!['admin', 'gerente'].includes(currentUser?.role)) {
+  if (!currentUser || !['admin', 'gerente'].includes(currentUser.role)) {
     return (
       <div className="container mx-auto py-8">
         <Card>

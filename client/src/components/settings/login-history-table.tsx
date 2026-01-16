@@ -160,13 +160,24 @@ export function LoginHistoryTable() {
         a.click();
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
-        toast.success('Histórico exportado com sucesso!');
+        toast({
+          title: "Sucesso",
+          description: "Histórico exportado com sucesso!",
+        });
       } else {
-        toast.error('Erro ao exportar histórico');
+        toast({
+          title: "Erro",
+          description: "Erro ao exportar histórico",
+          variant: "destructive",
+        });
       }
     } catch (error) {
       console.error('Erro ao exportar:', error);
-      toast.error('Erro ao exportar histórico');
+      toast({
+        title: "Erro",
+        description: "Erro ao exportar histórico",
+        variant: "destructive",
+      });
     }
   };
 

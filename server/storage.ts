@@ -1,4 +1,4 @@
-import { type Opportunity, type InsertOpportunity, type Automation, type InsertAutomation, type User, type InsertUser, type UpdateUser, type SavedReport, type InsertSavedReport, type UpdateSavedReport, type UserSettings, type InsertUserSettings, type EmailTemplate, type InsertEmailTemplate, type AuditLog, type SalesReport, type SystemBackup } from "@shared/schema";
+import { type Opportunity, type InsertOpportunity, type Automation, type InsertAutomation, type User, type InsertUser, type UpdateUser, type SavedReport, type InsertSavedReport, type UpdateSavedReport, type UserSettings, type InsertUserSettings, type EmailTemplate, type InsertEmailTemplate, type AuditLog, type SalesReport, type SystemBackup, type Webhook, type InsertWebhook } from "@shared/schema";
 import { randomUUID } from "crypto";
 import bcrypt from "bcryptjs";
 
@@ -43,6 +43,12 @@ export interface IStorage {
   createUserSettings(settings: InsertUserSettings): Promise<UserSettings>;
   updateUserSettings(userId: string, settings: Partial<InsertUserSettings>): Promise<UserSettings | undefined>;
 
+  // Webhooks CRUD
+  getWebhooks(): Promise<Webhook[]>;
+  createWebhook(webhook: InsertWebhook & { createdBy: string }): Promise<Webhook>;
+  updateWebhook(id: string, updates: Partial<InsertWebhook>): Promise<Webhook | undefined>;
+  deleteWebhook(id: string): Promise<boolean>;
+
   // Email Templates CRUD
   getEmailTemplates(): Promise<EmailTemplate[]>;
   getEmailTemplate(id: string): Promise<EmailTemplate | undefined>;
@@ -81,6 +87,7 @@ export interface IStorage {
   createLoginHistory(data: any): Promise<any>;
 
   // User Sessions
+  getUserSession(sessionId: string): Promise<any | undefined>;
   getUserSessions(userId: string): Promise<any[]>;
   deleteUserSession(sessionId: string, userId: string): Promise<boolean>;
 
@@ -106,12 +113,26 @@ export class MemStorage implements IStorage {
   private automations: Map<string, Automation>;
   private users: Map<string, User>;
   private savedReports: Map<string, SavedReport>;
+  private userSettings: Map<string, UserSettings>;
+  private emailTemplates: Map<string, EmailTemplate>;
+  private webhooks: Map<string, Webhook>;
+  private auditLogs: AuditLog[];
+  private salesReports: SalesReport[];
+  private systemBackups: SystemBackup[];
+  private systemSettings: { settingKey: string; settingValue: string }[];
 
   constructor() {
     this.opportunities = new Map();
     this.automations = new Map();
     this.users = new Map();
     this.savedReports = new Map();
+    this.userSettings = new Map();
+    this.emailTemplates = new Map();
+    this.webhooks = new Map();
+    this.auditLogs = [];
+    this.salesReports = [];
+    this.systemBackups = [];
+    this.systemSettings = [];
 
     // Criar usuário admin padrão
     this.initializeDefaultAdmin();
@@ -139,7 +160,7 @@ export class MemStorage implements IStorage {
 
   async getOpportunities(): Promise<Opportunity[]> {
     return Array.from(this.opportunities.values()).sort((a, b) => 
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      new Date(b.createdAt as Date).getTime() - new Date(a.createdAt as Date).getTime()
     );
   }
 
@@ -151,18 +172,18 @@ export class MemStorage implements IStorage {
     const id = randomUUID();
     const now = new Date();
 
-    // Preserve all essential information passed in the insert data
-      const opportunity: Opportunity = { 
-        id,
-        createdAt: now,
-        updatedAt: now,
-        phaseUpdatedAt: now,
+    const opportunity: Opportunity = { 
+      id,
+      createdAt: now,
+      updatedAt: now,
+      phaseUpdatedAt: now,
         // Core contact information - always preserve these
         contact: insertOpportunity.contact || "Não informado",
-        company: insertOpportunity.company || "Não informado",
-        phone: insertOpportunity.phone || null,
-        cpf: insertOpportunity.cpf || null,
+      company: insertOpportunity.company || "Não informado",
+      phone: insertOpportunity.phone || null,
+      cpf: insertOpportunity.cpf || null,
       cnpj: insertOpportunity.cnpj || null,
+      cadastralUpdate: insertOpportunity.cadastralUpdate ?? false,
 
       // Business details - preserve all provided data
       hasRegistration: insertOpportunity.hasRegistration || false,
@@ -191,6 +212,8 @@ export class MemStorage implements IStorage {
       // Visit technical data
       visitSchedule: insertOpportunity.visitSchedule || null,
       visitDate: insertOpportunity.visitDate || null,
+      visitDescription: insertOpportunity.visitDescription || null,
+      visitRealization: insertOpportunity.visitRealization || null,
       visitPhotos: insertOpportunity.visitPhotos ? 
         insertOpportunity.visitPhotos.map(photo => 
           typeof photo === 'string' ? photo : JSON.stringify(photo)
@@ -216,6 +239,7 @@ export class MemStorage implements IStorage {
       isImported: insertOpportunity.isImported || false,
       importBatchId: insertOpportunity.importBatchId || null,
       importSource: insertOpportunity.importSource || null,
+      priority: (insertOpportunity as any).priority || null,
     };
 
     this.opportunities.set(id, opportunity);
@@ -312,7 +336,7 @@ export class MemStorage implements IStorage {
   async getOpportunitiesByPhase(phase: string): Promise<Opportunity[]> {
     return Array.from(this.opportunities.values())
       .filter(opportunity => opportunity.phase === phase)
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      .sort((a, b) => new Date(b.createdAt as Date).getTime() - new Date(a.createdAt as Date).getTime());
   }
 
   async moveOpportunityToPhase(id: string, phase: string): Promise<Opportunity | undefined> {
@@ -533,6 +557,180 @@ export class MemStorage implements IStorage {
     return { ...settings, id: 'default', updatedAt: new Date() };
   }
 
+  // User Settings (stub implementations)
+  async getUserSettings(userId: string): Promise<UserSettings | undefined> {
+    return this.userSettings.get(userId);
+  }
+
+  async getSystemSettings(): Promise<{ settingKey: string; settingValue: string }[]> {
+    return this.systemSettings;
+  }
+
+  async createUserSettings(settings: InsertUserSettings): Promise<UserSettings> {
+    const id = randomUUID();
+    const now = new Date();
+    const newSettings: UserSettings = {
+      id,
+      userId: settings.userId,
+      emailNotifications: settings.emailNotifications ?? true,
+      smsNotifications: settings.smsNotifications ?? false,
+      pushNotifications: settings.pushNotifications ?? false,
+      autoBackup: settings.autoBackup ?? true,
+      language: settings.language ?? "pt-BR",
+      timezone: settings.timezone ?? "America/Sao_Paulo",
+      twoFactorEnabled: settings.twoFactorEnabled ?? false,
+      twoFactorSecret: settings.twoFactorSecret ?? null,
+      backupCodes: settings.backupCodes ?? null,
+      sessionTimeout: settings.sessionTimeout ?? 480,
+      passwordExpiresAt: settings.passwordExpiresAt ?? null,
+      profilePhoto: settings.profilePhoto ?? null,
+      updatedAt: now,
+    };
+    this.userSettings.set(settings.userId, newSettings);
+    return newSettings;
+  }
+
+  async updateUserSettings(userId: string, settings: Partial<InsertUserSettings>): Promise<UserSettings | undefined> {
+    const existing = this.userSettings.get(userId);
+    if (!existing) return undefined;
+    const updated: UserSettings = {
+      ...existing,
+      ...settings,
+      updatedAt: new Date(),
+    };
+    this.userSettings.set(userId, updated);
+    return updated;
+  }
+
+  // Webhooks CRUD
+  async getWebhooks(): Promise<Webhook[]> {
+    return Array.from(this.webhooks.values());
+  }
+
+  async createWebhook(webhook: InsertWebhook & { createdBy: string }): Promise<Webhook> {
+    const id = randomUUID();
+    const newWebhook: Webhook = {
+      ...webhook,
+      id,
+      secret: webhook.secret || null,
+      active: webhook.active ?? true,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    this.webhooks.set(id, newWebhook);
+    return newWebhook;
+  }
+
+  async updateWebhook(id: string, updates: Partial<InsertWebhook>): Promise<Webhook | undefined> {
+    const existing = this.webhooks.get(id);
+    if (!existing) return undefined;
+    const updated: Webhook = {
+      ...existing,
+      ...updates,
+      updatedAt: new Date()
+    };
+    this.webhooks.set(id, updated);
+    return updated;
+  }
+
+  async deleteWebhook(id: string): Promise<boolean> {
+    return this.webhooks.delete(id);
+  }
+
+  // Email Templates (stub implementations)
+  async getEmailTemplates(): Promise<EmailTemplate[]> {
+    return Array.from(this.emailTemplates.values());
+  }
+
+  async getEmailTemplate(id: string): Promise<EmailTemplate | undefined> {
+    return this.emailTemplates.get(id);
+  }
+
+  async getEmailTemplateByTrigger(trigger: string): Promise<EmailTemplate | undefined> {
+    return Array.from(this.emailTemplates.values()).find(t => t.trigger === trigger);
+  }
+
+  async createEmailTemplate(template: InsertEmailTemplate): Promise<EmailTemplate> {
+    const id = randomUUID();
+    const now = new Date();
+    const newTemplate: EmailTemplate = {
+      id,
+      name: template.name,
+      subject: template.subject,
+      body: template.body,
+      htmlContent: template.htmlContent ?? null,
+      textContent: template.textContent ?? null,
+      variables: template.variables ?? [],
+      trigger: template.trigger,
+      active: template.active ?? true,
+      createdBy: template.createdBy ?? null,
+      createdAt: now,
+      updatedAt: now,
+    };
+    this.emailTemplates.set(id, newTemplate);
+    return newTemplate;
+  }
+
+  async updateEmailTemplate(id: string, updates: Partial<InsertEmailTemplate>): Promise<EmailTemplate | undefined> {
+    const existing = this.emailTemplates.get(id);
+    if (!existing) return undefined;
+    const updated: EmailTemplate = {
+      ...existing,
+      ...updates,
+      updatedAt: new Date(),
+    } as EmailTemplate;
+    this.emailTemplates.set(id, updated);
+    return updated;
+  }
+
+  async deleteEmailTemplate(id: string): Promise<boolean> {
+    return this.emailTemplates.delete(id);
+  }
+
+  // Audit Logs (stub implementations)
+  async getAuditLogs(limit?: number): Promise<AuditLog[]> {
+    if (typeof limit === 'number') {
+      return this.auditLogs.slice(0, limit);
+    }
+    return this.auditLogs;
+  }
+
+  async getEntityAuditLogs(entity: string, entityId: string, limit?: number): Promise<AuditLog[]> {
+    const logs = this.auditLogs.filter(log => log.entity === entity && log.entityId === entityId);
+    return typeof limit === 'number' ? logs.slice(0, limit) : logs;
+  }
+
+  async getUserAuditLogs(userId: string, limit?: number): Promise<AuditLog[]> {
+    const logs = this.auditLogs.filter(log => log.userId === userId);
+    return typeof limit === 'number' ? logs.slice(0, limit) : logs;
+  }
+
+  // Sales Reports (stub implementations)
+  async getSalesReports(period?: string, year?: number, month?: number): Promise<SalesReport[]> {
+    return this.salesReports;
+  }
+
+  async getSalespersonReports(salespersonId: string, months?: number): Promise<SalesReport[]> {
+    return this.salesReports.filter(report => report.salespersonId === salespersonId);
+  }
+
+  async getTopPerformers(period?: string, limit?: number): Promise<SalesReport[]> {
+    const sorted = [...this.salesReports].sort((a, b) => (Number(b.totalValue) || 0) - (Number(a.totalValue) || 0));
+    return typeof limit === 'number' ? sorted.slice(0, limit) : sorted;
+  }
+
+  // System Backups (stub implementations)
+  async getSystemBackups(limit?: number): Promise<SystemBackup[]> {
+    if (typeof limit === 'number') {
+      return this.systemBackups.slice(0, limit);
+    }
+    return this.systemBackups;
+  }
+
+  async getSystemBackup(id: string): Promise<SystemBackup | undefined> {
+    return this.systemBackups.find(backup => backup.id === id);
+  }
+
   // Login History (stub implementations)
   async getLoginHistory(
     userId: string,
@@ -546,6 +744,10 @@ export class MemStorage implements IStorage {
   }
 
   // User Sessions (stub implementations)
+  async getUserSession(sessionId: string): Promise<any | undefined> {
+    return undefined;
+  }
+
   async getUserSessions(userId: string): Promise<any[]> {
     return [];
   }

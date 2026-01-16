@@ -101,12 +101,9 @@ export class PostgreSQLListener extends EventEmitter {
       }
     });
 
-    // Handler para erros de conexão
-    this.sql.on?.('error', (error) => {
+    (this.sql as any).on?.('error', (error: any) => {
       console.error('❌ Erro na conexão PostgreSQL:', error);
       this.isConnected = false;
-      
-      // Tentar reconectar
       setTimeout(() => this.connect(), this.reconnectDelay);
     });
   }

@@ -8,6 +8,7 @@ export interface UploadedFile {
   size: number;
   type: string;
   url: string;
+  filename?: string;
 }
 
 export function useFileUpload() {

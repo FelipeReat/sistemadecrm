@@ -1,6 +1,6 @@
-import { type Opportunity, type InsertOpportunity, type Automation, type InsertAutomation, type User, type InsertUser, type UpdateUser, type SavedReport, type InsertSavedReport, type UpdateSavedReport, type UserSettings, type InsertUserSettings, type EmailTemplate, type InsertEmailTemplate, type AuditLog, type SalesReport, type SystemBackup } from "@shared/schema";
+import { type Opportunity, type InsertOpportunity, type Automation, type InsertAutomation, type User, type InsertUser, type UpdateUser, type SavedReport, type InsertSavedReport, type UpdateSavedReport, type UserSettings, type InsertUserSettings, type EmailTemplate, type InsertEmailTemplate, type AuditLog, type SalesReport, type SystemBackup, type Webhook, type InsertWebhook } from "@shared/schema";
 import { db } from './db';
-import { opportunities, automations, users, savedReports, userSettings, emailTemplates, auditLogs, salesReports, systemBackups, emailLogs } from '@shared/schema';
+import { opportunities, automations, users, savedReports, userSettings, emailTemplates, auditLogs, salesReports, systemBackups, emailLogs, webhooks } from '@shared/schema';
 import { eq, desc, and, count, sum, sql } from 'drizzle-orm';
 import { randomUUID } from "crypto";
 import bcrypt from "bcryptjs";
@@ -1139,6 +1139,62 @@ export class PostgresStorage implements IStorage {
     }
   }
 
+  // Webhooks CRUD
+  async getWebhooks(): Promise<Webhook[]> {
+    try {
+      return await db
+        .select()
+        .from(webhooks)
+        .orderBy(desc(webhooks.createdAt));
+    } catch (error) {
+      console.error('Error getting webhooks:', error);
+      return [];
+    }
+  }
+
+  async createWebhook(webhook: InsertWebhook & { createdBy: string }): Promise<Webhook> {
+    try {
+      const result = await db
+        .insert(webhooks)
+        .values(webhook)
+        .returning();
+
+      return result[0];
+    } catch (error) {
+      console.error('Error creating webhook:', error);
+      throw error;
+    }
+  }
+
+  async updateWebhook(id: string, updates: Partial<InsertWebhook>): Promise<Webhook | undefined> {
+    try {
+      const result = await db
+        .update(webhooks)
+        .set({ ...updates, updatedAt: new Date() })
+        .where(eq(webhooks.id, id))
+        .returning();
+
+      return result[0] || undefined;
+    } catch (error) {
+      console.error('Error updating webhook:', error);
+      return undefined;
+    }
+  }
+
+  async deleteWebhook(id: string): Promise<boolean> {
+    try {
+      const result = await db
+        .delete(webhooks)
+        .where(eq(webhooks.id, id))
+        .returning({ id: webhooks.id });
+
+      return result.length > 0;
+    } catch (error) {
+      console.error('Error deleting webhook:', error);
+      return false;
+    }
+  }
+
   // Email Templates CRUD
   async getEmailTemplates(): Promise<EmailTemplate[]> {
     try {
@@ -1688,6 +1744,24 @@ export class PostgresStorage implements IStorage {
   }
 
   // User Sessions
+  async getUserSession(sessionId: string): Promise<any | undefined> {
+    try {
+      const client = createDirectConnection();
+      await client.connect();
+      
+      const result = await client.query(`
+        SELECT * FROM user_sessions 
+        WHERE id = $1
+      `, [sessionId]);
+      
+      await client.end();
+      return result.rows[0];
+    } catch (error) {
+      console.error('Error getting user session:', error);
+      return undefined;
+    }
+  }
+
   async getUserSessions(userId: string): Promise<any[]> {
     try {
       const client = createDirectConnection();

@@ -22,6 +22,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "@/hooks/useTheme";
 import { apiRequest } from "@/lib/queryClient";
 import NotificationPreferences from "@/components/settings/notification-preferences";
+import WebhookSettings from "@/components/settings/webhook-settings";
 import { 
   User, 
   Settings2, 
@@ -34,8 +35,10 @@ import {
   Trash2,
   LogOut,
   X,
-  AlertTriangle
+  AlertTriangle,
+  Plug
 } from "lucide-react";
+import type { User as UserType } from "@shared/schema";
 
 interface SettingsModalProps {
   open: boolean;
@@ -48,7 +51,7 @@ export default function SettingsModal({ open, onOpenChange }: SettingsModalProps
   const { theme, setTheme } = useTheme();
 
   // Get current user data
-  const { data: currentUser } = useQuery({
+  const { data: currentUser } = useQuery<UserType | null>({
     queryKey: ["/api/auth/me"],
   });
 
@@ -271,7 +274,7 @@ export default function SettingsModal({ open, onOpenChange }: SettingsModalProps
         </DialogHeader>
 
         <Tabs defaultValue="profile" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="profile" data-testid="tab-profile">
               <User className="h-4 w-4 mr-2" />
               Perfil
@@ -287,6 +290,10 @@ export default function SettingsModal({ open, onOpenChange }: SettingsModalProps
             <TabsTrigger value="system" data-testid="tab-system">
               <Shield className="h-4 w-4 mr-2" />
               Sistema
+            </TabsTrigger>
+            <TabsTrigger value="integrations" data-testid="tab-integrations">
+              <Plug className="h-4 w-4 mr-2" />
+              Integrações
             </TabsTrigger>
           </TabsList>
 
@@ -376,7 +383,7 @@ export default function SettingsModal({ open, onOpenChange }: SettingsModalProps
 
           {/* Notifications Tab */}
           <TabsContent value="notifications" className="space-y-4">
-            <NotificationPreferences userId={currentUser?.id} />
+            <NotificationPreferences userId={currentUser?.id ?? ""} />
           </TabsContent>
 
           {/* Data Tab */}
@@ -550,6 +557,11 @@ export default function SettingsModal({ open, onOpenChange }: SettingsModalProps
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* Integrations Tab */}
+          <TabsContent value="integrations" className="space-y-4">
+            <WebhookSettings />
           </TabsContent>
         </Tabs>
 

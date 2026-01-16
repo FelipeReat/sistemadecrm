@@ -1,7 +1,7 @@
 const { drizzle } = require('drizzle-orm/node-postgres');
 const { eq } = require('drizzle-orm');
 const { Pool } = require('pg');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 
 // Importar o schema (simulado)
 const users = {

@@ -639,11 +639,10 @@ class PDFService {
     const totalValue = tempData.reduce((sum, temp) => sum + (temp.totalValue || 0), 0);
     const avgValue = totalCount > 0 ? totalValue / totalCount : 0;
 
-    // Ordenar por prioridade de temperatura (Quente > Morna > Fria)
-    const temperatureOrder = { 'Quente': 1, 'Morna': 2, 'Fria': 3 };
+    const temperatureOrder: Record<string, number> = { 'Quente': 1, 'Morna': 2, 'Fria': 3 };
     const sortedTempData = [...tempData].sort((a, b) => {
-      const orderA = temperatureOrder[a.temperature] || 999;
-      const orderB = temperatureOrder[b.temperature] || 999;
+      const orderA = temperatureOrder[a.temperature as string] || 999;
+      const orderB = temperatureOrder[b.temperature as string] || 999;
       return orderA - orderB;
     });
 
@@ -1169,7 +1168,7 @@ class PDFService {
       if (isProduction) {
         console.log('🚫 Configurando interceptação de recursos para produção...');
         await page.setRequestInterception(true);
-        page.on('request', (req) => {
+        page.on('request', (req: any) => {
           const resourceType = req.resourceType();
           if (resourceType === 'image' || resourceType === 'font') {
             req.abort();

@@ -197,8 +197,6 @@ export default function OpportunityCard({ opportunity, onViewDetails, users = []
 
       {/* Informações principais em grid compacto */}
       <div className="grid grid-cols-1 gap-1 text-xs text-gray-600 dark:text-gray-300 tracking-tight mb-2">
-        {/* Debug log para verificar o valor do telefone */}
-        {console.log(`[DEBUG] Opportunity ${opportunity.id} phone:`, opportunity.phone, typeof opportunity.phone)}
         
         {/* Linha 1: Telefone e CNPJ */}
         <div className="flex items-center justify-between">

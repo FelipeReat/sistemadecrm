@@ -108,9 +108,10 @@ export default function ReportsDashboard() {
     }
 
     if (searchTerm) {
+      const term = searchTerm.toLowerCase();
       filtered = filtered.filter(opp => 
-        opp.contact.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        opp.company.toLowerCase().includes(searchTerm.toLowerCase())
+        (opp.contact || '').toLowerCase().includes(term) ||
+        (opp.company || '').toLowerCase().includes(term)
       );
     }
 
@@ -118,11 +119,11 @@ export default function ReportsDashboard() {
   }, [opportunities, selectedMonth, selectedPhase, selectedTemperature, selectedUser, searchTerm]);
 
   // Calculate metrics
-  const metrics = useMemo(() => {
+    const metrics = useMemo(() => {
     const total = filteredOpportunities.length;
     const won = filteredOpportunities.filter(o => o.phase === 'ganho').length;
     const lost = filteredOpportunities.filter(o => o.phase === 'perdido').length;
-    const active = filteredOpportunities.filter(o => !['ganho', 'perdido'].includes(o.phase)).length;
+    const active = filteredOpportunities.filter(o => o.phase && !['ganho', 'perdido'].includes(o.phase)).length;
 
     const totalValue = filteredOpportunities.reduce((sum, o) => {
       const value = parseFloat(o.budget?.toString() || '0');
@@ -152,9 +153,10 @@ export default function ReportsDashboard() {
   }, [filteredOpportunities]);
 
   // Phase distribution
-  const phaseDistribution = useMemo(() => {
+    const phaseDistribution = useMemo(() => {
     const phaseCounts = filteredOpportunities.reduce((acc, opp) => {
-      acc[opp.phase] = (acc[opp.phase] || 0) + 1;
+      const key = opp.phase || 'sem-fase';
+      acc[key] = (acc[key] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
 
@@ -191,7 +193,7 @@ export default function ReportsDashboard() {
   }, [filteredOpportunities]);
 
   // Average time per phase (simplified calculation)
-  const averageTimePerPhase = useMemo(() => {
+    const averageTimePerPhase = useMemo(() => {
     const phaseConfig = [
       { key: PHASES.PROSPECCAO, title: "Prospecção" },
       { key: PHASES.EM_ATENDIMENTO, title: "Em Atendimento" },
@@ -206,7 +208,8 @@ export default function ReportsDashboard() {
       if (phaseOpportunities.length === 0) return { ...phase, avgDays: 0, count: 0 };
 
       const avgDays = phaseOpportunities.reduce((sum, opp) => {
-        const createdAt = new Date(opp.createdAt);
+        if (!opp.createdAt) return sum;
+        const createdAt = new Date(opp.createdAt as unknown as string | number | Date);
         const now = new Date();
         const daysDiff = Math.floor((now.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24));
         return sum + daysDiff;

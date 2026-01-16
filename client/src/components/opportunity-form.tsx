@@ -18,11 +18,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Plus, Upload, CloudUpload, Calendar, User, FileText, Phone, Building, Target, DollarSign, CheckCircle2, X } from "lucide-react";
+import { Plus, Upload, CloudUpload, Calendar, User as UserIcon, FileText, Phone, Building, Target, DollarSign, CheckCircle2, X } from "lucide-react";
 import { FileUpload } from "@/components/ui/file-upload";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { PHASES, insertOpportunitySchema } from "@shared/schema";
+import { PHASES, insertOpportunitySchema, type User } from "@shared/schema";
 import { masks, formatters } from "@/lib/masks";
 
 interface OpportunityFormProps {
@@ -42,7 +42,7 @@ export default function OpportunityForm({ phase }: OpportunityFormProps) {
   const queryClient = useQueryClient();
 
   // Fetch salespeople from users endpoint
-  const { data: salespeople = [] } = useQuery({
+  const { data: salespeople = [] } = useQuery<User[]>({
     queryKey: ["/api/users/salespeople"],
     staleTime: 0, // Sempre buscar dados atualizados
     refetchOnWindowFocus: true,
@@ -110,7 +110,7 @@ export default function OpportunityForm({ phase }: OpportunityFormProps) {
       {/* Vendedor responsável */}
       <div>
         <Label htmlFor="salesperson" className="text-sm font-medium text-gray-700 flex items-center">
-          <User className="h-4 w-4 mr-2" />
+          <UserIcon className="h-4 w-4 mr-2" />
           * Vendedor responsável
         </Label>
         <Select onValueChange={(value) => handleInputChange("salesperson", value)}>
@@ -166,7 +166,7 @@ export default function OpportunityForm({ phase }: OpportunityFormProps) {
     <div className="space-y-3">
       <div>
         <Label htmlFor="contact" className="text-sm font-medium text-gray-700">
-          <User className="h-4 w-4 mr-2"/>Contato
+          <UserIcon className="h-4 w-4 mr-2"/>Contato
         </Label>
         <Input
           id="contact"
@@ -186,7 +186,7 @@ export default function OpportunityForm({ phase }: OpportunityFormProps) {
           className="mt-1"
           onChange={(e) => handleInputChange("cpf", e.target.value)}
           data-testid="form-cpf"
-          {...masks.cpf}
+          mask={masks.cpf}
         />
       </div>
       <div>
@@ -199,7 +199,7 @@ export default function OpportunityForm({ phase }: OpportunityFormProps) {
           className="mt-1"
           onChange={(e) => handleInputChange("cnpj", e.target.value)}
           data-testid="form-cnpj"
-          {...masks.cnpj}
+          mask={masks.cnpj}
         />
       </div>
       <div>
@@ -212,7 +212,7 @@ export default function OpportunityForm({ phase }: OpportunityFormProps) {
           className="mt-1"
           onChange={(e) => handleInputChange("phone", e.target.value)}
           data-testid="form-phone"
-          {...masks.phone}
+          mask={masks.phone}
         />
       </div>
       <div className="flex items-center space-x-3">
@@ -328,11 +328,13 @@ export default function OpportunityForm({ phase }: OpportunityFormProps) {
         <Input
           id="discount"
           type="text"
-          placeholder="0,00"
+          placeholder={masks.currency.placeholder}
           className="mt-1"
-          onChange={(e) => handleInputChange("discount", e.target.value)}
+          onChange={(e) => {
+            masks.currency.onChange(e);
+            handleInputChange("discount", e.target.value);
+          }}
           data-testid="form-discount"
-          {...masks.currency}
         />
       </div>
 

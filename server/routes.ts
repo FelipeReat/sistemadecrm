@@ -1368,7 +1368,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (searchTerm && typeof searchTerm === 'string') {
         const term = searchTerm.toLowerCase();
         opportunities = opportunities.filter(opp => 
-          opp.title?.toLowerCase().includes(term) ||
           opp.company?.toLowerCase().includes(term) ||
           opp.contact?.toLowerCase().includes(term)
         );
@@ -1383,7 +1382,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       if (userId && typeof userId === 'string' && userId !== 'all') {
-        opportunities = opportunities.filter(opp => opp.assignedTo === userId);
+        opportunities = opportunities.filter(opp => {
+          const anyOpp = opp as any;
+          const assigned = (anyOpp.assignedTo || opp.salesperson || '').toString();
+          return assigned === userId;
+        });
       }
       
       if (month && typeof month === 'string' && month !== 'all') {
@@ -1607,7 +1610,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Prepare opportunities data with user names
       const opportunitiesWithUsers = opportunities.map(opp => {
-        const assignedUser = users.find(u => u.id === opp.assignedTo);
+        const anyOpp = opp as any;
+        const assignedUser = users.find(u => u.id === anyOpp.assignedTo);
         
         // For creator, prioritize createdByName (for imported opportunities) over user lookup
         let createdByUserName = 'N/A';
@@ -3028,7 +3032,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           updated: session.results?.updated || 0,
           skipped: session.results?.skipped || 0,
           failed: session.results?.failed || 0,
-          errors: (session.results?.errors || []).map(err => 
+          errors: (session.results?.errors || []).map((err: any) => 
             typeof err === 'object' ? JSON.stringify(err) : String(err)
           )
         },
@@ -3283,8 +3287,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Senha atual incorreta" });
       }
 
-      // Update password
-      await storage.updateUserPassword(req.session.userId!, validatedData.newPassword);
+      await storage.updatePassword(
+        req.session.userId!,
+        validatedData.currentPassword,
+        validatedData.newPassword
+      );
 
       // Log da ação
       await storage.createSystemLog({
@@ -3347,13 +3354,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { sessionId } = req.params;
       
-      // Verify session belongs to user
       const session = await storage.getUserSession(sessionId);
       if (!session || session.userId !== req.session.userId!) {
         return res.status(404).json({ message: "Sessão não encontrada" });
       }
 
-      await storage.terminateUserSession(sessionId);
+      await storage.deleteUserSession(sessionId, req.session.userId!);
 
       // Log da ação
       await storage.createSystemLog({
@@ -3383,8 +3389,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const logs = await storage.getSystemLogs({ 
         limit, 
         offset, 
-        level, 
-        category 
+        filters: {
+          level, 
+          category 
+        }
       });
       res.json(logs);
     } catch (error: any) {
@@ -3456,7 +3464,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         active: z.boolean().optional()
       }).parse(req.body);
 
-      const template = await storage.updateEmailTemplate(parseInt(id), validatedData);
+      const template = await storage.updateEmailTemplate(id, validatedData);
       
       if (!template) {
         return res.status(404).json({ message: "Template não encontrado" });
@@ -3485,7 +3493,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/email-templates/:id", isAuthenticated, isManagerOrAdmin, async (req, res) => {
     try {
       const { id } = req.params;
-      const deleted = await storage.deleteEmailTemplate(parseInt(id));
+      const deleted = await storage.deleteEmailTemplate(id);
       
       if (!deleted) {
         return res.status(404).json({ message: "Template não encontrado" });
@@ -3497,7 +3505,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         message: `Template de email excluído: ID ${id}`,
         category: 'email',
         userId: req.session.userId!,
-        metadata: { templateId: parseInt(id) }
+        metadata: { templateId: id }
       });
 
       res.status(204).send();
@@ -3568,7 +3576,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         timeoutSeconds: z.number().min(5).max(300).optional()
       }).parse(req.body);
 
-      const webhook = await storage.updateWebhook(parseInt(id), validatedData);
+      const webhook = await storage.updateWebhook(id, validatedData);
       
       if (!webhook) {
         return res.status(404).json({ message: "Webhook não encontrado" });
@@ -3597,7 +3605,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/webhooks/:id", isAuthenticated, isManagerOrAdmin, async (req, res) => {
     try {
       const { id } = req.params;
-      const deleted = await storage.deleteWebhook(parseInt(id));
+      const deleted = await storage.deleteWebhook(id);
       
       if (!deleted) {
         return res.status(404).json({ message: "Webhook não encontrado" });
@@ -3609,7 +3617,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         message: `Webhook excluído: ID ${id}`,
         category: 'webhook',
         userId: req.session.userId!,
-        metadata: { webhookId: parseInt(id) }
+        metadata: { webhookId: id }
       });
 
       res.status(204).send();

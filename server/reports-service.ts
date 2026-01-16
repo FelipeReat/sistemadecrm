@@ -113,21 +113,20 @@ export async function getSalesReportsByPeriod(
   month?: number
 ) {
   try {
-    let query = db
-      .select()
-      .from(salesReports)
-      .where(
-        and(
-          eq(salesReports.period, period),
-          eq(salesReports.year, year)
-        )
-      );
+    const conditions = [
+      eq(salesReports.period, period),
+      eq(salesReports.year, year)
+    ];
 
     if (month !== undefined) {
-      query = query.where(eq(salesReports.month, month));
+      conditions.push(eq(salesReports.month, month));
     }
 
-    return await query.orderBy(desc(salesReports.generatedAt));
+    return await db
+      .select()
+      .from(salesReports)
+      .where(and(...conditions))
+      .orderBy(desc(salesReports.generatedAt));
 
   } catch (error) {
     console.error('📊 Failed to get sales reports:', error);
@@ -165,21 +164,19 @@ export async function getTopPerformers(period: string = 'monthly', limit: number
     const currentYear = now.getFullYear();
     const currentMonth = now.getMonth() + 1;
 
-    let query = db
-      .select()
-      .from(salesReports)
-      .where(
-        and(
-          eq(salesReports.period, period),
-          eq(salesReports.year, currentYear)
-        )
-      );
+    const conditions = [
+      eq(salesReports.period, period),
+      eq(salesReports.year, currentYear)
+    ];
 
     if (period === 'monthly') {
-      query = query.where(eq(salesReports.month, currentMonth));
+      conditions.push(eq(salesReports.month, currentMonth));
     }
 
-    return await query
+    return await db
+      .select()
+      .from(salesReports)
+      .where(and(...conditions))
       .orderBy(desc(salesReports.wonValue))
       .limit(limit);
 

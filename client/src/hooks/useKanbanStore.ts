@@ -76,7 +76,7 @@ export const useKanbanStore = create<KanbanStore>()(subscribeWithSelector((set, 
   setOpportunities: (opportunities) => set({ opportunities }),
   
   addOpportunity: (opportunity) => set((state) => {
-    console.log('🔄 Store: Adicionando oportunidade:', opportunity.id, opportunity.title);
+    console.log('🔄 Store: Adicionando oportunidade:', opportunity.id, opportunity.contact);
     console.log('📊 Store: Estado antes da adição:', state.opportunities.length, 'oportunidades');
     const newState = [...state.opportunities, opportunity];
     console.log('📊 Store: Estado após adição:', newState.length, 'oportunidades');

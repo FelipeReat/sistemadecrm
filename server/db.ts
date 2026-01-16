@@ -21,7 +21,7 @@ function createDatabase() {
   console.log(`📍 Host: ${new URL(databaseUrl).hostname}`);
 
   // Configuração SSL consistente com pg-pool.ts
-  let sslConfig;
+  let sslConfig: any;
   if (isProduction) {
     // Em produção, SEMPRE usar SSL
     if (process.env.ALLOW_SELF_SIGNED_CERTS === 'true') {
@@ -36,8 +36,10 @@ function createDatabase() {
       };
     }
   } else {
-    // Em desenvolvimento, habilitar SSL permissivo para suportar bancos remotos
-    sslConfig = { rejectUnauthorized: false };
+    // Em desenvolvimento, assumimos que o servidor NÃO usa SSL por padrão.
+    // Se precisar de SSL em desenvolvimento, configure NODE_ENV=production
+    // ou use uma URL de banco com SSL explícito e servidor compatível.
+    sslConfig = undefined;
   }
   
   const sql = postgres(databaseUrl, {
@@ -45,7 +47,7 @@ function createDatabase() {
     connect_timeout: 30,
     idle_timeout: 20,
     max_lifetime: 60 * 30, // 30 minutos
-    ssl: sslConfig
+    ...(sslConfig ? { ssl: sslConfig } : {}),
   });
   
   return {

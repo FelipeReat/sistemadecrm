@@ -1,5 +1,5 @@
 const { Client } = require('pg');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const { randomUUID } = require('crypto');
 
 const client = new Client({

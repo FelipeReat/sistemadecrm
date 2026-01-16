@@ -22,8 +22,7 @@ class RateLimiter {
 
   private cleanup() {
     const now = new Date();
-    for (const [email, attempt] of this.attempts.entries()) {
-      // Remove tentativas antigas ou bloqueios expirados
+    for (const [email, attempt] of Array.from(this.attempts.entries())) {
       if (
         (now.getTime() - attempt.lastAttempt.getTime() > this.resetTime) ||
         (attempt.blocked && attempt.blockedUntil && now > attempt.blockedUntil)

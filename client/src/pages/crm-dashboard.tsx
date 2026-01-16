@@ -138,12 +138,11 @@ export default function CrmDashboard() {
       if (opportunity.phase !== filteredPhaseOnly) return false;
     }
 
-    // Search term filter (contact, company, cpf, cnpj)
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
       const searchMatch = 
-        opportunity.contact.toLowerCase().includes(searchLower) ||
-        opportunity.company.toLowerCase().includes(searchLower) ||
+        (opportunity.contact || '').toLowerCase().includes(searchLower) ||
+        (opportunity.company || '').toLowerCase().includes(searchLower) ||
         (opportunity.cpf && opportunity.cpf.toLowerCase().includes(searchLower)) ||
         (opportunity.cnpj && opportunity.cnpj.toLowerCase().includes(searchLower));
       if (!searchMatch) return false;
@@ -151,14 +150,14 @@ export default function CrmDashboard() {
 
     // User filter
     if (selectedUsers.length > 0) {
-      const userMatch = selectedUsers.includes(opportunity.createdBy) ||
-                       (opportunity.salesperson && selectedUsers.includes(opportunity.salesperson));
+      const userMatch =
+        (opportunity.createdBy && selectedUsers.includes(opportunity.createdBy)) ||
+        (opportunity.salesperson && selectedUsers.includes(opportunity.salesperson));
       if (!userMatch) return false;
     }
 
-    // Phase filter (apenas se não houver filtro individual ativo)
     if (!filteredPhaseOnly && selectedPhases.length > 0) {
-      if (!selectedPhases.includes(opportunity.phase)) return false;
+      if (!opportunity.phase || !selectedPhases.includes(opportunity.phase)) return false;
     }
 
     // Business temperature filter
@@ -166,9 +165,9 @@ export default function CrmDashboard() {
       if (opportunity.businessTemperature !== selectedBusinessTemp) return false;
     }
 
-    // Date range filter
     if (dateRange.from || dateRange.to) {
-      const oppDate = new Date(opportunity.createdAt);
+      if (!opportunity.createdAt) return false;
+      const oppDate = new Date(opportunity.createdAt as unknown as string | number | Date);
       if (dateRange.from && oppDate < dateRange.from) return false;
       if (dateRange.to && oppDate > dateRange.to) return false;
     }
@@ -213,12 +212,12 @@ export default function CrmDashboard() {
     }
   });
 
-  // Group filtered opportunities by phase
   const opportunitiesByPhase = sortedAndFilteredOpportunities.reduce((acc, opportunity) => {
-    if (!acc[opportunity.phase]) {
-      acc[opportunity.phase] = [];
+    const phaseKey = opportunity.phase || 'sem-fase';
+    if (!acc[phaseKey]) {
+      acc[phaseKey] = [];
     }
-    acc[opportunity.phase].push(opportunity);
+    acc[phaseKey].push(opportunity);
     return acc;
   }, {} as Record<string, Opportunity[]>);
 
@@ -342,9 +341,8 @@ export default function CrmDashboard() {
     }
   }, [opportunities, queryClient]);
 
-  // Calculate projected revenue from filtered opportunities
   const projectedRevenue = sortedAndFilteredOpportunities
-    .filter(o => o.budget && ['proposta', 'negociacao', 'ganho'].includes(o.phase))
+    .filter(o => o.budget && o.phase && ['proposta', 'negociacao', 'ganho'].includes(o.phase))
     .reduce((sum, o) => sum + parseFloat(o.budget!.toString()), 0);
 
   // Initialize NumberFormat for currency formatting
@@ -501,7 +499,7 @@ export default function CrmDashboard() {
               <div className="ml-2">
                 <p className="text-xs font-medium text-muted-foreground">Ativas</p>
                 <p className="text-sm font-bold">
-                  {sortedAndFilteredOpportunities.filter(o => !['ganho', 'perdido'].includes(o.phase)).length}
+                  {sortedAndFilteredOpportunities.filter(o => !['ganho', 'perdido'].includes(o.phase || '')).length}
                 </p>
               </div>
             </div>
@@ -514,7 +512,7 @@ export default function CrmDashboard() {
               <div className="ml-2">
                 <p className="text-xs font-medium text-muted-foreground">Projetado</p>
                 <p className="text-sm font-bold">
-                  {new newIntl.NumberFormat('pt-BR', {
+                  {new Intl.NumberFormat('pt-BR', {
                     style: 'currency',
                     currency: 'BRL',
                     minimumFractionDigits: 0,
@@ -532,7 +530,7 @@ export default function CrmDashboard() {
               <div className="ml-2">
                 <p className="text-xs font-medium text-muted-foreground">Faturado</p>
                 <p className="text-sm font-bold">
-                  {new newIntl.NumberFormat('pt-BR', {
+                  {new Intl.NumberFormat('pt-BR', {
                     style: 'currency',
                     currency: 'BRL',
                     minimumFractionDigits: 0,

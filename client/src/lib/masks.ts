@@ -173,18 +173,21 @@ export const masks = {
           if (form) {
             const inputs = form.querySelectorAll('input:not([disabled]), select:not([disabled]), textarea:not([disabled])');
             const currentIndex = Array.from(inputs).indexOf(e.target);
-            const nextInput = inputs[currentIndex + 1];
+            const nextInput = inputs[currentIndex + 1] as HTMLElement | null;
             
             // Verificação mais robusta do elemento e método focus
-            if (nextInput && 
-                nextInput instanceof HTMLElement && 
-                'focus' in nextInput && 
-                typeof nextInput.focus === 'function' &&
-                !nextInput.disabled &&
-                nextInput.offsetParent !== null) { // Verifica se o elemento está visível
+            if (
+              nextInput &&
+              (nextInput instanceof HTMLInputElement ||
+                nextInput instanceof HTMLSelectElement ||
+                nextInput instanceof HTMLTextAreaElement) &&
+              typeof nextInput.focus === 'function' &&
+              !nextInput.disabled &&
+              nextInput.offsetParent !== null
+            ) {
               setTimeout(() => {
                 try {
-                  (nextInput as HTMLInputElement).focus();
+                  nextInput.focus();
                 } catch (error) {
                   console.warn('Could not focus next input:', error);
                 }

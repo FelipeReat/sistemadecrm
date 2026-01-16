@@ -1,6 +1,6 @@
 
 const { Client } = require('pg');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 require('dotenv').config();
 
 const dbUrl = process.env.DATABASE_URL || 'postgres://compras:Compras2025@54.232.194.197:5432/crm';

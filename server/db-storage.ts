@@ -4,7 +4,7 @@ import {
   salesReports, systemBackups, emailLogs 
 } from '@shared/schema';
 import { 
-  eq, desc, and, gte, lte, count, sum 
+  eq, desc, and, gte, lte, count, sum, ne 
 } from 'drizzle-orm';
 import type { 
   UserSettings, InsertUserSettings, EmailTemplate, InsertEmailTemplate,
@@ -152,21 +152,32 @@ export class DbOperations {
   // Sales Reports
   async getSalesReports(period?: string, year?: number, month?: number): Promise<SalesReport[]> {
     try {
-      let query = db.select().from(salesReports);
-      
+      const conditions = [];
+
       if (period) {
-        query = query.where(eq(salesReports.period, period));
+        conditions.push(eq(salesReports.period, period));
       }
       
       if (year) {
-        query = query.where(eq(salesReports.year, year));
+        conditions.push(eq(salesReports.year, year));
       }
       
       if (month) {
-        query = query.where(eq(salesReports.month, month));
+        conditions.push(eq(salesReports.month, month));
       }
-      
-      return await query.orderBy(desc(salesReports.generatedAt));
+
+      if (conditions.length > 0) {
+        return await db
+          .select()
+          .from(salesReports)
+          .where(and(...conditions))
+          .orderBy(desc(salesReports.generatedAt));
+      }
+
+      return await db
+        .select()
+        .from(salesReports)
+        .orderBy(desc(salesReports.generatedAt));
     } catch (error) {
       console.error('Error getting sales reports:', error);
       return [];
@@ -179,19 +190,19 @@ export class DbOperations {
       const currentYear = now.getFullYear();
       const currentMonth = now.getMonth() + 1;
 
-      let query = db
-        .select()
-        .from(salesReports)
-        .where(and(
-          eq(salesReports.period, period),
-          eq(salesReports.year, currentYear)
-        ));
+      const conditions = [
+        eq(salesReports.period, period),
+        eq(salesReports.year, currentYear)
+      ];
 
       if (period === 'monthly') {
-        query = query.where(eq(salesReports.month, currentMonth));
+        conditions.push(eq(salesReports.month, currentMonth));
       }
 
-      return await query
+      return await db
+        .select()
+        .from(salesReports)
+        .where(and(...conditions))
         .orderBy(desc(salesReports.wonValue))
         .limit(limit);
     } catch (error) {
@@ -260,8 +271,8 @@ export class DbOperations {
         .select({ count: count() })
         .from(opportunities)
         .where(and(
-          eq(opportunities.phase, 'ganho') === false,
-          eq(opportunities.phase, 'perdido') === false
+          ne(opportunities.phase, 'ganho'),
+          ne(opportunities.phase, 'perdido')
         ));
 
       // Get total value of won opportunities

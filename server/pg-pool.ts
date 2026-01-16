@@ -13,7 +13,7 @@ export function getPgPool() {
   }
 
   // Configuração SSL baseada no ambiente e suporte do servidor
-  let sslConfig;
+  let sslConfig: any;
   if (process.env.NODE_ENV === "production") {
     // Em produção, SEMPRE usar SSL
     if (process.env.ALLOW_SELF_SIGNED_CERTS === "true") {
@@ -28,8 +28,10 @@ export function getPgPool() {
       };
     }
   } else {
-    // Em desenvolvimento, habilitar SSL permissivo para suportar bancos remotos (Neon, Supabase, etc)
-    sslConfig = { rejectUnauthorized: false };
+    // Em desenvolvimento, assumimos que o servidor NÃO usa SSL por padrão
+    // (ex.: PostgreSQL local). Se precisar de SSL, use NODE_ENV=production
+    // ou configure o banco remoto com suporte a SSL.
+    sslConfig = false;
   }
 
   return new Pool({
@@ -60,7 +62,7 @@ export function createDirectConnection() {
   }
 
   // Configuração SSL baseada no ambiente e suporte do servidor
-  let sslConfig;
+  let sslConfig: any;
   if (process.env.NODE_ENV === "production") {
     // Em produção, SEMPRE usar SSL
     if (process.env.ALLOW_SELF_SIGNED_CERTS === "true") {
@@ -75,8 +77,8 @@ export function createDirectConnection() {
       };
     }
   } else {
-    // Em desenvolvimento, habilitar SSL permissivo para suportar bancos remotos (Neon, Supabase, etc)
-    sslConfig = { rejectUnauthorized: false };
+    // Em desenvolvimento, assumimos que o servidor NÃO usa SSL por padrão
+    sslConfig = false;
   }
 
   return new Client({

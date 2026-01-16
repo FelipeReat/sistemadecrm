@@ -6,13 +6,14 @@ import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { Download, Upload, Trash2, AlertTriangle } from "lucide-react";
 import { ImportModal } from "@/components/import-modal";
+import type { User } from "@shared/schema";
 
 export default function DataManagementSettings() {
   const { toast } = useToast();
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   // Get current user for role-based actions
-  const { data: currentUser } = useQuery({
+  const { data: currentUser } = useQuery<User | null>({
     queryKey: ["/api/auth/me"],
   });
 

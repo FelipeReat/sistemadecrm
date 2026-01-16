@@ -202,7 +202,7 @@ export default function OpportunityDetailsModal({
       visitSchedule: opportunity?.visitSchedule || "",
       visitDate: opportunity?.visitDate || "",
       visitDescription: opportunity?.visitDescription || "",
-      visitPhotos: Array.isArray(opportunity?.visitPhotos) ? opportunity.visitPhotos.map(photo => 
+      visitPhotos: Array.isArray(opportunity?.visitPhotos) ? opportunity!.visitPhotos.map(photo => 
         typeof photo === 'string' ? { id: '', name: photo, size: 0, type: '', url: photo } : photo
       ) : [],
     },
@@ -213,7 +213,7 @@ export default function OpportunityDetailsModal({
     defaultValues: {
       discount: opportunity?.discount || "",
       discountDescription: opportunity?.discountDescription || "",
-      validityDate: opportunity?.validityDate || "",
+      validityDate: opportunity?.validityDate ? new Date(opportunity.validityDate).toISOString().split('T')[0] : "",
       budgetNumber: opportunity?.budgetNumber || opportunity?.opportunityNumber || "",
       budget: opportunity?.budget || "",
       budgetFile: undefined,
@@ -280,7 +280,7 @@ export default function OpportunityDetailsModal({
       propostaForm.reset({
         discount: formatDiscountForDisplay(opportunity.discount),
         discountDescription: opportunity.discountDescription || "",
-        validityDate: opportunity.validityDate ? formatDateForDisplay(opportunity.validityDate) : "",
+        validityDate: opportunity.validityDate ? formatDateForDisplay(opportunity.validityDate as unknown as string) : "",
         budgetNumber: opportunity.budgetNumber || opportunity.opportunityNumber || "",
         budget: formatBudgetForDisplay(opportunity.budget),
         salesperson: opportunity.salesperson || "",
@@ -358,13 +358,13 @@ export default function OpportunityDetailsModal({
 
   // Função para renderizar documentos da proposta
   const renderProposalDocuments = () => {
-    if (!opportunity.documents || opportunity.documents.length === 0) return null;
+    if (!opportunity || !opportunity.documents || opportunity.documents.length === 0) return null;
     
     // Filter documents to show only those added during proposal phase
     // We'll identify proposal documents by checking if they have documentType: 'proposal' 
     // or if they were added after the opportunity reached proposal phase
     const proposalDocs = opportunity.documents.filter((doc) => {
-      let parsedDoc;
+      let parsedDoc: any;
       try {
         parsedDoc = typeof doc === 'string' ? JSON.parse(doc) : doc;
       } catch {
@@ -385,7 +385,7 @@ export default function OpportunityDetailsModal({
         <span className="font-medium text-gray-700 dark:text-gray-900">Documentos da proposta:</span>
         <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2">
           {proposalDocs.map((doc, index) => {
-            let parsedDoc;
+            let parsedDoc: any;
             try {
               parsedDoc = typeof doc === 'string' ? JSON.parse(doc) : doc;
             } catch {
@@ -1201,7 +1201,7 @@ export default function OpportunityDetailsModal({
                   type="button"
                   variant="destructive"
                   onClick={handleDelete}
-                  disabled={isSubmitting || deleteOpportunityMutation.isPending || (opportunity?.isImported && !canDeleteImportedCard(opportunity))}
+                  disabled={isSubmitting || deleteOpportunityMutation.isPending || ((opportunity?.isImported ?? false) && !canDeleteImportedCard(opportunity))}
                   data-testid="button-delete-opportunity"
                   title={opportunity?.isImported && !canDeleteImportedCard(opportunity) ? "Você não tem permissão para excluir cards importados" : "Excluir oportunidade"}
                   aria-label="Excluir oportunidade"
@@ -1220,7 +1220,7 @@ export default function OpportunityDetailsModal({
                   </Button>
                   <Button
                     type="submit"
-                    disabled={isSubmitting || (opportunity?.isImported && !canEditImportedCard(opportunity))}
+                    disabled={isSubmitting || ((opportunity?.isImported ?? false) && !canEditImportedCard(opportunity))}
                     className="bg-blue-600 hover:bg-blue-700"
                     title={opportunity?.isImported && !canEditImportedCard(opportunity) ? "Você não tem permissão para editar cards importados" : undefined}
                   >
@@ -1368,7 +1368,7 @@ export default function OpportunityDetailsModal({
                   type="button"
                   variant="destructive"
                   onClick={handleDelete}
-                  disabled={isSubmitting || deleteOpportunityMutation.isPending || (opportunity?.isImported && !canDeleteImportedCard(opportunity))}
+                  disabled={isSubmitting || deleteOpportunityMutation.isPending || ((opportunity?.isImported ?? false) && !canDeleteImportedCard(opportunity))}
                   data-testid="button-delete-opportunity"
                   title={opportunity?.isImported && !canDeleteImportedCard(opportunity) ? "Você não tem permissão para excluir cards importados" : "Excluir oportunidade"}
                   aria-label="Excluir oportunidade"
@@ -1387,7 +1387,7 @@ export default function OpportunityDetailsModal({
                   </Button>
                   <Button
                     type="submit"
-                    disabled={isSubmitting || (opportunity?.isImported && !canEditImportedCard(opportunity))}
+                    disabled={isSubmitting || ((opportunity?.isImported ?? false) && !canEditImportedCard(opportunity))}
                     className="bg-blue-600 hover:bg-blue-700"
                     title={opportunity?.isImported && !canEditImportedCard(opportunity) ? "Você não tem permissão para editar cards importados" : undefined}
                   >
@@ -1715,7 +1715,7 @@ export default function OpportunityDetailsModal({
                     <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2">
                       {opportunity.documents.map((doc, index) => {
                         // Parse document if it's a JSON string
-                        let parsedDoc;
+                        let parsedDoc: any;
                         try {
                           parsedDoc = typeof doc === 'string' ? JSON.parse(doc) : doc;
                         } catch {
@@ -1808,7 +1808,7 @@ export default function OpportunityDetailsModal({
                                 <SelectContent>
                                   {isLoadingSalespeople ? (
                                     <SelectItem value="loading" disabled>Carregando vendedores...</SelectItem>
-                                  ) : salespeople && salespeople.length > 0 ? (
+                                  ) : salespeople && Array.isArray(salespeople) && salespeople.length > 0 ? (
                                     salespeople.map((user: any) => (
                                       <SelectItem key={user.id} value={user.id}>
                                         {user.name} ({user.role === 'admin' ? 'Admin' : user.role === 'gerente' ? 'Gerente' : 'Vendedor'})

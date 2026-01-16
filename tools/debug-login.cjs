@@ -1,5 +1,5 @@
 const { Client } = require('pg');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 
 const client = new Client({
   connectionString: 'postgres://compras:Compras2025@54.232.194.197:5432/crm',
