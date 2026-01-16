@@ -13,7 +13,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { format } from "date-fns";
-import { Settings, ChartLine, Trophy, Clock, DollarSign, Plus, Filter, X, Search, ArrowUpDown } from "lucide-react";
+import { Settings, ChartLine, Trophy, Clock, DollarSign, Plus, Filter, X, Search, ArrowUpDown, ChevronLeft, ChevronRight } from "lucide-react";
 import SalesPipelineColumn from "@/components/sales-pipeline-column";
 import NewOpportunityModal from "@/components/new-opportunity-modal";
 import NewProposalOpportunityModal from "@/components/new-proposal-opportunity-modal";
@@ -23,6 +23,7 @@ import SettingsModal from "@/components/settings-modal";
 import { PHASES } from "@shared/schema";
 import type { Opportunity, User } from "@shared/schema";
 import { useAuth } from "@/hooks/useAuth";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   DndContext,
   DragEndEvent,
@@ -63,6 +64,8 @@ export default function CrmDashboard() {
   const [isAdvancedFiltersModalOpen, setIsAdvancedFiltersModalOpen] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [filteredPhaseOnly, setFilteredPhaseOnly] = useState<string | null>(null);
+  const isMobile = useIsMobile();
+  const [currentMobilePhaseIndex, setCurrentMobilePhaseIndex] = useState(0);
   
   // Advanced filters
   const [searchTerm, setSearchTerm] = useState('');
@@ -348,48 +351,61 @@ export default function CrmDashboard() {
   // Initialize NumberFormat for currency formatting
   const newIntl = Intl;
 
+  const handleNextPhase = () => {
+    if (currentMobilePhaseIndex < phaseConfig.length - 1) {
+      setCurrentMobilePhaseIndex(prev => prev + 1);
+    }
+  };
+
+  const handlePrevPhase = () => {
+    if (currentMobilePhaseIndex > 0) {
+      setCurrentMobilePhaseIndex(prev => prev - 1);
+    }
+  };
+
   return (
     <div className="bg-background min-h-screen font-inter">
       {/* Header Compacto */}
       <header className="bg-card shadow-sm border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-2">
-            <div className="flex items-center">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center py-2 gap-2">
+            <div className="flex items-center w-full md:w-auto">
               <h1 className="text-lg font-bold text-foreground" data-testid="title-crm">
-                CRM - Funil de Vendas ({sortedAndFilteredOpportunities.length} oportunidades)
+                CRM - Funil de Vendas ({sortedAndFilteredOpportunities.length})
               </h1>
             </div>
-            <div className="flex items-center space-x-2">
-              <SyncStatus />
+            <div className="flex items-center space-x-2 overflow-x-auto pb-1 md:pb-0 w-full md:w-auto no-scrollbar justify-start md:justify-end">
+              <div className="hidden md:block">
+                <SyncStatus />
+              </div>
               <Button
                 size="sm"
                 onClick={() => setIsNewOpportunityModalOpen(true)}
                 data-testid="button-new-opportunity"
+                className="whitespace-nowrap shrink-0"
               >
                 <Plus className="mr-1 h-3 w-3" />
-                Nova Oportunidade
+                Nova
               </Button>
-              {user && ['admin', 'gerente'].includes(user.role) && (
-                // Import button removed; import now resides in Settings > Sistema
-                <></>
-              )}
               <Button
                 size="sm"
                 variant="outline"
                 onClick={() => setIsAdvancedFiltersModalOpen(true)}
                 data-testid="button-advanced-filters"
+                className="whitespace-nowrap shrink-0"
               >
                 <Filter className="mr-1 h-3 w-3" />
-                Filtros Avançados
+                Filtros
               </Button>
               <Button
                 size="sm"
                 variant="ghost"
                 onClick={clearAllFilters}
                 data-testid="button-clear-filters"
+                className="whitespace-nowrap shrink-0"
               >
                 <X className="mr-1 h-3 w-3" />
-                Limpar Filtros
+                Limpar
               </Button>
             </div>
           </div>
@@ -466,7 +482,7 @@ export default function CrmDashboard() {
       {/* Main Content */}
       <main className="w-full px-2 py-2">
         {/* Statistics Section - Compacta */}
-        <div className="grid grid-cols-5 gap-2 mb-3">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-3">
           <Card className="p-2">
             <div className="flex items-center">
               <div className="p-1 bg-blue-100 rounded-md">
@@ -547,21 +563,68 @@ export default function CrmDashboard() {
         </div>
 
         {/* Sales Funnel Pipeline - Altura Otimizada */}
-        <div className="overflow-x-auto overflow-y-hidden" data-testid="sales-pipeline">
-          <div className="flex space-x-2 pb-4 w-full h-[calc(100vh-280px)]">
-            {phaseConfig.map((phase) => (
+        <div className="h-[calc(100vh-280px)]">
+          {/* Mobile View */}
+          <div className="flex flex-col h-full md:hidden" data-testid="sales-pipeline-mobile">
+            {/* Navegação de Fases Mobile */}
+            <div className="flex items-center justify-between mb-2 bg-card p-2 rounded-md shadow-sm border border-border">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={handlePrevPhase} 
+                disabled={currentMobilePhaseIndex === 0}
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </Button>
+              <div className="flex flex-col items-center">
+                <span className="font-bold text-sm">{phaseConfig[currentMobilePhaseIndex].title}</span>
+                <span className="text-xs text-muted-foreground">
+                  {opportunitiesByPhase[phaseConfig[currentMobilePhaseIndex].key]?.length || 0} oportunidades
+                </span>
+              </div>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={handleNextPhase} 
+                disabled={currentMobilePhaseIndex === phaseConfig.length - 1}
+              >
+                <ChevronRight className="h-5 w-5" />
+              </Button>
+            </div>
+            
+            {/* Coluna Única Mobile */}
+            <div className="flex-1 overflow-hidden">
               <SalesPipelineColumn
-                key={phase.key}
-                phase={phase}
-                opportunities={opportunitiesByPhase[phase.key] || []}
+                key={phaseConfig[currentMobilePhaseIndex].key}
+                phase={phaseConfig[currentMobilePhaseIndex]}
+                opportunities={opportunitiesByPhase[phaseConfig[currentMobilePhaseIndex].key] || []}
                 isLoading={isLoadingOpportunities}
                 onViewDetails={handleViewDetails}
-                onCreateOpportunityInPhase={() => handleCreateOpportunityInPhase(phase.key)}
-                isPhaseFiltered={filteredPhaseOnly === phase.key}
-                onTogglePhaseFilter={handleTogglePhaseFilter}
+                onCreateOpportunityInPhase={() => handleCreateOpportunityInPhase(phaseConfig[currentMobilePhaseIndex].key)}
+                isPhaseFiltered={false}
+                onTogglePhaseFilter={() => {}}
                 users={users}
               />
-            ))}
+            </div>
+          </div>
+
+          {/* Desktop View */}
+          <div className="hidden md:block h-full overflow-x-auto overflow-y-hidden" data-testid="sales-pipeline">
+            <div className="flex space-x-2 pb-4 w-full h-full">
+              {phaseConfig.map((phase) => (
+                <SalesPipelineColumn
+                  key={phase.key}
+                  phase={phase}
+                  opportunities={opportunitiesByPhase[phase.key] || []}
+                  isLoading={isLoadingOpportunities}
+                  onViewDetails={handleViewDetails}
+                  onCreateOpportunityInPhase={() => handleCreateOpportunityInPhase(phase.key)}
+                  isPhaseFiltered={filteredPhaseOnly === phase.key}
+                  onTogglePhaseFilter={handleTogglePhaseFilter}
+                  users={users}
+                />
+              ))}
+            </div>
           </div>
         </div>
       </main>
