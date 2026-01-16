@@ -1,0 +1,43 @@
+{
+  "expo": {
+    "name": "CRM Blomaq",
+    "slug": "crm-blomaq",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "/assets/images/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/images/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.blomaq.crm"
+    },
+    "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          }
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "a8429dba-9d15-45bf-99b5-20e2cf269b2e"
+      }
+    }
+  }
+}
