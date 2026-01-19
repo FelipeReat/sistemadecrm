@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { CloudUpload, X, FileText, Image } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useFileUpload, type UploadedFile } from '@/hooks/useFileUpload';
@@ -13,6 +13,7 @@ interface FileUploadProps {
   className?: string;
   placeholder?: string;
   'data-testid'?: string;
+  enableGlobalPaste?: boolean;
 }
 
 export function FileUpload({
@@ -22,8 +23,9 @@ export function FileUpload({
   onFilesChange,
   value = [],
   className,
-  placeholder = "Clique para fazer upload ou arraste arquivos aqui",
+  placeholder = "Clique para fazer upload ou arraste arquivos aqui (ou cole com Ctrl+V)",
   'data-testid': testId,
+  enableGlobalPaste = false,
 }: FileUploadProps) {
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -72,6 +74,26 @@ export function FileUpload({
       console.error('Error uploading files:', error);
     }
   };
+
+  // Handle global paste events
+  useEffect(() => {
+    if (!enableGlobalPaste) return;
+
+    const handlePaste = (e: ClipboardEvent) => {
+      if (uploading) return;
+      
+      // Check if the paste event contains files
+      if (e.clipboardData && e.clipboardData.files.length > 0) {
+        e.preventDefault();
+        handleFileSelect(e.clipboardData.files);
+      }
+    };
+
+    document.addEventListener('paste', handlePaste);
+    return () => {
+      document.removeEventListener('paste', handlePaste);
+    };
+  }, [enableGlobalPaste, uploading, multiple, maxFiles, value, onFilesChange]); // Dependencies for the effect
 
   const handleClick = () => {
     fileInputRef.current?.click();

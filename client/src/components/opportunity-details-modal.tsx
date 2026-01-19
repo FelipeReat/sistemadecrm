@@ -44,7 +44,6 @@ interface OpportunityDetailsModalProps {
 
 // Schema para o formulário de prospecção
 const prospeccaoSchema = z.object({
-  opportunityNumber: z.string().optional(),
   salesperson: z.string().optional(),
   requiresVisit: z.boolean().default(false),
 });
@@ -260,7 +259,6 @@ export default function OpportunityDetailsModal({
     if (open && opportunity) {
       // Resetar todos os formulários com os dados da oportunidade atual
       prospeccaoForm.reset({
-        opportunityNumber: opportunity.opportunityNumber || "",
         salesperson: opportunity.salesperson || "",
         requiresVisit: opportunity.requiresVisit || false,
       });
@@ -684,23 +682,6 @@ export default function OpportunityDetailsModal({
 
                 <FormField
                   control={prospeccaoForm.control}
-                  name="opportunityNumber"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="flex items-center">
-                        <FileText className="h-4 w-4 mr-2" />
-                        Número do orçamento
-                      </FormLabel>
-                      <FormControl>
-                        <Input placeholder="#9999" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={prospeccaoForm.control}
                   name="salesperson"
                   render={({ field }) => (
                     <FormItem>
@@ -963,7 +944,8 @@ export default function OpportunityDetailsModal({
                           accept="image/*"
                           value={field.value || []}
                           onFilesChange={(files) => field.onChange(files)}
-                          placeholder="Clique para adicionar fotos ou arraste arquivos aqui"
+                          placeholder="Clique para adicionar fotos ou arraste arquivos aqui (ou Ctrl+V)"
+                          enableGlobalPaste={open}
                         />
                       </FormControl>
                       <FormMessage />
@@ -1186,8 +1168,9 @@ export default function OpportunityDetailsModal({
                           accept=".pdf,.doc,.docx,.xls,.xlsx"
                           value={field.value ? [field.value] : []}
                           onFilesChange={(files) => field.onChange(files.length > 0 ? files[0] : null)}
-                          placeholder="Clique para anexar documento da proposta ou arraste arquivo aqui"
+                          placeholder="Clique para anexar documento da proposta ou arraste arquivo aqui (ou Ctrl+V)"
                           data-testid="input-budget-file"
+                          enableGlobalPaste={open}
                         />
                       </FormControl>
                       <FormMessage />

@@ -420,6 +420,7 @@ export default function NewProposalOpportunityModal({ open, onOpenChange }: NewP
                 multiple
                 accept="image/*,.pdf,.doc,.docx"
                 data-testid="input-documents"
+                enableGlobalPaste={open}
               />
             </div>
 
