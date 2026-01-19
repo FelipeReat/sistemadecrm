@@ -69,19 +69,7 @@ const visitaTecnicaSchema = z.object({
 
 // Schema para o formulário de proposta
 const propostaSchema = z.object({
-  discount: z.string().optional(),
-  discountDescription: z.string().optional(),
-  validityDate: z.string().min(1, "Data de validade é obrigatória"),
   budgetNumber: z.string().min(1, "Número do orçamento é obrigatório"),
-  budget: z.string().min(1, "Valor do orçamento é obrigatório"),
-  salesperson: z.string().optional(),
-  budgetFile: z.object({
-    id: z.string(),
-    name: z.string(),
-    size: z.number(),
-    type: z.string(),
-    url: z.string()
-  }).optional(),
 });
 
 // Schema para o formulário de negociação
@@ -180,7 +168,6 @@ export default function OpportunityDetailsModal({
   const prospeccaoForm = useForm<ProspeccaoFormData>({
     resolver: zodResolver(prospeccaoSchema),
     defaultValues: {
-      opportunityNumber: opportunity?.opportunityNumber || "",
       salesperson: opportunity?.salesperson || "",
       requiresVisit: opportunity?.requiresVisit || false,
     },
@@ -210,12 +197,7 @@ export default function OpportunityDetailsModal({
   const propostaForm = useForm<PropostaFormData>({
     resolver: zodResolver(propostaSchema),
     defaultValues: {
-      discount: opportunity?.discount || "",
-      discountDescription: opportunity?.discountDescription || "",
-      validityDate: opportunity?.validityDate ? new Date(opportunity.validityDate).toISOString().split('T')[0] : "",
       budgetNumber: opportunity?.budgetNumber || opportunity?.opportunityNumber || "",
-      budget: opportunity?.budget || "",
-      budgetFile: undefined,
     },
   });
 
@@ -276,13 +258,7 @@ export default function OpportunityDetailsModal({
       });
 
       propostaForm.reset({
-        discount: formatDiscountForDisplay(opportunity.discount),
-        discountDescription: opportunity.discountDescription || "",
-        validityDate: opportunity.validityDate ? formatDateForDisplay(opportunity.validityDate as unknown as string) : "",
         budgetNumber: opportunity.budgetNumber || opportunity.opportunityNumber || "",
-        budget: formatBudgetForDisplay(opportunity.budget),
-        salesperson: opportunity.salesperson || "",
-        budgetFile: undefined,
       });
 
       negociacaoForm.reset({
@@ -329,13 +305,7 @@ export default function OpportunityDetailsModal({
       });
 
       propostaForm.reset({
-        discount: "",
-        discountDescription: "",
-        validityDate: "",
         budgetNumber: "",
-        budget: "",
-        salesperson: "",
-        budgetFile: undefined,
       });
 
       negociacaoForm.reset({
@@ -1000,182 +970,38 @@ export default function OpportunityDetailsModal({
                   Informações da Proposta
                 </h4>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={propostaForm.control as any}
-                    name="budgetNumber"
-                    render={({ field }) => {
-                      // Verifica se o número do orçamento foi preenchido automaticamente
-                      // Isso acontece quando a oportunidade vem de outras fases e já tem opportunityNumber
-                      const isAutoFilled = opportunity?.opportunityNumber && field.value === opportunity.opportunityNumber;
-                      // Se foi criado direto na fase de proposta, não tem opportunityNumber nas fases anteriores
-                      const wasCreatedDirectlyInProposal = !opportunity?.opportunityNumber;
-
-                      return (
-                        <FormItem>
-                          <FormLabel className="flex items-center">
-                            <FileText className="h-4 w-4 mr-2" />
-                            * Número do orçamento
-                            {isAutoFilled && (
-                              <span className="ml-2 text-xs text-gray-500">(preenchido automaticamente)</span>
-                            )}
-                          </FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder="ORC-001"
-                              {...field}
-                              disabled={isAutoFilled === true}
-                              className={isAutoFilled ? "bg-gray-100 cursor-not-allowed" : ""}
-                              onChange={(e) => field.onChange(masks.cnpjOrCpf(e.target.value))}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      );
-                    }}
-                  />
-
-                  <FormField
-                    control={propostaForm.control as any}
-                    name="budget"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="flex items-center">
-                          <DollarSign className="h-4 w-4 mr-2" />
-                          * Valor do orçamento
-                        </FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder={masks.currency.placeholder}
-                            {...field}
-                            onChange={(e) => {
-                              masks.currency.onChange(e);
-                              field.onChange(e.target.value);
-                            }}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={propostaForm.control as any}
-                    name="discount"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Desconto (%)</FormLabel>
-                        <FormControl>
-                          <Input placeholder="10" {...field} onChange={(e) => { masks.percent.onChange(e); field.onChange(e.target.value); }} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={propostaForm.control as any}
-                    name="validityDate"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="flex items-center">
-                          <Calendar className="h-4 w-4 mr-2" />
-                          * Data de validade
-                        </FormLabel>
-                        <FormControl>
-                          <Input
-                            type="text"
-                            placeholder={masks.date.placeholder}
-                            mask={masks.date.mask}
-                            {...field}
-                            onChange={(e) => {
-                              masks.date.onChange(e);
-                              field.onChange(e.target.value);
-                            }}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
                 <FormField
                   control={propostaForm.control as any}
-                  name="salesperson"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="flex items-center">
-                        <User className="h-4 w-4 mr-2" />
-                        Vendedor responsável
-                      </FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione o vendedor" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {isLoadingSalespeople ? (
-                            <SelectItem value="loading" disabled>Carregando vendedores...</SelectItem>
-                          ) : salespeople && Array.isArray(salespeople) && salespeople.length > 0 ? (
-                            salespeople.map((user: any) => (
-                              <SelectItem key={user.id} value={user.id}>
-                                {user.name} ({user.role === 'admin' ? 'Admin' : user.role === 'gerente' ? 'Gerente' : 'Vendedor'})
-                              </SelectItem>
-                            ))
-                          ) : (
-                            <SelectItem value="no-salespeople" disabled>Nenhum vendedor encontrado</SelectItem>
+                  name="budgetNumber"
+                  render={({ field }) => {
+                    // Verifica se o número do orçamento foi preenchido automaticamente
+                    // Isso acontece quando a oportunidade vem de outras fases e já tem opportunityNumber
+                    const isAutoFilled = opportunity?.opportunityNumber && field.value === opportunity.opportunityNumber;
+                    // Se foi criado direto na fase de proposta, não tem opportunityNumber nas fases anteriores
+                    const wasCreatedDirectlyInProposal = !opportunity?.opportunityNumber;
+
+                    return (
+                      <FormItem>
+                        <FormLabel className="flex items-center">
+                          <FileText className="h-4 w-4 mr-2" />
+                          * Número do orçamento
+                          {isAutoFilled && (
+                            <span className="ml-2 text-xs text-gray-500">(preenchido automaticamente)</span>
                           )}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={propostaForm.control as any}
-                  name="discountDescription"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Descrição do desconto</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder="Justificativa do desconto aplicado..."
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={propostaForm.control}
-                  name="budgetFile"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="flex items-center">
-                        <FileText className="h-4 w-4 mr-2" />
-                        Anexar documento da proposta
-                      </FormLabel>
-                      <FormControl>
-                        <FileUpload
-                          multiple={false}
-                          accept=".pdf,.doc,.docx,.xls,.xlsx"
-                          value={field.value ? [field.value] : []}
-                          onFilesChange={(files) => field.onChange(files.length > 0 ? files[0] : null)}
-                          placeholder="Clique para anexar documento da proposta ou arraste arquivo aqui (ou Ctrl+V)"
-                          data-testid="input-budget-file"
-                          enableGlobalPaste={open}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="ORC-001"
+                            {...field}
+                            disabled={isAutoFilled === true}
+                            className={isAutoFilled ? "bg-gray-100 cursor-not-allowed" : ""}
+                            onChange={(e) => field.onChange(masks.cnpjOrCpf(e.target.value))}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    );
+                  }}
                 />
               </div>
 
@@ -1764,20 +1590,6 @@ export default function OpportunityDetailsModal({
                       <form onSubmit={prospeccaoForm.handleSubmit(handleSubmit)} className="space-y-4">
                         <FormField
                           control={prospeccaoForm.control}
-                          name="opportunityNumber"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Número do orçamento</FormLabel>
-                              <FormControl>
-                                <Input placeholder="#9999" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={prospeccaoForm.control}
                           name="salesperson"
                           render={({ field }) => (
                             <FormItem>
@@ -2108,81 +1920,6 @@ export default function OpportunityDetailsModal({
                                   <FormControl>
                                     <Input 
                                       placeholder="Digite o número do orçamento"
-                                      {...field} 
-                                    />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-
-                            <FormField
-                              control={propostaForm.control}
-                              name="budget"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Valor do orçamento *</FormLabel>
-                                  <FormControl>
-                                    <Input 
-                                      type="number"
-                                      step="0.01"
-                                      placeholder="0.00"
-                                      {...field} 
-                                    />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-
-                            <FormField
-                              control={propostaForm.control}
-                              name="validityDate"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Data de validade *</FormLabel>
-                                  <FormControl>
-                                    <Input 
-                                      type="date"
-                                      {...field} 
-                                    />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-
-                            <FormField
-                              control={propostaForm.control}
-                              name="discount"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Desconto (%)</FormLabel>
-                                  <FormControl>
-                                    <Input 
-                                      type="number"
-                                      step="0.01"
-                                      min="0"
-                                      max="100"
-                                      placeholder="0.00"
-                                      {...field} 
-                                    />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-
-                            <FormField
-                              control={propostaForm.control}
-                              name="discountDescription"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Descrição do desconto</FormLabel>
-                                  <FormControl>
-                                    <Textarea 
-                                      placeholder="Descreva o motivo do desconto..."
-                                      className="min-h-[80px]"
                                       {...field} 
                                     />
                                   </FormControl>

@@ -16,7 +16,6 @@ import { format } from "date-fns";
 import { Settings, ChartLine, Trophy, Clock, DollarSign, Plus, Filter, X, Search, ArrowUpDown, ChevronLeft, ChevronRight } from "lucide-react";
 import SalesPipelineColumn from "@/components/sales-pipeline-column";
 import NewOpportunityModal from "@/components/new-opportunity-modal";
-import NewProposalOpportunityModal from "@/components/new-proposal-opportunity-modal";
 import OpportunityDetailsModal from "@/components/opportunity-details-modal";
 import SettingsModal from "@/components/settings-modal";
 
@@ -60,7 +59,6 @@ export default function CrmDashboard() {
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [selectedOpportunity, setSelectedOpportunity] = useState<Opportunity | null>(null);
-  const [isNewProposalOpportunityModalOpen, setIsNewProposalOpportunityModalOpen] = useState(false);
   const [isAdvancedFiltersModalOpen, setIsAdvancedFiltersModalOpen] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [filteredPhaseOnly, setFilteredPhaseOnly] = useState<string | null>(null);
@@ -286,12 +284,6 @@ export default function CrmDashboard() {
   const handleViewDetails = (opportunity: Opportunity) => {
     setSelectedOpportunity(opportunity);
     setIsDetailsModalOpen(true);
-  };
-
-  const handleCreateOpportunityInPhase = (phase: string) => {
-    if (phase === 'proposta') {
-      setIsNewProposalOpportunityModalOpen(true);
-    }
   };
 
   const handleUserSelect = (userName: string) => {
@@ -600,7 +592,6 @@ export default function CrmDashboard() {
                 opportunities={opportunitiesByPhase[phaseConfig[currentMobilePhaseIndex].key] || []}
                 isLoading={isLoadingOpportunities}
                 onViewDetails={handleViewDetails}
-                onCreateOpportunityInPhase={() => handleCreateOpportunityInPhase(phaseConfig[currentMobilePhaseIndex].key)}
                 isPhaseFiltered={false}
                 onTogglePhaseFilter={() => {}}
                 users={users}
@@ -618,7 +609,6 @@ export default function CrmDashboard() {
                   opportunities={opportunitiesByPhase[phase.key] || []}
                   isLoading={isLoadingOpportunities}
                   onViewDetails={handleViewDetails}
-                  onCreateOpportunityInPhase={() => handleCreateOpportunityInPhase(phase.key)}
                   isPhaseFiltered={filteredPhaseOnly === phase.key}
                   onTogglePhaseFilter={handleTogglePhaseFilter}
                   users={users}
@@ -632,11 +622,6 @@ export default function CrmDashboard() {
       <NewOpportunityModal
         open={isNewOpportunityModalOpen}
         onOpenChange={setIsNewOpportunityModalOpen}
-      />
-
-      <NewProposalOpportunityModal
-        open={isNewProposalOpportunityModalOpen}
-        onOpenChange={setIsNewProposalOpportunityModalOpen}
       />
 
       <OpportunityDetailsModal

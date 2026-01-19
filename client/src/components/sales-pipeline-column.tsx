@@ -161,13 +161,12 @@ interface SalesPipelineColumnProps {
   opportunities: Opportunity[];
   isLoading: boolean;
   onViewDetails?: (opportunity: Opportunity) => void;
-  onCreateOpportunityInPhase?: (phase: string) => void;
   isPhaseFiltered?: boolean;
   onTogglePhaseFilter?: (phase: string) => void;
   users?: User[];
 }
 
-export default function SalesPipelineColumn({ phase, opportunities, isLoading, onViewDetails, onCreateOpportunityInPhase, isPhaseFiltered = false, onTogglePhaseFilter, users = [] }: SalesPipelineColumnProps) {
+export default function SalesPipelineColumn({ phase, opportunities, isLoading, onViewDetails, isPhaseFiltered = false, onTogglePhaseFilter, users = [] }: SalesPipelineColumnProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { invalidateAllData } = useReportsSync();
@@ -420,17 +419,6 @@ export default function SalesPipelineColumn({ phase, opportunities, isLoading, o
                     <Filter className="h-3 w-3" />
                   )}
                 </Button>
-              )}
-              
-              {phase.key === 'proposta' && (
-                <button
-                  onClick={() => onCreateOpportunityInPhase?.(phase.key)}
-                  className="w-6 h-6 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-full flex items-center justify-center text-white transition-all duration-200"
-                  title="Criar nova oportunidade na fase de proposta"
-                  data-testid="create-proposal-opportunity-button"
-                >
-                  <span className="text-sm font-bold">+</span>
-                </button>
               )}
             </div>
           </div>
