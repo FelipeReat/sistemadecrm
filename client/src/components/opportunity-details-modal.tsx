@@ -338,7 +338,7 @@ export default function OpportunityDetailsModal({
 
     return (
       <div className="md:col-span-2">
-        <span className="font-medium text-gray-700 dark:text-gray-900">Documentos da proposta:</span>
+        <span className="font-medium text-gray-700 dark:text-gray-300">Documentos da proposta:</span>
         <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2">
           {proposalDocs.map((doc, index) => {
             let parsedDoc: any;
@@ -349,21 +349,21 @@ export default function OpportunityDetailsModal({
             }
 
             return (
-              <div key={index} className="flex items-center space-x-2 p-2 bg-gray-50 rounded border">
-                <FileText className="h-4 w-4 text-gray-500 flex-shrink-0" />
+              <div key={index} className="flex items-center space-x-2 p-2 bg-gray-50 dark:bg-gray-700 rounded border dark:border-gray-600">
+                <FileText className="h-4 w-4 text-gray-500 dark:text-gray-400 flex-shrink-0" />
                 <div className="flex-1 min-w-0">
                   <a
                     href={parsedDoc.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-blue-600 hover:text-blue-800 hover:underline text-sm block truncate"
+                    className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:underline text-sm block truncate"
                     title={`Abrir ${parsedDoc.name}`}
                     download={parsedDoc.name}
                   >
                     {parsedDoc.name || `Documento ${index + 1}`}
                   </a>
                   {parsedDoc.size && (
-                    <span className="text-xs text-gray-500">
+                    <span className="text-xs text-gray-500 dark:text-gray-400">
                       ({(parsedDoc.size / 1024 / 1024).toFixed(2)} MB)
                     </span>
                   )}
@@ -1225,9 +1225,9 @@ export default function OpportunityDetailsModal({
         <div className="py-4">
           <div className="space-y-6">
             {/* Informações Essenciais - Sempre Visíveis */}
-            <div className="mb-6 p-3 bg-gray-50 border border-gray-200 rounded-lg">
+            <div className="mb-6 p-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-base font-semibold text-gray-900 flex items-center">
+                <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 flex items-center">
                   <FileText className="h-4 w-4 mr-2" />
                   Informações Essenciais
                 </h3>
@@ -1235,7 +1235,7 @@ export default function OpportunityDetailsModal({
                   variant="ghost"
                   size="sm"
                   onClick={() => setEditingPhase(editingPhase === 'essential-info' ? null : 'essential-info')}
-                  className="h-6 w-6 p-0 text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+                  className="h-6 w-6 p-0 text-blue-600 hover:text-blue-800 hover:bg-blue-50 dark:hover:bg-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
                   title="Editar informações essenciais"
                 >
                   <Edit className="h-3 w-3" />
@@ -1286,11 +1286,11 @@ export default function OpportunityDetailsModal({
                       )}
                     />
                     <div className="md:col-span-2">
-                      <Label className="text-sm font-medium text-gray-700">Criado por</Label>
+                      <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">Criado por</Label>
                       <Input 
                         value={opportunity?.createdByName || "Sistema"} 
                         readOnly 
-                        className="bg-gray-50 text-gray-600 cursor-not-allowed mt-2"
+                        className="bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-300 cursor-not-allowed mt-2"
                       />
                     </div>
                     <FormField
@@ -1426,27 +1426,27 @@ export default function OpportunityDetailsModal({
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
                 <div>
-                  <span className="font-medium text-gray-700">Empresa:</span>
-                  <span className="ml-2 text-gray-900">{opportunity.company || "Não informado"}</span>
+                  <span className="font-medium text-gray-700 dark:text-gray-300">Empresa:</span>
+                  <span className="ml-2 text-gray-900 dark:text-gray-100">{opportunity.company || "Não informado"}</span>
                 </div>
                 <div>
-                  <span className="font-medium text-gray-700">Contato:</span>
-                  <span className="ml-2 text-gray-900">{opportunity.contact || "Não informado"}</span>
+                  <span className="font-medium text-gray-700 dark:text-gray-300">Contato:</span>
+                  <span className="ml-2 text-gray-900 dark:text-gray-100">{opportunity.contact || "Não informado"}</span>
                 </div>
                 <div>
-                  <span className="font-medium text-gray-700">Telefone:</span>
-                  <span className="ml-2 text-gray-900">{opportunity.phone || "Não informado"}</span>
+                  <span className="font-medium text-gray-700 dark:text-gray-300">Telefone:</span>
+                  <span className="ml-2 text-gray-900 dark:text-gray-100">{opportunity.phone || "Não informado"}</span>
                 </div>
                 <div>
-                  <span className="font-medium text-gray-700">Criado por:</span>
-                  <span className="ml-2 text-gray-900">{opportunity.createdByName || "Sistema"}</span>
+                  <span className="font-medium text-gray-700 dark:text-gray-300">Criado por:</span>
+                  <span className="ml-2 text-gray-900 dark:text-gray-100">{opportunity.createdByName || "Sistema"}</span>
                 </div>
                 <div>
-                  <span className="font-medium text-gray-700">Temperatura:</span>
+                  <span className="font-medium text-gray-700 dark:text-gray-300">Temperatura:</span>
                   <span className={`ml-2 font-medium ${
-                    opportunity.businessTemperature === 'quente' ? 'text-red-600' :
-                    opportunity.businessTemperature === 'morno' ? 'text-yellow-600' :
-                    opportunity.businessTemperature === 'frio' ? 'text-blue-600' : 'text-gray-900'
+                    opportunity.businessTemperature === 'quente' ? 'text-red-600 dark:text-red-400' :
+                    opportunity.businessTemperature === 'morno' ? 'text-yellow-600 dark:text-yellow-400' :
+                    opportunity.businessTemperature === 'frio' ? 'text-blue-600 dark:text-blue-400' : 'text-gray-900 dark:text-gray-100'
                   }`}>
                     {opportunity.businessTemperature ? 
                       opportunity.businessTemperature.charAt(0).toUpperCase() + opportunity.businessTemperature.slice(1) : 
@@ -1455,36 +1455,36 @@ export default function OpportunityDetailsModal({
                   </span>
                 </div>
                 <div>
-                  <span className="font-medium text-gray-700">Categoria:</span>
-                  <span className="ml-2 text-gray-900">{opportunity.needCategory || "Não informado"}</span>
+                  <span className="font-medium text-gray-700 dark:text-gray-300">Categoria:</span>
+                  <span className="ml-2 text-gray-900 dark:text-gray-100">{opportunity.needCategory || "Não informado"}</span>
                 </div>
                 {opportunity.cpf && (
                   <div>
-                    <span className="font-medium text-gray-700">CPF:</span>
-                    <span className="ml-2 text-gray-900">{opportunity.cpf}</span>
+                    <span className="font-medium text-gray-700 dark:text-gray-300">CPF:</span>
+                    <span className="ml-2 text-gray-900 dark:text-gray-100">{opportunity.cpf}</span>
                   </div>
                 )}
                 {opportunity.cnpj && (
                   <div>
-                    <span className="font-medium text-gray-700">CNPJ:</span>
-                    <span className="ml-2 text-gray-900">{opportunity.cnpj}</span>
+                    <span className="font-medium text-gray-700 dark:text-gray-300">CNPJ:</span>
+                    <span className="ml-2 text-gray-900 dark:text-gray-100">{opportunity.cnpj}</span>
                   </div>
                 )}
                 {opportunity.proposalOrigin && (
                   <div>
-                    <span className="font-medium text-gray-700">Origem:</span>
-                    <span className="ml-2 text-gray-900">{opportunity.proposalOrigin}</span>
+                    <span className="font-medium text-gray-700 dark:text-gray-300">Origem:</span>
+                    <span className="ml-2 text-gray-900 dark:text-gray-100">{opportunity.proposalOrigin}</span>
                   </div>
                 )}
                 {opportunity.clientNeeds && (
                   <div className="md:col-span-3">
-                    <span className="font-medium text-gray-700">Necessidades do Cliente:</span>
-                    <span className="ml-2 text-gray-900">{opportunity.clientNeeds}</span>
+                    <span className="font-medium text-gray-700 dark:text-gray-300">Necessidades do Cliente:</span>
+                    <span className="ml-2 text-gray-900 dark:text-gray-100">{opportunity.clientNeeds}</span>
                   </div>
                 )}
                 {opportunity.documents && opportunity.documents.length > 0 && (
                   <div className="md:col-span-3">
-                    <span className="font-medium text-gray-700">Documentos ({opportunity.documents.length}):</span>
+                    <span className="font-medium text-gray-700 dark:text-gray-300">Documentos ({opportunity.documents.length}):</span>
                     <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2">
                       {opportunity.documents.map((doc, index) => {
                         // Parse document if it's a JSON string
@@ -1497,21 +1497,21 @@ export default function OpportunityDetailsModal({
                         }
 
                         return (
-                          <div key={index} className="flex items-center space-x-2 p-2 bg-gray-50 rounded border">
-                            <FileText className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                          <div key={index} className="flex items-center space-x-2 p-2 bg-gray-50 dark:bg-gray-700 rounded border dark:border-gray-600">
+                            <FileText className="h-4 w-4 text-gray-500 dark:text-gray-400 flex-shrink-0" />
                             <div className="flex-1 min-w-0">
                               <a
                                 href={parsedDoc.url}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-blue-600 hover:text-blue-800 hover:underline text-sm block truncate"
+                                className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:underline text-sm block truncate"
                                 title={`Abrir ${parsedDoc.name}`}
                                 download={parsedDoc.name}
                               >
                                 {parsedDoc.name || `Documento ${index + 1}`}
                               </a>
                               {parsedDoc.size && (
-                                <span className="text-xs text-gray-500">
+                                <span className="text-xs text-gray-500 dark:text-gray-400">
                                   ({(parsedDoc.size / 1024 / 1024).toFixed(2)} MB)
                                 </span>
                               )}
@@ -1527,8 +1527,8 @@ export default function OpportunityDetailsModal({
           </div>
 
           {/* Histórico de Fases - Sempre Visível */}
-          <div className="mb-6 p-4 bg-gray-50 border border-gray-200 rounded-lg">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+          <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center">
               <Calendar className="h-5 w-5 mr-2" />
               Histórico de Fases Anteriores
             </h3>
@@ -1593,8 +1593,8 @@ export default function OpportunityDetailsModal({
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                       {opportunity.requiresVisit !== undefined && (
                         <div>
-                          <span className="font-medium text-gray-700 dark:text-gray-900">Requer visita:</span>
-                          <span className="ml-2 text-gray-900 dark:text-gray-900">{opportunity.requiresVisit ? 'Sim' : 'Não'}</span>
+                          <span className="font-medium text-gray-700 dark:text-gray-300">Requer visita:</span>
+                          <span className="ml-2 text-gray-900 dark:text-gray-100">{opportunity.requiresVisit ? 'Sim' : 'Não'}</span>
                         </div>
                       )}
                     </div>
@@ -1657,8 +1657,8 @@ export default function OpportunityDetailsModal({
                     </Form>
                   ) : (
                     <div className="text-sm">
-                      <span className="font-medium text-gray-700 dark:text-gray-900">Declaração/Observações:</span>
-                      <p className="mt-1 text-gray-900 dark:text-gray-900 bg-white p-2 rounded border">{opportunity.statement}</p>
+                      <span className="font-medium text-gray-700 dark:text-gray-300">Declaração/Observações:</span>
+                      <p className="mt-1 text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700 p-2 rounded border dark:border-gray-600">{opportunity.statement}</p>
                     </div>
                   )}
                 </div>
@@ -1755,25 +1755,25 @@ export default function OpportunityDetailsModal({
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                       {opportunity.visitSchedule && (
                         <div>
-                          <span className="font-medium text-gray-700 dark:text-gray-900">Data agendada:</span>
-                          <span className="ml-2 text-gray-900 dark:text-gray-900">{opportunity.visitSchedule}</span>
+                          <span className="font-medium text-gray-700 dark:text-gray-300">Data agendada:</span>
+                          <span className="ml-2 text-gray-900 dark:text-gray-100">{opportunity.visitSchedule}</span>
                         </div>
                       )}
                       {opportunity.visitDate && (
                         <div>
-                          <span className="font-medium text-gray-700 dark:text-gray-900">Data realizada:</span>
-                          <span className="ml-2 text-gray-900 dark:text-gray-900">{opportunity.visitDate}</span>
+                          <span className="font-medium text-gray-700 dark:text-gray-300">Data realizada:</span>
+                          <span className="ml-2 text-gray-900 dark:text-gray-100">{opportunity.visitDate}</span>
                         </div>
                       )}
                       {opportunity.visitDescription && (
                         <div className="md:col-span-2">
-                          <span className="font-medium text-gray-700 dark:text-gray-900">Descrição:</span>
-                          <p className="mt-1 text-gray-900 dark:text-gray-900 bg-white p-2 rounded border">{opportunity.visitDescription}</p>
+                          <span className="font-medium text-gray-700 dark:text-gray-300">Descrição:</span>
+                          <p className="mt-1 text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700 p-2 rounded border dark:border-gray-600">{opportunity.visitDescription}</p>
                         </div>
                       )}
                       {opportunity.visitPhotos && opportunity.visitPhotos.length > 0 && (
                         <div className="md:col-span-2">
-                          <span className="font-medium text-gray-700 dark:text-gray-900">Fotos da visita:</span>
+                          <span className="font-medium text-gray-700 dark:text-gray-300">Fotos da visita:</span>
                           <div className="ml-2 space-y-1">
                             {opportunity.visitPhotos.map((photo, index) => {
                               // Parse photo if it's a JSON string
@@ -1870,8 +1870,8 @@ export default function OpportunityDetailsModal({
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                           {opportunity.budgetNumber && (
                             <div>
-                              <span className="font-medium text-gray-700 dark:text-gray-900">Número do orçamento:</span>
-                              <span className="ml-2 text-gray-900 dark:text-gray-900">{opportunity.budgetNumber}</span>
+                              <span className="font-medium text-gray-700 dark:text-gray-300">Número do orçamento:</span>
+                              <span className="ml-2 text-gray-900 dark:text-gray-100">{opportunity.budgetNumber}</span>
                             </div>
                           )}
                         </div>
@@ -2014,34 +2014,34 @@ export default function OpportunityDetailsModal({
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                         {opportunity.status && (
                           <div>
-                            <span className="font-medium text-gray-700 dark:text-gray-900">Status:</span>
-                            <span className="ml-2 text-gray-900 dark:text-gray-900">{opportunity.status}</span>
+                            <span className="font-medium text-gray-700 dark:text-gray-300">Status:</span>
+                            <span className="ml-2 text-gray-900 dark:text-gray-100">{opportunity.status}</span>
                           </div>
                         )}
                         {opportunity.finalValue && (
                           <div>
-                            <span className="font-medium text-gray-700 dark:text-gray-900">Valor final:</span>
-                            <span className="ml-2 text-gray-900 dark:text-gray-900 font-medium text-green-600">
+                            <span className="font-medium text-gray-700 dark:text-gray-300">Valor final:</span>
+                            <span className="ml-2 text-gray-900 dark:text-gray-100 font-medium text-green-600 dark:text-green-400">
                               R$ {parseFloat(opportunity.finalValue.toString()).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                             </span>
                           </div>
                         )}
                         {opportunity.contract && (
                           <div>
-                            <span className="font-medium text-gray-700 dark:text-gray-900">Contrato:</span>
-                            <span className="ml-2 text-gray-900 dark:text-gray-900">{opportunity.contract}</span>
+                            <span className="font-medium text-gray-700 dark:text-gray-300">Contrato:</span>
+                            <span className="ml-2 text-gray-900 dark:text-gray-100">{opportunity.contract}</span>
                           </div>
                         )}
                         {opportunity.invoiceNumber && (
                           <div>
-                            <span className="font-medium text-gray-700 dark:text-gray-900">Número da danfe:</span>
-                            <span className="ml-2 text-gray-900 dark:text-gray-900">{opportunity.invoiceNumber}</span>
+                            <span className="font-medium text-gray-700 dark:text-gray-300">Número da danfe:</span>
+                            <span className="ml-2 text-gray-900 dark:text-gray-100">{opportunity.invoiceNumber}</span>
                           </div>
                         )}
                         {opportunity.negotiationInfo && (
                           <div className="md:col-span-2">
-                            <span className="font-medium text-gray-700 dark:text-gray-900">Informações da negociação:</span>
-                            <p className="mt-1 text-gray-900 dark:text-gray-900 bg-white p-2 rounded border">{opportunity.negotiationInfo}</p>
+                            <span className="font-medium text-gray-700 dark:text-gray-300">Informações da negociação:</span>
+                            <p className="mt-1 text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700 p-2 rounded border dark:border-gray-600">{opportunity.negotiationInfo}</p>
                           </div>
                         )}
                       </div>
@@ -2132,14 +2132,14 @@ export default function OpportunityDetailsModal({
                       <div className="space-y-2 text-sm">
                         {opportunity.lossReason && (
                           <div>
-                            <span className="font-medium text-gray-700 dark:text-gray-900">Motivo da perda:</span>
-                            <span className="ml-2 text-gray-900 dark:text-gray-900">{opportunity.lossReason}</span>
+                            <span className="font-medium text-gray-700 dark:text-gray-300">Motivo da perda:</span>
+                            <span className="ml-2 text-gray-900 dark:text-gray-100">{opportunity.lossReason}</span>
                           </div>
                         )}
                         {opportunity.lossObservation && (
                           <div>
-                            <span className="font-medium text-gray-700 dark:text-gray-900">Observação detalhada:</span>
-                            <p className="mt-1 text-gray-900 dark:text-gray-900 bg-white p-2 rounded border">{opportunity.lossObservation}</p>
+                            <span className="font-medium text-gray-700 dark:text-gray-300">Observação detalhada:</span>
+                            <p className="mt-1 text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700 p-2 rounded border dark:border-gray-600">{opportunity.lossObservation}</p>
                           </div>
                         )}
                       </div>

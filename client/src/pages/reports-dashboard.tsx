@@ -42,7 +42,6 @@ export default function ReportsDashboard() {
   const [downloadingComplete, setDownloadingComplete] = useState(false);
   const [downloadingPhases, setDownloadingPhases] = useState(false);
   const [downloadingTemperature, setDownloadingTemperature] = useState(false);
-  const [downloadingPerformance, setDownloadingPerformance] = useState(false);
   const [downloadingOpportunities, setDownloadingOpportunities] = useState(false);
 
   // Generate last 12 months
@@ -223,38 +222,7 @@ export default function ReportsDashboard() {
     }).filter(phase => phase.count > 0);
   }, [filteredOpportunities]);
 
-  // Performance by salesperson (NOW using CREATOR logic as requested)
-  const performanceBySalesperson = useMemo(() => {
-    // Logic mirrored from performanceByCreator as requested by user
-    const creators = users.reduce((acc, user) => {
-      acc[user.name] = { name: user.name, total: 0, won: 0, value: 0 };
-      return acc;
-    }, {} as Record<string, { name: string; total: number; won: number; value: number }>);
 
-    filteredOpportunities.forEach(opp => {
-      // Use creator instead of salesperson
-      const creator = opp.createdByName || opp.createdBy || 'Sistema';
-      if (!creators[creator]) {
-        creators[creator] = { name: creator, total: 0, won: 0, value: 0 };
-      }
-
-      creators[creator].total++;
-      const phase = (opp.phase || '').toString().toLowerCase();
-      if (phase === 'ganho' || phase === 'fechamento') {
-        creators[creator].won++;
-        const value = parseFloat(opp.finalValue?.toString() || opp.budget?.toString() || '0');
-        creators[creator].value += isNaN(value) ? 0 : value;
-      }
-    });
-
-    return Object.values(creators)
-      .filter(s => s.total > 0)
-      .map(s => ({
-        ...s,
-        conversionRate: s.total > 0 ? (s.won / s.total) * 100 : 0
-      }))
-      .sort((a, b) => b.value - a.value);
-  }, [filteredOpportunities, users]);
 
   // Performance by card creator
   const performanceByCreator = useMemo(() => {
@@ -359,7 +327,6 @@ export default function ReportsDashboard() {
   const handleDownloadComplete = () => downloadReport('completo', setDownloadingComplete);
   const handleDownloadPhases = () => downloadReport('fases', setDownloadingPhases);
   const handleDownloadTemperature = () => downloadReport('temperatura', setDownloadingTemperature);
-  const handleDownloadPerformance = () => downloadReport('performance', setDownloadingPerformance);
   const handleDownloadOpportunities = () => downloadReport('oportunidades', setDownloadingOpportunities);
 
   if (opportunitiesLoading) {
@@ -607,7 +574,7 @@ export default function ReportsDashboard() {
           </Card>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Average Time Per Phase */}
           <Card>
             <CardHeader>
@@ -633,44 +600,7 @@ export default function ReportsDashboard() {
             </CardContent>
           </Card>
 
-          {/* Performance by Salesperson */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="flex items-center space-x-2">
-                    <Users className="h-5 w-5" />
-                    <span>Performance por Vendedor</span>
-                  </CardTitle>
-                  <CardDescription>Ranking de vendedores por valor gerado</CardDescription>
-                </div>
-                <Button 
-                  onClick={handleDownloadPerformance} 
-                  variant="outline" 
-                  size="sm"
-                  disabled={downloadingPerformance}
-                  title="Baixar PDF - Performance por Vendedor"
-                >
-                  <FileText className="h-4 w-4" />
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {performanceBySalesperson.slice(0, 5).map((salesperson) => (
-                <div key={salesperson.name} className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <div className="text-sm font-medium">{salesperson.name}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {salesperson.won}/{salesperson.total} • {salesperson.conversionRate.toFixed(1)}%
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-sm font-bold">{formatCurrency(salesperson.value)}</div>
-                  </div>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
+
 
           {/* Performance by Card Creator */}
           <Card>
@@ -679,9 +609,9 @@ export default function ReportsDashboard() {
                 <div>
                   <CardTitle className="flex items-center space-x-2">
                     <Award className="h-5 w-5" />
-                    <span>Performance por Criador do Card</span>
+                    <span>Performance por Vendedor</span>
                   </CardTitle>
-                  <CardDescription>Ranking de criadores por valor gerado</CardDescription>
+                  <CardDescription>Ranking de vendedores por valor gerado</CardDescription>
                 </div>
                 <Button 
                   onClick={handleDownloadOpportunities} 
