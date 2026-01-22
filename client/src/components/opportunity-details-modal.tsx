@@ -44,7 +44,6 @@ interface OpportunityDetailsModalProps {
 
 // Schema para o formulário de prospecção
 const prospeccaoSchema = z.object({
-  salesperson: z.string().optional(),
   requiresVisit: z.boolean().default(false),
 });
 
@@ -157,18 +156,9 @@ export default function OpportunityDetailsModal({
     }
   };
 
-  // Query para buscar usuários que podem ser vendedores
-  const { data: salespeople, isLoading: isLoadingSalespeople } = useQuery({
-    queryKey: ["/api/users/salespeople"],
-    staleTime: 0, // Sempre buscar dados atualizados
-    refetchOnWindowFocus: true,
-    refetchOnMount: true,
-  });
-
   const prospeccaoForm = useForm<ProspeccaoFormData>({
     resolver: zodResolver(prospeccaoSchema),
     defaultValues: {
-      salesperson: opportunity?.salesperson || "",
       requiresVisit: opportunity?.requiresVisit || false,
     },
     mode: "onChange", // Validação em tempo real
@@ -241,7 +231,6 @@ export default function OpportunityDetailsModal({
     if (open && opportunity) {
       // Resetar todos os formulários com os dados da oportunidade atual
       prospeccaoForm.reset({
-        salesperson: opportunity.salesperson || "",
         requiresVisit: opportunity.requiresVisit || false,
       });
 
@@ -290,7 +279,6 @@ export default function OpportunityDetailsModal({
       // Limpar todos os formulários quando abrir sem oportunidade
       prospeccaoForm.reset({
         opportunityNumber: "",
-        salesperson: "",
         requiresVisit: false,
       });
 
@@ -515,6 +503,16 @@ export default function OpportunityDetailsModal({
   const handleDelete = () => {
     if (!opportunity) return;
 
+    // Verificação de propriedade: Apenas o criador pode excluir
+    if (user && opportunity.createdBy && String(user.id) !== String(opportunity.createdBy)) {
+      toast({
+        title: "Acesso negado",
+        description: "Apenas o criador do card tem autonomia para excluí-lo.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     // Check permissions for imported cards
     if (opportunity.isImported && !canDeleteImportedCard(opportunity)) {
       toast({
@@ -649,40 +647,6 @@ export default function OpportunityDetailsModal({
                   <FileText className="h-4 w-4 mr-2" />
                   Informações de Prospecção
                 </h4>
-
-                <FormField
-                  control={prospeccaoForm.control}
-                  name="salesperson"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="flex items-center">
-                        <User className="h-4 w-4 mr-2" />
-                        * Vendedor responsável
-                      </FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione o vendedor" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {isLoadingSalespeople ? (
-                            <SelectItem value="loading" disabled>Carregando vendedores...</SelectItem>
-                          ) : salespeople && Array.isArray(salespeople) && salespeople.length > 0 ? (
-                            salespeople.map((user: any) => (
-                              <SelectItem key={user.id} value={user.id}>
-                                {user.name} ({user.role === 'admin' ? 'Admin' : user.role === 'gerente' ? 'Gerente' : 'Vendedor'})
-                              </SelectItem>
-                            ))
-                          ) : (
-                            <SelectItem value="no-salespeople" disabled>Nenhum vendedor encontrado</SelectItem>
-                          )}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
 
                 <FormField
                   control={prospeccaoForm.control}
@@ -1571,7 +1535,7 @@ export default function OpportunityDetailsModal({
 
             <div className="space-y-4">
               {/* Prospecção */}
-              {(opportunity.opportunityNumber || opportunity.salesperson || opportunity.requiresVisit !== undefined) && (
+              {(opportunity.requiresVisit !== undefined) && (
                 <div className="border-l-4 border-orange-400 pl-4">
                   <div className="flex items-center justify-between mb-2">
                     <h4 className="font-semibold text-orange-700">📈 Prospecção</h4>
@@ -1588,37 +1552,6 @@ export default function OpportunityDetailsModal({
                   {editingPhase === 'prospeccao' ? (
                     <Form {...prospeccaoForm}>
                       <form onSubmit={prospeccaoForm.handleSubmit(handleSubmit)} className="space-y-4">
-                        <FormField
-                          control={prospeccaoForm.control}
-                          name="salesperson"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Vendedor responsável</FormLabel>
-                              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Selecione o vendedor" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  {isLoadingSalespeople ? (
-                                    <SelectItem value="loading" disabled>Carregando vendedores...</SelectItem>
-                                  ) : salespeople && Array.isArray(salespeople) && salespeople.length > 0 ? (
-                                    salespeople.map((user: any) => (
-                                      <SelectItem key={user.id} value={user.id}>
-                                        {user.name} ({user.role === 'admin' ? 'Admin' : user.role === 'gerente' ? 'Gerente' : 'Vendedor'})
-                                      </SelectItem>
-                                    ))
-                                  ) : (
-                                    <SelectItem value="no-salespeople" disabled>Nenhum vendedor encontrado</SelectItem>
-                                  )}
-                                </SelectContent>
-                              </Select>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
                         <FormField
                           control={prospeccaoForm.control}
                           name="requiresVisit"
@@ -1658,18 +1591,6 @@ export default function OpportunityDetailsModal({
                     </Form>
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                      {opportunity.opportunityNumber && (
-                        <div>
-                          <span className="font-medium text-gray-700 dark:text-gray-900">Número do orçamento:</span>
-                          <span className="ml-2 text-gray-900 dark:text-gray-900">{opportunity.opportunityNumber}</span>
-                        </div>
-                      )}
-                      {opportunity.salesperson && (
-                        <div>
-                          <span className="font-medium text-gray-700 dark:text-gray-900">Vendedor responsável:</span>
-                          <span className="ml-2 text-gray-900 dark:text-gray-900">{opportunity.salesperson}</span>
-                        </div>
-                      )}
                       {opportunity.requiresVisit !== undefined && (
                         <div>
                           <span className="font-medium text-gray-700 dark:text-gray-900">Requer visita:</span>
@@ -2227,7 +2148,7 @@ export default function OpportunityDetailsModal({
                 )}
 
                 {/* Mensagem se não houver histórico */}
-                {!opportunity.opportunityNumber && !opportunity.salesperson && !opportunity.statement && 
+                {opportunity.requiresVisit === undefined && !opportunity.statement && 
                  !opportunity.visitSchedule && !opportunity.visitDate && !opportunity.budgetNumber && 
                  !opportunity.budget && !opportunity.status && !opportunity.finalValue && 
                  !opportunity.lossReason && (

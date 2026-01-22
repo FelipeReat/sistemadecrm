@@ -106,11 +106,11 @@ const validatePhaseCompletion = (opportunity: Opportunity): { isComplete: boolea
 
   switch (opportunity.phase) {
     case 'prospeccao':
-      if (!opportunity.salesperson) missingFields.push('Vendedor');
+      // if (!opportunity.salesperson) missingFields.push('Vendedor');
       break;
 
     case 'em-atendimento':
-      if (!opportunity.salesperson) missingFields.push('Vendedor');
+      // if (!opportunity.salesperson) missingFields.push('Vendedor');
       // Temperatura do negócio só é obrigatória se já foi preenchida anteriormente
       // ou se estamos editando especificamente esta fase
       break;

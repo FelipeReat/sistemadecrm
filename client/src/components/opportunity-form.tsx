@@ -41,14 +41,6 @@ export default function OpportunityForm({ phase }: OpportunityFormProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Fetch salespeople from users endpoint
-  const { data: salespeople = [] } = useQuery<User[]>({
-    queryKey: ["/api/users/salespeople"],
-    staleTime: 0, // Sempre buscar dados atualizados
-    refetchOnWindowFocus: true,
-    refetchOnMount: true,
-  });
-
   // Form for Prospecção phase (creation)
   const prospeccaoForm = useForm<ProspeccaoFormData>({
     resolver: zodResolver(prospeccaoFormSchema),
@@ -105,26 +97,6 @@ export default function OpportunityForm({ phase }: OpportunityFormProps) {
           onChange={(e) => handleInputChange("opportunityNumber", e.target.value)}
           data-testid="form-opportunity-number"
         />
-      </div>
-
-      {/* Vendedor responsável */}
-      <div>
-        <Label htmlFor="salesperson" className="text-sm font-medium text-gray-700 flex items-center">
-          <UserIcon className="h-4 w-4 mr-2" />
-          * Vendedor responsável
-        </Label>
-        <Select onValueChange={(value) => handleInputChange("salesperson", value)}>
-          <SelectTrigger className="mt-1" data-testid="form-salesperson">
-            <SelectValue placeholder="+ Adicionar responsável" />
-          </SelectTrigger>
-          <SelectContent>
-            {salespeople.map((salesperson) => (
-              <SelectItem key={salesperson.id} value={salesperson.name}>
-                {salesperson.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
       </div>
 
       {/* Necessário Visita? */}

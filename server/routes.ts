@@ -549,15 +549,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         // Usuários/Vendedores têm permissões limitadas
         else if (userRole === 'usuario' || userRole === 'vendedor') {
-          // Allow all users to delete imported cards - no restrictions
-          if (!existingOpportunity.isImported) {
-            // Para cards normais, se foi criado por ele ou se é o vendedor responsável
-            const canDelete = existingOpportunity.createdBy === userName || 
-                             existingOpportunity.salesperson === userName;
-            
-            if (!canDelete) {
-              return res.status(403).json({ message: "Você só pode excluir suas próprias oportunidades" });
-            }
+          // Strict rule: Only creator can delete.
+          // Note: createdBy stores userId.
+          const isCreator = existingOpportunity.createdBy === req.session.userId;
+          
+          if (!isCreator) {
+            return res.status(403).json({ message: "Apenas o criador do card tem autonomia para excluí-lo." });
           }
         }
 
