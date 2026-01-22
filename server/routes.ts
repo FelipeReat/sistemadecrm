@@ -1179,7 +1179,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           company: opp.company,
           contact: opp.contact,
           phase: opp.phase,
-          salesperson: opp.salesperson,
+          salesperson: opp.createdByName || opp.salesperson,
           businessTemperature: opp.businessTemperature,
           budget: opp.budget,
           finalValue: opp.finalValue,
@@ -1489,74 +1489,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         };
       });
 
-      // Calculate performance by salesperson (group by opportunities, resolve IDs to names)
-      const resolveSalespersonNameForDownload = (opp: any) => {
-        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-        const assigned = (opp.assignedTo || '').toString().trim();
-        const salesperson = (opp.salesperson || '').toString().trim();
-
-        const resolveFromId = (id: string) => {
-          const u = users.find(u => u.id === id);
-          if (!u) return null;
-          if (u.role === 'admin') return 'Não atribuído';
-          return u.name || null;
-        };
-
-        if (assigned && uuidRegex.test(assigned)) {
-          const name = resolveFromId(assigned);
-          if (name) return name;
-        }
-
-        if (salesperson) {
-          if (uuidRegex.test(salesperson)) {
-            const name = resolveFromId(salesperson);
-            if (name) return name;
-            return 'Não atribuído';
-          } else {
-            const u = users.find(u => u.name === salesperson);
-            if (u && u.role === 'admin') return 'Não atribuído';
-            const lower = salesperson.toLowerCase();
-            if (lower.includes('admin')) return 'Não atribuído';
-            return salesperson;
-          }
-        }
-
-        return 'Não atribuído';
-      };
-
-      const salesMapDownload = new Map<string, any[]>();
-      opportunities.forEach(opp => {
-        const name = resolveSalespersonNameForDownload(opp);
-        if (!salesMapDownload.has(name)) salesMapDownload.set(name, []);
-        salesMapDownload.get(name)!.push(opp);
-      });
-
-      const performanceBySalesperson = Array.from(salesMapDownload.entries())
-        .map(([name, userOpps]) => {
-          const userClosedOpps = userOpps.filter(o => {
-            const p = (o.phase || '').toString().toLowerCase();
-            return p === 'fechamento' || p === 'ganho';
-          });
-          const userTotalValue = userClosedOpps.reduce((sum, opp) => {
-            const finalValue = opp.finalValue ? parseFloat(opp.finalValue.toString()) : 0;
-            const budgetValue = opp.budget ? parseFloat(opp.budget.toString()) : 0;
-            const value = finalValue || budgetValue;
-            return sum + (isNaN(value) ? 0 : value);
-          }, 0);
-          const conversionRate = userOpps.length > 0 ? (userClosedOpps.length / userOpps.length * 100) : 0;
-
-          return {
-            name: name || 'Usuário sem nome',
-            totalOpportunities: userOpps.length,
-            closedOpportunities: userClosedOpps.length,
-            conversionRate: isNaN(conversionRate) ? 0 : Math.round(conversionRate * 10) / 10, // Round to 1 decimal
-            totalValue: isNaN(userTotalValue) ? 0 : userTotalValue
-          };
-        })
-        .filter(item => item.totalOpportunities > 0)
-        .sort((a, b) => b.totalValue - a.totalValue);
-
-      // Calculate performance by creator
+      // Calculate performance by creator (which will also be used for salesperson performance as requested)
       // First, get all unique creators from opportunities (including imported ones)
       const allCreators = new Map<string, { name: string; opportunities: any[] }>();
       
@@ -1585,7 +1518,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const performanceByCreator = Array.from(allCreators.values())
         .map(creator => {
           const userOpps = creator.opportunities;
-          const userClosedOpps = userOpps.filter(o => o.phase === 'fechamento');
+          const userClosedOpps = userOpps.filter(o => o.phase === 'fechamento' || o.phase === 'ganho'); // Fixed: include 'ganho' as well to match frontend logic if needed, though usually 'ganho' is final. Checking original code: it used 'fechamento' in creator loop but 'fechamento' OR 'ganho' in salesperson loop. I should align this.
           const userTotalValue = userClosedOpps.reduce((sum, opp) => {
             const finalValue = opp.finalValue ? parseFloat(opp.finalValue.toString()) : 0;
             const budgetValue = opp.budget ? parseFloat(opp.budget.toString()) : 0;
@@ -1604,6 +1537,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         })
         .filter(performance => performance.totalOpportunities > 0) // Only include creators with opportunities
         .sort((a, b) => b.totalValue - a.totalValue);
+
+      // As per user request, "Performance por Vendedor" should reflect "Performance por Criador"
+      // This ensures the PDF report matches the dashboard view which was also updated.
+      const performanceBySalesperson = performanceByCreator;
 
       // Prepare opportunities data with user names
       const opportunitiesWithUsers = opportunities.map(opp => {
@@ -1725,54 +1662,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Calculate performance by salesperson (group by opportunities, resolve IDs to names)
-      const resolveSalespersonNameForApi = (opp: any) => {
-        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-        const assigned = (opp.assignedTo || '').toString().trim();
-        const salesperson = (opp.salesperson || '').toString().trim();
-
-        const resolveFromId = (id: string) => {
-          const u = users.find(u => u.id === id);
-          if (!u) return null;
-          if (u.role === 'admin') return 'Não atribuído';
-          return u.name || null;
-        };
-
-        if (assigned && uuidRegex.test(assigned)) {
-          const name = resolveFromId(assigned);
-          if (name) return name;
-        }
-
-        if (salesperson) {
-          if (uuidRegex.test(salesperson)) {
-            const name = resolveFromId(salesperson);
-            if (name) return name;
-            return 'Não atribuído';
-          } else {
-            const u = users.find(u => u.name === salesperson);
-            if (u && u.role === 'admin') return 'Não atribuído';
-            const lower = salesperson.toLowerCase();
-            if (lower.includes('admin')) return 'Não atribuído';
-            return salesperson;
-          }
-        }
-
-        return 'Não atribuído';
-      };
-
-      const salesMapApi = new Map<string, any[]>();
+      // Calculate performance by creator (which will also be used for salesperson performance as requested)
+      // First, get all unique creators from opportunities (including imported ones)
+      const allCreators = new Map<string, { name: string; opportunities: any[] }>();
+      
+      // Add opportunities to creators based on createdByName (for imported) or user lookup (for regular)
       opportunities.forEach(opp => {
-        const name = resolveSalespersonNameForApi(opp);
-        if (!salesMapApi.has(name)) salesMapApi.set(name, []);
-        salesMapApi.get(name)!.push(opp);
+        let creatorName = '';
+        
+        if (opp.createdByName && opp.createdByName.trim() !== '' && opp.createdByName !== 'Sistema') {
+          // Use createdByName for imported opportunities or when explicitly set
+          creatorName = opp.createdByName;
+        } else if (opp.createdBy) {
+          // Try to find user by ID for regular opportunities
+          const creator = users.find(u => u.id === opp.createdBy);
+          creatorName = creator?.name || opp.createdBy;
+        } else {
+          creatorName = 'Sistema';
+        }
+        
+        if (!allCreators.has(creatorName)) {
+          allCreators.set(creatorName, { name: creatorName, opportunities: [] });
+        }
+        allCreators.get(creatorName)!.opportunities.push(opp);
       });
-
-      const performanceBySalesperson = Array.from(salesMapApi.entries())
-        .map(([name, userOpps]) => {
-          const userClosedOpps = userOpps.filter(o => {
-            const p = (o.phase || '').toString().toLowerCase();
-            return p === 'fechamento' || p === 'ganho';
-          });
+      
+      // Calculate performance for each creator
+      const performanceByCreator = Array.from(allCreators.values())
+        .map(creator => {
+          const userOpps = creator.opportunities;
+          const userClosedOpps = userOpps.filter(o => o.phase === 'fechamento' || o.phase === 'ganho');
           const userTotalValue = userClosedOpps.reduce((sum, opp) => {
             const finalValue = opp.finalValue ? parseFloat(opp.finalValue.toString()) : 0;
             const budgetValue = opp.budget ? parseFloat(opp.budget.toString()) : 0;
@@ -1782,15 +1701,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const conversionRate = userOpps.length > 0 ? (userClosedOpps.length / userOpps.length * 100) : 0;
 
           return {
-            name: name || 'Usuário sem nome',
+            name: creator.name || 'Criador sem nome',
             totalOpportunities: userOpps.length,
             closedOpportunities: userClosedOpps.length,
             conversionRate: isNaN(conversionRate) ? 0 : Math.round(conversionRate * 10) / 10,
             totalValue: isNaN(userTotalValue) ? 0 : userTotalValue
           };
         })
-        .filter(item => item.totalOpportunities > 0)
+        .filter(performance => performance.totalOpportunities > 0)
         .sort((a, b) => b.totalValue - a.totalValue);
+
+      // As per user request, "Performance por Vendedor" should reflect "Performance por Criador"
+      const performanceBySalesperson = performanceByCreator;
 
       res.json({
         opportunities,
