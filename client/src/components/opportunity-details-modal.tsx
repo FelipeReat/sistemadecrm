@@ -74,11 +74,8 @@ const propostaSchema = z.object({
 // Schema para o formulário de negociação
 const negociacaoSchema = z.object({
   status: z.string().min(1, "Status é obrigatório"),
-  finalValue: z.string().min(1, "Valor final é obrigatório"),
-  negotiationInfo: z.string().optional(),
   contract: z.string().optional(), // String para o número do contrato
   invoiceNumber: z.string().optional(),
-  lossReason: z.string().optional(),
 });
 
 // Schema para o formulário de perdido
@@ -298,11 +295,8 @@ export default function OpportunityDetailsModal({
 
       negociacaoForm.reset({
         status: "",
-        finalValue: "",
-        negotiationInfo: "",
         contract: "",
         invoiceNumber: "",
-        lossReason: "",
       });
 
       perdidoForm.reset({
@@ -1064,23 +1058,7 @@ export default function OpportunityDetailsModal({
                   )}
                 />
 
-                <FormField
-                  control={negociacaoForm.control}
-                  name="negotiationInfo"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Informações da negociação</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder="Detalhes da negociação, condições especiais..."
-                          className="min-h-[100px]"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+
 
                 <FormField
                   control={negociacaoForm.control}
@@ -1118,22 +1096,7 @@ export default function OpportunityDetailsModal({
                   )}
                 />
 
-                <FormField
-                  control={negociacaoForm.control}
-                  name="lossReason"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Motivo da perda (se aplicável)</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder="Descreva o motivo caso a negociação seja perdida..."
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+
               </div>
 
               <DialogFooter className="flex justify-between items-center">
