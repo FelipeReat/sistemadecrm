@@ -14,7 +14,6 @@ const validatePhaseCompletion = (opportunity: Opportunity): { isComplete: boolea
 
   switch (opportunity.phase) {
     case 'prospeccao':
-      if (!opportunity.opportunityNumber) missingFields.push('Número da oportunidade');
       if (!opportunity.salesperson) missingFields.push('Vendedor');
       break;
 
@@ -31,8 +30,6 @@ const validatePhaseCompletion = (opportunity: Opportunity): { isComplete: boolea
 
     case 'proposta':
       if (!opportunity.budgetNumber) missingFields.push('Número da proposta');
-      if (!opportunity.budget) missingFields.push('Valor da proposta');
-      if (!opportunity.validityDate) missingFields.push('Data de validade');
       break;
 
     case 'negociacao':

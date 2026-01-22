@@ -1893,7 +1893,7 @@ export default function OpportunityDetailsModal({
                 )}
 
                 {/* Proposta */}
-                {(opportunity.budgetNumber || opportunity.budget || opportunity.validityDate || opportunity.discount) && (
+                {opportunity.budgetNumber && (
                   <>
                     <div className="border-l-4 border-pink-400 pl-4">
                       <div className="flex items-center justify-between mb-2">
@@ -1953,36 +1953,6 @@ export default function OpportunityDetailsModal({
                               <span className="ml-2 text-gray-900 dark:text-gray-900">{opportunity.budgetNumber}</span>
                             </div>
                           )}
-                          {opportunity.budget && (
-                            <div>
-                              <span className="font-medium text-gray-700 dark:text-gray-900">Valor do orçamento:</span>
-                              <span className="ml-2 text-gray-900 dark:text-gray-900 font-medium text-green-600">
-                                R$ {parseFloat(opportunity.budget.toString()).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                              </span>
-                            </div>
-                          )}
-                          {opportunity.validityDate && (
-                            <div>
-                              <span className="font-medium text-gray-700 dark:text-gray-900">Data de validade:</span>
-                              <span className="ml-2 text-gray-900 dark:text-gray-900">
-                                {new Date(opportunity.validityDate).toLocaleDateString('pt-BR')}
-                              </span>
-                            </div>
-                          )}
-                          {opportunity.discount && (
-                            <div>
-                              <span className="font-medium text-gray-700 dark:text-gray-900">Desconto:</span>
-                              <span className="ml-2 text-gray-900 dark:text-gray-900">{opportunity.discount}%</span>
-                            </div>
-                          )}
-                          {opportunity.discountDescription && (
-                            <div className="md:col-span-2">
-                              <span className="font-medium text-gray-700 dark:text-gray-900">Descrição do desconto:</span>
-                              <p className="mt-1 text-gray-900 dark:text-gray-900 bg-white p-2 rounded border">{opportunity.discountDescription}</p>
-                            </div>
-                          )}
-                          {/* Show proposal documents - only documents added during proposal phase */}
-                          {renderProposalDocuments()}
                         </div>
                       )}
                     </div>
