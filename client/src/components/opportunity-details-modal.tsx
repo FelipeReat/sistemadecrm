@@ -73,7 +73,7 @@ const propostaSchema = z.object({
 
 // Schema para o formulário de negociação
 const negociacaoSchema = z.object({
-  status: z.string().min(1, "Status é obrigatório"),
+  status: z.string().optional(),
   contract: z.string().optional(), // String para o número do contrato
   invoiceNumber: z.string().optional(),
 });
@@ -1014,7 +1014,7 @@ export default function OpportunityDetailsModal({
                   name="status"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>* Status da negociação</FormLabel>
+                      <FormLabel>Status da negociação</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger>
@@ -1866,7 +1866,7 @@ export default function OpportunityDetailsModal({
                             name="status"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel>Status da negociação *</FormLabel>
+                                <FormLabel>Status da negociação</FormLabel>
                                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                                   <FormControl>
                                     <SelectTrigger>
@@ -1880,25 +1880,6 @@ export default function OpportunityDetailsModal({
                                     <SelectItem value="rejeitado">Rejeitado</SelectItem>
                                   </SelectContent>
                                 </Select>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-
-                          <FormField
-                            control={negociacaoForm.control}
-                            name="finalValue"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Valor final negociado</FormLabel>
-                                <FormControl>
-                                  <Input 
-                                    type="number"
-                                    step="0.01"
-                                    placeholder="0.00"
-                                    {...field} 
-                                  />
-                                </FormControl>
                                 <FormMessage />
                               </FormItem>
                             )}
@@ -1938,23 +1919,7 @@ export default function OpportunityDetailsModal({
                             )}
                           />
 
-                          <FormField
-                            control={negociacaoForm.control}
-                            name="negotiationInfo"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Informações da negociação</FormLabel>
-                                <FormControl>
-                                  <Textarea 
-                                    placeholder="Descreva os detalhes da negociação..."
-                                    className="min-h-[100px]"
-                                    {...field} 
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
+
 
                           <div className="flex space-x-2 pt-4">
                             <Button type="submit" size="sm" disabled={isSubmitting}>
@@ -2001,12 +1966,7 @@ export default function OpportunityDetailsModal({
                             <span className="ml-2 text-gray-900 dark:text-gray-100">{opportunity.invoiceNumber}</span>
                           </div>
                         )}
-                        {opportunity.negotiationInfo && (
-                          <div className="md:col-span-2">
-                            <span className="font-medium text-gray-700 dark:text-gray-300">Informações da negociação:</span>
-                            <p className="mt-1 text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700 p-2 rounded border dark:border-gray-600">{opportunity.negotiationInfo}</p>
-                          </div>
-                        )}
+
                       </div>
                     )}
                   </div>

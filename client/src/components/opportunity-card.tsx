@@ -33,8 +33,7 @@ const validatePhaseCompletion = (opportunity: Opportunity): { isComplete: boolea
       break;
 
     case 'negociacao':
-      if (!opportunity.finalValue) missingFields.push('Valor final');
-      if (!opportunity.negotiationInfo) missingFields.push('Informações da negociação');
+      // Campos de negociação agora são opcionais
       break;
 
     case 'ganho':
