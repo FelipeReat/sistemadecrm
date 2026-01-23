@@ -545,8 +545,12 @@ export default function CrmDashboard() {
                     maximumFractionDigits: 0,
                   }).format(
                     sortedAndFilteredOpportunities
-                      .filter(o => o.phase === 'ganho' && o.budget)
-                      .reduce((sum, o) => sum + parseFloat(o.budget!.toString()), 0)
+                      .filter(o => o.phase === 'ganho')
+                      .reduce((sum, o) => {
+                        // Priorizar finalValue, fallback para budget, fallback para 0
+                        const value = o.finalValue ? parseFloat(o.finalValue.toString()) : (o.budget ? parseFloat(o.budget.toString()) : 0);
+                        return sum + (isNaN(value) ? 0 : value);
+                      }, 0)
                   )}
                 </p>
               </div>

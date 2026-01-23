@@ -38,6 +38,7 @@ export const opportunities = pgTable("opportunities", {
   validityDate: timestamp("validity_date"),
   budgetNumber: text("budget_number"),
   budget: decimal("budget", { precision: 12, scale: 2 }),
+  notes: text("notes"),
 
   // Fase 6: Negociação
   status: text("status"),
@@ -218,6 +219,10 @@ export const insertOpportunitySchema = createInsertSchema(opportunities, {
     } catch {
       return null;
     }
+  }),
+  notes: z.string().optional().nullable().transform(val => {
+    if (!val || val.trim() === '') return null;
+    return val.trim();
   }),
 
   // Fase 6: Negociação

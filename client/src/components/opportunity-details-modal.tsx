@@ -69,12 +69,15 @@ const visitaTecnicaSchema = z.object({
 // Schema para o formulário de proposta
 const propostaSchema = z.object({
   budgetNumber: z.string().min(1, "Número do orçamento é obrigatório"),
+  budget: z.string().optional(),
+  notes: z.string().optional(),
 });
 
 // Schema para o formulário de negociação
 const negociacaoSchema = z.object({
   status: z.string().optional(),
-  contract: z.string().optional(), // String para o número do contrato
+  finalValue: z.string().min(1, "Valor final negociado é obrigatório"),
+  contract: z.string().optional(),
   invoiceNumber: z.string().optional(),
 });
 
@@ -185,6 +188,8 @@ export default function OpportunityDetailsModal({
     resolver: zodResolver(propostaSchema),
     defaultValues: {
       budgetNumber: opportunity?.budgetNumber || opportunity?.opportunityNumber || "",
+      budget: opportunity?.budget ? formatBudgetForDisplay(opportunity.budget) : "",
+      notes: opportunity?.notes || "",
     },
   });
 
@@ -192,11 +197,9 @@ export default function OpportunityDetailsModal({
     resolver: zodResolver(negociacaoSchema),
     defaultValues: {
       status: opportunity?.status || "",
-      finalValue: opportunity?.finalValue || "",
-      negotiationInfo: opportunity?.negotiationInfo || "",
+      finalValue: opportunity?.finalValue ? formatBudgetForDisplay(opportunity.finalValue) : "",
       contract: opportunity?.contract || "",
       invoiceNumber: opportunity?.invoiceNumber || "",
-      lossReason: opportunity?.lossReason || "",
     },
   });
 
@@ -245,15 +248,15 @@ export default function OpportunityDetailsModal({
 
       propostaForm.reset({
         budgetNumber: opportunity.budgetNumber || opportunity.opportunityNumber || "",
+        budget: opportunity.budget ? formatBudgetForDisplay(opportunity.budget) : "",
+        notes: opportunity.notes || "",
       });
 
       negociacaoForm.reset({
         status: opportunity.status || "",
         finalValue: formatBudgetForDisplay(opportunity.finalValue),
-        negotiationInfo: opportunity.negotiationInfo || "",
         contract: opportunity.contract || "",
         invoiceNumber: opportunity.invoiceNumber || "",
-        lossReason: opportunity.lossReason || "",
       });
 
       perdidoForm.reset({
@@ -291,6 +294,8 @@ export default function OpportunityDetailsModal({
 
       propostaForm.reset({
         budgetNumber: "",
+        budget: "",
+        notes: "",
       });
 
       negociacaoForm.reset({
@@ -929,6 +934,35 @@ export default function OpportunityDetailsModal({
                 </h4>
 
                 <FormField
+                  control={propostaForm.control}
+                  name="budget"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Valor da Proposta</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <span className="absolute left-3 top-2.5 text-gray-500">R$</span>
+                          <Input 
+                            className="pl-9"
+                            placeholder="0,00"
+                            {...field} 
+                            onChange={(e) => {
+                              const value = e.target.value.replace(/\D/g, "");
+                              const formattedValue = (Number(value) / 100).toLocaleString("pt-BR", {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              });
+                              field.onChange(formattedValue);
+                            }}
+                          />
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
                   control={propostaForm.control as any}
                   name="budgetNumber"
                   render={({ field }) => {
@@ -960,6 +994,24 @@ export default function OpportunityDetailsModal({
                       </FormItem>
                     );
                   }}
+                />
+
+                <FormField
+                  control={propostaForm.control}
+                  name="notes"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Observação (Opcional)</FormLabel>
+                      <FormControl>
+                        <Textarea 
+                          placeholder="Digite uma observação sobre a proposta..."
+                          className="min-h-[100px]"
+                          {...field} 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
               </div>
 
@@ -1038,27 +1090,29 @@ export default function OpportunityDetailsModal({
                   name="finalValue"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="flex items-center">
-                        <DollarSign className="h-4 w-4 mr-2" />
-                        * Valor final negociado
-                      </FormLabel>
+                      <FormLabel>Valor final negociado *</FormLabel>
                       <FormControl>
-                        <Input
-                          placeholder={masks.currency.placeholder}
-                          {...field}
-                          value={field.value || ""}
-                          onChange={(e) => {
-                            masks.currency.onChange(e);
-                            field.onChange(e.target.value);
-                          }}
-                        />
+                        <div className="relative">
+                          <span className="absolute left-3 top-2.5 text-gray-500">R$</span>
+                          <Input 
+                            className="pl-9"
+                            placeholder="0,00"
+                            {...field} 
+                            onChange={(e) => {
+                              const value = e.target.value.replace(/\D/g, "");
+                              const formattedValue = (Number(value) / 100).toLocaleString("pt-BR", {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              });
+                              field.onChange(formattedValue);
+                            }}
+                          />
+                        </div>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-
-
 
                 <FormField
                   control={negociacaoForm.control}
@@ -1812,6 +1866,53 @@ export default function OpportunityDetailsModal({
                               )}
                             />
 
+                            <FormField
+                              control={propostaForm.control}
+                              name="budget"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Valor da Proposta</FormLabel>
+                                  <FormControl>
+                                    <div className="relative">
+                                      <span className="absolute left-3 top-2.5 text-gray-500">R$</span>
+                                      <Input 
+                                        className="pl-9"
+                                        placeholder="0,00"
+                                        {...field} 
+                                        onChange={(e) => {
+                                          const value = e.target.value.replace(/\D/g, "");
+                                          const formattedValue = (Number(value) / 100).toLocaleString("pt-BR", {
+                                            minimumFractionDigits: 2,
+                                            maximumFractionDigits: 2,
+                                          });
+                                          field.onChange(formattedValue);
+                                        }}
+                                      />
+                                    </div>
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={propostaForm.control}
+                              name="notes"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Observação (Opcional)</FormLabel>
+                                  <FormControl>
+                                    <Textarea 
+                                      placeholder="Digite uma observação sobre a proposta..."
+                                      className="min-h-[100px]"
+                                      {...field} 
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
                             <div className="flex space-x-2 pt-4">
                               <Button type="submit" size="sm" disabled={isSubmitting}>
                                 <Save className="h-3 w-3 mr-1" />
@@ -1835,6 +1936,22 @@ export default function OpportunityDetailsModal({
                             <div>
                               <span className="font-medium text-gray-700 dark:text-gray-300">Número do orçamento:</span>
                               <span className="ml-2 text-gray-900 dark:text-gray-100">{opportunity.budgetNumber}</span>
+                            </div>
+                          )}
+                          {opportunity.budget && (
+                            <div>
+                              <span className="font-medium text-gray-700 dark:text-gray-300">Valor da proposta:</span>
+                              <span className="ml-2 text-gray-900 dark:text-gray-100 font-medium text-green-600 dark:text-green-400">
+                                {formatBudgetForDisplay(opportunity.budget)}
+                              </span>
+                            </div>
+                          )}
+                          {opportunity.notes && (
+                            <div className="md:col-span-2">
+                              <span className="font-medium text-gray-700 dark:text-gray-300">Observação:</span>
+                              <p className="mt-1 text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700 p-2 rounded border dark:border-gray-600 whitespace-pre-wrap">
+                                {opportunity.notes}
+                              </p>
                             </div>
                           )}
                         </div>
@@ -1880,6 +1997,35 @@ export default function OpportunityDetailsModal({
                                     <SelectItem value="rejeitado">Rejeitado</SelectItem>
                                   </SelectContent>
                                 </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={negociacaoForm.control}
+                            name="finalValue"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Valor final negociado *</FormLabel>
+                                <FormControl>
+                                  <div className="relative">
+                                    <span className="absolute left-3 top-2.5 text-gray-500">R$</span>
+                                    <Input 
+                                      className="pl-9"
+                                      placeholder="0,00"
+                                      {...field} 
+                                      onChange={(e) => {
+                                        const value = e.target.value.replace(/\D/g, "");
+                                        const formattedValue = (Number(value) / 100).toLocaleString("pt-BR", {
+                                          minimumFractionDigits: 2,
+                                          maximumFractionDigits: 2,
+                                        });
+                                        field.onChange(formattedValue);
+                                      }}
+                                    />
+                                  </div>
+                                </FormControl>
                                 <FormMessage />
                               </FormItem>
                             )}
