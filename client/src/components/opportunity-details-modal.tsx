@@ -278,7 +278,6 @@ export default function OpportunityDetailsModal({
     } else if (open && !opportunity) {
       // Limpar todos os formulários quando abrir sem oportunidade
       prospeccaoForm.reset({
-        opportunityNumber: "",
         requiresVisit: false,
       });
 
