@@ -69,7 +69,7 @@ const visitaTecnicaSchema = z.object({
 // Schema para o formulário de proposta
 const propostaSchema = z.object({
   budgetNumber: z.string().min(1, "Número do orçamento é obrigatório"),
-  budget: z.string().optional(),
+  budget: z.string().min(1, "Valor da proposta é obrigatório"),
   notes: z.string().optional(),
 });
 
@@ -938,7 +938,7 @@ export default function OpportunityDetailsModal({
                   name="budget"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Valor da Proposta</FormLabel>
+                      <FormLabel>Valor da Proposta *</FormLabel>
                       <FormControl>
                         <div className="relative">
                           <span className="absolute left-3 top-2.5 text-gray-500">R$</span>
@@ -1871,7 +1871,7 @@ export default function OpportunityDetailsModal({
                               name="budget"
                               render={({ field }) => (
                                 <FormItem>
-                                  <FormLabel>Valor da Proposta</FormLabel>
+                                  <FormLabel>Valor da Proposta *</FormLabel>
                                   <FormControl>
                                     <div className="relative">
                                       <span className="absolute left-3 top-2.5 text-gray-500">R$</span>
