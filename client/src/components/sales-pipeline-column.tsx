@@ -28,7 +28,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import LossReasonModal, { LossReasonData } from "./loss-reason-modal";
-import { Filter, FilterX } from "lucide-react";
+import { Filter, FilterX, FileText } from "lucide-react";
 
 // Função para validar se uma oportunidade pode ser movida
 const canMoveOpportunity = (opportunity: Opportunity, targetPhase: string): { canMove: boolean; message?: string } => {
@@ -160,9 +160,10 @@ interface SalesPipelineColumnProps {
   isPhaseFiltered?: boolean;
   onTogglePhaseFilter?: (phase: string) => void;
   users?: User[];
+  onCreateOpportunityInPhase?: (phase: string) => void;
 }
 
-export default function SalesPipelineColumn({ phase, opportunities, isLoading, onViewDetails, isPhaseFiltered = false, onTogglePhaseFilter, users = [] }: SalesPipelineColumnProps) {
+export default function SalesPipelineColumn({ phase, opportunities, isLoading, onViewDetails, isPhaseFiltered = false, onTogglePhaseFilter, users = [], onCreateOpportunityInPhase }: SalesPipelineColumnProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { invalidateAllData } = useReportsSync();
@@ -395,6 +396,20 @@ export default function SalesPipelineColumn({ phase, opportunities, isLoading, o
                 {opportunities.length}
               </Badge>
               
+              {/* Botão de criação direta na fase de Proposta */}
+              {phase.key === 'proposta' && onCreateOpportunityInPhase && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onCreateOpportunityInPhase(phase.key)}
+                  className="h-6 px-2 text-xs bg-white bg-opacity-90 text-pink-700 hover:bg-opacity-100"
+                  data-testid="button-new-proposal-in-column"
+                >
+                  <FileText className="h-3 w-3 mr-1" />
+                  Nova
+                </Button>
+              )}
+
               {/* Botão de filtro por fase */}
               {onTogglePhaseFilter && (
                 <Button

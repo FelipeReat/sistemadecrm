@@ -235,6 +235,8 @@ export class MemStorage implements IStorage {
       lossReason: insertOpportunity.lossReason || null,
       lossObservation: insertOpportunity.lossObservation || null,
 
+      notes: (insertOpportunity as any).notes || null,
+
       // Import tracking data
       isImported: insertOpportunity.isImported || false,
       importBatchId: insertOpportunity.importBatchId || null,

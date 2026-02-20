@@ -270,6 +270,8 @@ export class PostgresStorage implements IStorage {
         lossReason: insertOpportunity.lossReason || null,
         lossObservation: insertOpportunity.lossObservation || null,
 
+        notes: (insertOpportunity as any).notes || null,
+
         // Import tracking fields
         isImported: insertOpportunity.isImported || false,
         importBatchId: insertOpportunity.importBatchId || null,

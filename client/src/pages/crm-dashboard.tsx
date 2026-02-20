@@ -64,6 +64,7 @@ export default function CrmDashboard() {
   const [filteredPhaseOnly, setFilteredPhaseOnly] = useState<string | null>(null);
   const isMobile = useIsMobile();
   const [currentMobilePhaseIndex, setCurrentMobilePhaseIndex] = useState(0);
+  const [newOpportunityPhase, setNewOpportunityPhase] = useState<string>("prospeccao");
   
   // Advanced filters
   const [searchTerm, setSearchTerm] = useState('');
@@ -129,7 +130,7 @@ export default function CrmDashboard() {
 
   // Fetch users for filter
   const { data: users = [] } = useQuery<User[]>({
-    queryKey: ["/api/users/salespeople"],
+    queryKey: ["/api/users"],
   });
 
   // Advanced filtering logic
@@ -149,11 +150,10 @@ export default function CrmDashboard() {
       if (!searchMatch) return false;
     }
 
-    // User filter
+    // User filter (Criado por)
     if (selectedUsers.length > 0) {
       const userMatch =
-        (opportunity.createdBy && selectedUsers.includes(opportunity.createdBy)) ||
-        (opportunity.salesperson && selectedUsers.includes(opportunity.salesperson));
+        (opportunity.createdByName && selectedUsers.includes(opportunity.createdByName));
       if (!userMatch) return false;
     }
 
@@ -355,6 +355,11 @@ export default function CrmDashboard() {
     }
   };
 
+  const handleCreateOpportunityInPhase = (phase: string) => {
+    setNewOpportunityPhase(phase);
+    setIsNewOpportunityModalOpen(true);
+  };
+
   return (
     <div className="bg-background min-h-screen font-inter">
       {/* Header Compacto */}
@@ -372,7 +377,10 @@ export default function CrmDashboard() {
               </div>
               <Button
                 size="sm"
-                onClick={() => setIsNewOpportunityModalOpen(true)}
+                onClick={() => {
+                  setNewOpportunityPhase('prospeccao');
+                  setIsNewOpportunityModalOpen(true);
+                }}
                 data-testid="button-new-opportunity"
                 className="whitespace-nowrap shrink-0"
               >
@@ -599,6 +607,7 @@ export default function CrmDashboard() {
                 isPhaseFiltered={false}
                 onTogglePhaseFilter={() => {}}
                 users={users}
+                onCreateOpportunityInPhase={handleCreateOpportunityInPhase}
               />
             </div>
           </div>
@@ -616,6 +625,7 @@ export default function CrmDashboard() {
                   isPhaseFiltered={filteredPhaseOnly === phase.key}
                   onTogglePhaseFilter={handleTogglePhaseFilter}
                   users={users}
+                  onCreateOpportunityInPhase={handleCreateOpportunityInPhase}
                 />
               ))}
             </div>
@@ -626,6 +636,7 @@ export default function CrmDashboard() {
       <NewOpportunityModal
         open={isNewOpportunityModalOpen}
         onOpenChange={setIsNewOpportunityModalOpen}
+        initialPhase={newOpportunityPhase}
       />
 
       <OpportunityDetailsModal
@@ -665,28 +676,31 @@ export default function CrmDashboard() {
               </div>
             </div>
 
-            {/* Filtros por Vendedor */}
+            {/* Filtros por Criador do Card */}
             <div className="space-y-2">
-              <Label className="text-sm font-medium text-foreground">Vendedores</Label>
+              <Label className="text-sm font-medium text-foreground">Criado por</Label>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                {users.map((user) => (
-                  <div key={user.id} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`user-${user.id}`}
-                      checked={selectedUsers.includes(user.name)}
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          handleUserSelect(user.name);
-                        } else {
-                          handleUserRemove(user.name);
-                        }
-                      }}
-                    />
-                    <Label htmlFor={`user-${user.id}`} className="text-sm font-normal">
-                      {user.name}
-                    </Label>
-                  </div>
-                ))}
+                {users.map((user) => {
+                  const displayName = user.name || user.email || 'Usuário';
+                  return (
+                    <div key={user.id} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`user-${user.id}`}
+                        checked={selectedUsers.includes(displayName)}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            handleUserSelect(displayName);
+                          } else {
+                            handleUserRemove(displayName);
+                          }
+                        }}
+                      />
+                      <Label htmlFor={`user-${user.id}`} className="text-sm font-normal">
+                        {displayName}
+                      </Label>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 

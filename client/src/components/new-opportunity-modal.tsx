@@ -38,6 +38,7 @@ import { masks } from "@/lib/masks";
 interface NewOpportunityModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  initialPhase?: string;
 }
 
 const formSchema = insertOpportunitySchema.pick({
@@ -89,7 +90,7 @@ const NEED_CATEGORIES = [
   "Veículos"
 ];
 
-export default function NewOpportunityModal({ open, onOpenChange }: NewOpportunityModalProps) {
+export default function NewOpportunityModal({ open, onOpenChange, initialPhase = "prospeccao" }: NewOpportunityModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadedDocuments, setUploadedDocuments] = useState<UploadedFile[]>([]);
   const { toast } = useToast();
@@ -117,7 +118,7 @@ export default function NewOpportunityModal({ open, onOpenChange }: NewOpportuni
   const createOpportunityMutation = useMutation({
     mutationFn: (data: FormData) => apiRequest("POST", "/api/opportunities", {
       ...data,
-      phase: "prospeccao",
+      phase: initialPhase,
       documents: uploadedDocuments,
       createdByName: user?.name || user?.email || "Usuário"
     }),
