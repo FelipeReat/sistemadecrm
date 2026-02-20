@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useKanbanStore, useWebSocketConnection, useWebSocketHeartbeat } from "@/hooks/useKanbanStore";
 import SyncStatus from "@/components/sync-status";
@@ -132,6 +132,20 @@ export default function CrmDashboard() {
   const { data: users = [] } = useQuery<User[]>({
     queryKey: ["/api/users"],
   });
+
+  const creatorOptions = useMemo(() => {
+    const names = new Set<string>();
+    opportunities.forEach((opportunity) => {
+      const rawName = (opportunity as any).createdByName || (opportunity as any).createdBy;
+      if (rawName && typeof rawName === 'string') {
+        const trimmed = rawName.trim();
+        if (trimmed) {
+          names.add(trimmed);
+        }
+      }
+    });
+    return Array.from(names).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  }, [opportunities]);
 
   // Advanced filtering logic
   const filteredOpportunities = opportunities.filter(opportunity => {
@@ -680,27 +694,24 @@ export default function CrmDashboard() {
             <div className="space-y-2">
               <Label className="text-sm font-medium text-foreground">Criado por</Label>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                {users.map((user) => {
-                  const displayName = user.name || user.email || 'Usuário';
-                  return (
-                    <div key={user.id} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={`user-${user.id}`}
-                        checked={selectedUsers.includes(displayName)}
-                        onCheckedChange={(checked) => {
-                          if (checked) {
-                            handleUserSelect(displayName);
-                          } else {
-                            handleUserRemove(displayName);
-                          }
-                        }}
-                      />
-                      <Label htmlFor={`user-${user.id}`} className="text-sm font-normal">
-                        {displayName}
-                      </Label>
-                    </div>
-                  );
-                })}
+                {creatorOptions.map((name) => (
+                  <div key={name} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`creator-${name}`}
+                      checked={selectedUsers.includes(name)}
+                      onCheckedChange={(checked) => {
+                        if (checked) {
+                          handleUserSelect(name);
+                        } else {
+                          handleUserRemove(name);
+                        }
+                      }}
+                    />
+                    <Label htmlFor={`creator-${name}`} className="text-sm font-normal">
+                      {name}
+                    </Label>
+                  </div>
+                ))}
               </div>
             </div>
 
