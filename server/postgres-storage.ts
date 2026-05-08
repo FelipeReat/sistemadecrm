@@ -243,6 +243,16 @@ export class PostgresStorage implements IStorage {
         salesperson: insertOpportunity.salesperson || null,
         requiresVisit: insertOpportunity.requiresVisit || false,
         statement: insertOpportunity.statement || null,
+        leadCity: insertOpportunity.leadCity || null,
+        leadOpportunityType: insertOpportunity.leadOpportunityType || null,
+        leadStatus: insertOpportunity.leadStatus || null,
+        leadQuality: insertOpportunity.leadQuality || null,
+        leadFeedback: insertOpportunity.leadFeedback || null,
+        leadNextStep: insertOpportunity.leadNextStep || null,
+        leadNextContactAt: insertOpportunity.leadNextContactAt || null,
+        leadHandoffStatus: insertOpportunity.leadHandoffStatus || null,
+        leadSellerReturn: insertOpportunity.leadSellerReturn || null,
+        leadObservations: insertOpportunity.leadObservations || null,
 
         // Visit technical data
         visitSchedule: insertOpportunity.visitSchedule || null,
@@ -253,6 +263,21 @@ export class PostgresStorage implements IStorage {
           insertOpportunity.visitPhotos.map((photo: any) => 
             typeof photo === 'string' ? photo : JSON.stringify(photo)
           ) : null,
+        visitVendor: insertOpportunity.visitVendor || null,
+        visitClient: insertOpportunity.visitClient || null,
+        visitClientContact: insertOpportunity.visitClientContact || null,
+        visitOrigin: insertOpportunity.visitOrigin || null,
+        visitEquipmentDemand: insertOpportunity.visitEquipmentDemand || null,
+        visitLocation: insertOpportunity.visitLocation || null,
+        visitType: insertOpportunity.visitType || null,
+        visitObjective: insertOpportunity.visitObjective || null,
+        visitStatus: insertOpportunity.visitStatus || null,
+        visitResult: insertOpportunity.visitResult || null,
+        visitNextStep: insertOpportunity.visitNextStep || null,
+        visitNextStepOwner: insertOpportunity.visitNextStepOwner || null,
+        visitNextStepDeadline: insertOpportunity.visitNextStepDeadline || null,
+        vendorFeedback: insertOpportunity.vendorFeedback || null,
+        visitObservations: insertOpportunity.visitObservations || null,
 
         // Proposal data
         discount: insertOpportunity.discount || null,
@@ -410,14 +435,41 @@ export class PostgresStorage implements IStorage {
             salesperson: insertOpportunity.salesperson || null,
             requiresVisit: insertOpportunity.requiresVisit || false,
             statement: insertOpportunity.statement || null,
+            leadCity: insertOpportunity.leadCity || null,
+            leadOpportunityType: insertOpportunity.leadOpportunityType || null,
+            leadStatus: insertOpportunity.leadStatus || null,
+            leadQuality: insertOpportunity.leadQuality || null,
+            leadFeedback: insertOpportunity.leadFeedback || null,
+            leadNextStep: insertOpportunity.leadNextStep || null,
+            leadNextContactAt: insertOpportunity.leadNextContactAt || null,
+            leadHandoffStatus: insertOpportunity.leadHandoffStatus || null,
+            leadSellerReturn: insertOpportunity.leadSellerReturn || null,
+            leadObservations: insertOpportunity.leadObservations || null,
 
             // Visit technical data
             visitSchedule: insertOpportunity.visitSchedule || null,
             visitDate: insertOpportunity.visitDate || null,
+            visitDescription: insertOpportunity.visitDescription || null,
+            visitRealization: insertOpportunity.visitRealization || null,
             visitPhotos: insertOpportunity.visitPhotos ? 
               insertOpportunity.visitPhotos.map(photo => 
                 typeof photo === 'string' ? photo : JSON.stringify(photo)
               ) : null,
+            visitVendor: insertOpportunity.visitVendor || null,
+            visitClient: insertOpportunity.visitClient || null,
+            visitClientContact: insertOpportunity.visitClientContact || null,
+            visitOrigin: insertOpportunity.visitOrigin || null,
+            visitEquipmentDemand: insertOpportunity.visitEquipmentDemand || null,
+            visitLocation: insertOpportunity.visitLocation || null,
+            visitType: insertOpportunity.visitType || null,
+            visitObjective: insertOpportunity.visitObjective || null,
+            visitStatus: insertOpportunity.visitStatus || null,
+            visitResult: insertOpportunity.visitResult || null,
+            visitNextStep: insertOpportunity.visitNextStep || null,
+            visitNextStepOwner: insertOpportunity.visitNextStepOwner || null,
+            visitNextStepDeadline: insertOpportunity.visitNextStepDeadline || null,
+            vendorFeedback: insertOpportunity.vendorFeedback || null,
+            visitObservations: insertOpportunity.visitObservations || null,
 
             // Proposal data
             discount: insertOpportunity.discount || null,

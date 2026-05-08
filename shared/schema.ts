@@ -24,6 +24,16 @@ export const opportunities = pgTable("opportunities", {
   salesperson: text("salesperson"),
   requiresVisit: boolean("requires_visit").default(false),
   statement: text("statement"),
+  leadCity: text("lead_city"),
+  leadOpportunityType: text("lead_opportunity_type"),
+  leadStatus: text("lead_status"),
+  leadQuality: text("lead_quality"),
+  leadFeedback: text("lead_feedback"),
+  leadNextStep: text("lead_next_step"),
+  leadNextContactAt: text("lead_next_contact_at"),
+  leadHandoffStatus: text("lead_handoff_status"),
+  leadSellerReturn: text("lead_seller_return"),
+  leadObservations: text("lead_observations"),
 
   // Fase 4: Visita Técnica
   visitSchedule: text("visit_schedule"),
@@ -31,6 +41,21 @@ export const opportunities = pgTable("opportunities", {
   visitDescription: text("visit_description"),
   visitRealization: text("visit_realization"),
   visitPhotos: text("visit_photos").array(),
+  visitVendor: text("visit_vendor"),
+  visitClient: text("visit_client"),
+  visitClientContact: text("visit_client_contact"),
+  visitOrigin: text("visit_origin"),
+  visitEquipmentDemand: text("visit_equipment_demand"),
+  visitLocation: text("visit_location"),
+  visitType: text("visit_type"),
+  visitObjective: text("visit_objective"),
+  visitStatus: text("visit_status"),
+  visitResult: text("visit_result"),
+  visitNextStep: text("visit_next_step"),
+  visitNextStepOwner: text("visit_next_step_owner"),
+  visitNextStepDeadline: text("visit_next_step_deadline"),
+  vendorFeedback: text("vendor_feedback"),
+  visitObservations: text("visit_observations"),
 
   // Fase 5: Proposta
   discount: decimal("discount", { precision: 5, scale: 2 }),
@@ -121,7 +146,7 @@ export const insertOpportunitySchema = createInsertSchema(opportunities, {
   businessTemperature: z.string().optional().nullable().transform(val => {
     if (!val || val.trim() === '') return 'morno';
     const temp = val.toString().toLowerCase().trim();
-    if (['frio', 'morno', 'quente'].includes(temp)) return temp;
+    if (['frio', 'morno', 'quente', 'qualificado', 'sem perfil', 'duplicado'].includes(temp)) return temp;
     return 'morno';
   }),
   needCategory: z.string().optional().nullable().transform(val => {
@@ -157,6 +182,46 @@ export const insertOpportunitySchema = createInsertSchema(opportunities, {
     if (!val || val.trim() === '') return null;
     return val.trim().slice(0, 2000); // Trunca se muito longo
   }),
+  leadCity: z.string().optional().nullable().transform(val => {
+    if (!val || val.trim() === '') return null;
+    return val.trim();
+  }),
+  leadOpportunityType: z.string().optional().nullable().transform(val => {
+    if (!val || val.trim() === '') return null;
+    return val.trim();
+  }),
+  leadStatus: z.string().optional().nullable().transform(val => {
+    if (!val || val.trim() === '') return null;
+    return val.trim();
+  }),
+  leadQuality: z.string().optional().nullable().transform(val => {
+    if (!val || val.trim() === '') return null;
+    return val.trim().toLowerCase();
+  }),
+  leadFeedback: z.string().optional().nullable().transform(val => {
+    if (!val || val.trim() === '') return null;
+    return val.trim().slice(0, 2000);
+  }),
+  leadNextStep: z.string().optional().nullable().transform(val => {
+    if (!val || val.trim() === '') return null;
+    return val.trim().slice(0, 2000);
+  }),
+  leadNextContactAt: z.string().optional().nullable().transform(val => {
+    if (!val || val.trim() === '') return null;
+    return val.trim();
+  }),
+  leadHandoffStatus: z.string().optional().nullable().transform(val => {
+    if (!val || val.trim() === '') return null;
+    return val.trim();
+  }),
+  leadSellerReturn: z.string().optional().nullable().transform(val => {
+    if (!val || val.trim() === '') return null;
+    return val.trim();
+  }),
+  leadObservations: z.string().optional().nullable().transform(val => {
+    if (!val || val.trim() === '') return null;
+    return val.trim().slice(0, 2000);
+  }),
 
   // Fase 4: Visita Técnica
   visitSchedule: z.string().optional().nullable().transform(val => {
@@ -177,6 +242,66 @@ export const insertOpportunitySchema = createInsertSchema(opportunities, {
     })),
     z.array(z.string()) // Allow string array for JSON serialized photos
   ]).optional().default([]),
+  visitVendor: z.string().optional().nullable().transform(val => {
+    if (!val || val.trim() === '') return null;
+    return val.trim();
+  }),
+  visitClient: z.string().optional().nullable().transform(val => {
+    if (!val || val.trim() === '') return null;
+    return val.trim();
+  }),
+  visitClientContact: z.string().optional().nullable().transform(val => {
+    if (!val || val.trim() === '') return null;
+    return val.trim();
+  }),
+  visitOrigin: z.string().optional().nullable().transform(val => {
+    if (!val || val.trim() === '') return null;
+    return val.trim();
+  }),
+  visitEquipmentDemand: z.string().optional().nullable().transform(val => {
+    if (!val || val.trim() === '') return null;
+    return val.trim();
+  }),
+  visitLocation: z.string().optional().nullable().transform(val => {
+    if (!val || val.trim() === '') return null;
+    return val.trim();
+  }),
+  visitType: z.string().optional().nullable().transform(val => {
+    if (!val || val.trim() === '') return null;
+    return val.trim();
+  }),
+  visitObjective: z.string().optional().nullable().transform(val => {
+    if (!val || val.trim() === '') return null;
+    return val.trim().slice(0, 2000);
+  }),
+  visitStatus: z.string().optional().nullable().transform(val => {
+    if (!val || val.trim() === '') return null;
+    return val.trim();
+  }),
+  visitResult: z.string().optional().nullable().transform(val => {
+    if (!val || val.trim() === '') return null;
+    return val.trim().slice(0, 2000);
+  }),
+  visitNextStep: z.string().optional().nullable().transform(val => {
+    if (!val || val.trim() === '') return null;
+    return val.trim().slice(0, 2000);
+  }),
+  visitNextStepOwner: z.string().optional().nullable().transform(val => {
+    if (!val || val.trim() === '') return null;
+    return val.trim();
+  }),
+  visitNextStepDeadline: z.string().optional().nullable().transform(val => {
+    if (!val || val.trim() === '') return null;
+    return val.trim();
+  }),
+  vendorFeedback: z.string().optional().nullable().transform(val => {
+    if (!val || val.trim() === '') return null;
+    return val.trim().slice(0, 2000);
+  }),
+  visitObservations: z.string().optional().nullable().transform(val => {
+    if (!val || val.trim() === '') return null;
+    return val.trim().slice(0, 2000);
+  }),
 
   // Fase 5: Proposta
   discount: z.any().optional().nullable().transform(val => {

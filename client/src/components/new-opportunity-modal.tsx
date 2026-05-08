@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -10,123 +10,304 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { CloudUpload, Calendar, User, FileText, Phone, Building, Target, DollarSign, CheckCircle2, X } from "lucide-react";
 import { FileUpload } from "@/components/ui/file-upload";
 import { UploadedFile } from "@/hooks/useFileUpload";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useReportsSync } from "@/hooks/useReportsSync";
 import { useAuth } from "@/hooks/useAuth";
-import { insertOpportunitySchema } from "@shared/schema";
 import { masks } from "@/lib/masks";
 
 interface NewOpportunityModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   initialPhase?: string;
+  mode?: "lead" | "visit";
 }
 
-const formSchema = insertOpportunitySchema.pick({
-  contact: true,
-  cpf: true,
-  company: true,
-  cnpj: true,
-  phone: true,
-  hasRegistration: true,
-  cadastralUpdate: true,
-  proposalOrigin: true,
-  businessTemperature: true,
-  needCategory: true,
-  clientNeeds: true,
-}).extend({
-  contact: z.string().min(1, "Nome do contato é obrigatório"),
-  phone: z.string().min(1, "Telefone é obrigatório"),
-  needCategory: z.string().min(1, "Categoria de necessidade é obrigatória"),
-  clientNeeds: z.string().min(1, "Necessidades do cliente são obrigatórias"),
-  cpf: z.string().nullable().optional(),
-  cnpj: z.string().nullable().optional(),
-  hasRegistration: z.boolean().nullable().optional(),
-  cadastralUpdate: z.boolean().nullable().optional(),
-  proposalOrigin: z.string().nullable().optional(),
-  businessTemperature: z.string().nullable().optional(),
+const ORIGIN_OPTIONS = [
+  "Locador - sem locacao 3 meses",
+  "Locador - sem locacao 6 meses",
+  "Instagram",
+  "Grupos de WhatsApp",
+  "CNO",
+  "Lista de transmissao WhatsApp",
+  "Celular principal 1",
+  "Celular principal 2",
+  "Dropdesk",
+  "Trafego pago",
+  "Site",
+  "Google Maps",
+  "Indicacao",
+  "Acao externa",
+  "Outro",
+];
+
+const LEAD_STATUS_OPTIONS = [
+  "Novo",
+  "Em contato",
+  "Qualificado",
+  "Repassado ao vendedor",
+  "Proposta gerada",
+  "Visita agendada",
+  "Sem retorno",
+  "Perdido",
+  "Fechado",
+  "Descartado",
+];
+
+const QUALITY_OPTIONS = [
+  "qualificado",
+  "morno",
+  "frio",
+  "sem perfil",
+  "duplicado",
+];
+
+const OPPORTUNITY_TYPE_OPTIONS = [
+  "Novo cliente",
+  "Reativacao",
+  "Oportunidade de obra",
+  "Lead inbound",
+  "Indicacao",
+  "Recuperacao de proposta",
+  "Outro",
+];
+
+const YES_NO_PENDING_OPTIONS = ["Sim", "Nao", "Pendente"];
+const VISIT_TYPE_OPTIONS = ["Prospeccao", "Follow-up", "Medicao/levantamento", "Negociacao", "Pos-venda", "Recuperacao", "Outro"];
+const VISIT_STATUS_OPTIONS = ["Agendada", "Realizada", "Remarcada", "Cancelada", "Sem retorno", "Gerou proposta", "Fechada", "Perdida"];
+
+const baseFormSchema = z.object({
+  clientName: z.string().optional(),
+  contactName: z.string().optional(),
+  contactPhone: z.string().optional(),
+  proposalNumber: z.string().optional(),
+  opportunityFeedback: z.string().optional(),
+  registrationDate: z.string().optional(),
+  leadOrigin: z.string().optional(),
+  city: z.string().optional(),
+  opportunityType: z.string().optional(),
+  leadStatus: z.string().optional(),
+  salespersonName: z.string().optional(),
+  expectedValue: z.string().optional(),
+  leadQuality: z.string().optional(),
+  nextStep: z.string().optional(),
+  nextStepDate: z.string().optional(),
+  handoffStatus: z.string().optional(),
+  sellerReturn: z.string().optional(),
+  leadObservations: z.string().optional(),
+  visitDateField: z.string().optional(),
+  visitVendor: z.string().optional(),
+  visitedClient: z.string().optional(),
+  visitClientContact: z.string().optional(),
+  visitOrigin: z.string().optional(),
+  equipmentDemand: z.string().optional(),
+  visitLocation: z.string().optional(),
+  visitType: z.string().optional(),
+  visitObjective: z.string().optional(),
+  visitStatus: z.string().optional(),
+  visitResult: z.string().optional(),
+  visitProposalNumber: z.string().optional(),
+  visitExpectedValue: z.string().optional(),
+  visitNextStep: z.string().optional(),
+  visitNextStepOwner: z.string().optional(),
+  visitNextStepDeadline: z.string().optional(),
+  vendorFeedback: z.string().optional(),
+  visitObservations: z.string().optional(),
 });
 
-type FormData = z.infer<typeof formSchema>;
+function createFormSchema(mode: "lead" | "visit") {
+  return baseFormSchema.superRefine((data, ctx) => {
+  if (mode === "visit") {
+    if (!data.visitDateField?.trim()) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["visitDateField"], message: "Data da visita é obrigatória" });
+    }
+    if (!data.visitVendor?.trim()) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["visitVendor"], message: "Vendedor é obrigatório" });
+    }
+    if (!data.visitedClient?.trim()) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["visitedClient"], message: "Cliente visitado é obrigatório" });
+    }
+  } else {
+    if (!data.clientName?.trim()) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["clientName"], message: "Nome do cliente é obrigatório" });
+    }
+    if (!data.contactName?.trim()) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["contactName"], message: "Contato é obrigatório" });
+    }
+    if (!data.contactPhone?.trim()) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["contactPhone"], message: "Numero de contato é obrigatório" });
+    }
+    if (!data.proposalNumber?.trim()) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["proposalNumber"], message: "Numero da proposta é obrigatório" });
+    }
+    if (!data.opportunityFeedback?.trim()) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["opportunityFeedback"], message: "Feedback da oportunidade é obrigatório" });
+    }
+  }
+  });
+}
 
-const PROPOSAL_ORIGINS = [
-  "Redes Sociais",
-  "Indicação",
-  "Busca ativa",
-  "Visita em Obra",
-  "Indicação de Diretoria",
-  "SDR",
-  "Renovação",
-  "Whatsapp",
-  "Dropdesk"
-];
+type FormData = z.infer<typeof baseFormSchema>;
 
-const NEED_CATEGORIES = [
-  "Andaimes",
-  "Escoras",
-  "Painel de Escoramento",
-  "Ferramentas",
-  "Plataformas Elevatórias",
-  "Imóveis",
-  "Veículos"
-];
+function buildLeadPayload(data: FormData, uploadedDocuments: UploadedFile[], createdByName: string, initialPhase: string) {
+  return {
+    company: data.clientName,
+    contact: data.contactName,
+    phone: data.contactPhone,
+    budgetNumber: data.proposalNumber,
+    opportunityNumber: data.proposalNumber,
+    statement: data.opportunityFeedback,
+    createdAt: data.registrationDate ? new Date(data.registrationDate) : undefined,
+    proposalOrigin: data.leadOrigin || null,
+    contract: data.city || null,
+    leadCity: data.city || null,
+    needCategory: data.opportunityType || null,
+    leadOpportunityType: data.opportunityType || null,
+    status: data.leadStatus || null,
+    leadStatus: data.leadStatus || null,
+    salesperson: data.salespersonName || null,
+    budget: data.expectedValue || null,
+    businessTemperature: data.leadQuality || null,
+    leadQuality: data.leadQuality || null,
+    leadFeedback: data.opportunityFeedback || null,
+    negotiationInfo: data.nextStep || null,
+    leadNextStep: data.nextStep || null,
+    visitSchedule: data.nextStepDate || null,
+    leadNextContactAt: data.nextStepDate || null,
+    discountDescription: data.handoffStatus || null,
+    leadHandoffStatus: data.handoffStatus || null,
+    invoiceNumber: data.sellerReturn || null,
+    leadSellerReturn: data.sellerReturn || null,
+    notes: data.leadObservations || null,
+    leadObservations: data.leadObservations || null,
+    documents: uploadedDocuments,
+    createdByName,
+    phase: initialPhase || "prospeccao",
+  };
+}
 
-export default function NewOpportunityModal({ open, onOpenChange, initialPhase = "prospeccao" }: NewOpportunityModalProps) {
+function buildVisitPayload(data: FormData, uploadedDocuments: UploadedFile[], createdByName: string, initialPhase: string) {
+  return {
+    company: data.visitedClient,
+    contact: data.visitClientContact || data.visitedClient,
+    proposalOrigin: data.visitOrigin || null,
+    visitOrigin: data.visitOrigin || null,
+    salesperson: data.visitVendor || null,
+    visitVendor: data.visitVendor || null,
+    needCategory: data.equipmentDemand || null,
+    visitEquipmentDemand: data.equipmentDemand || null,
+    contract: data.visitLocation || null,
+    visitLocation: data.visitLocation || null,
+    visitDescription: data.visitType || null,
+    visitType: data.visitType || null,
+    statement: data.visitObjective || null,
+    visitObjective: data.visitObjective || null,
+    status: data.visitStatus || null,
+    visitStatus: data.visitStatus || null,
+    visitRealization: data.visitResult || null,
+    visitResult: data.visitResult || null,
+    visitDate: data.visitDateField || null,
+    budgetNumber: data.visitProposalNumber || null,
+    opportunityNumber: data.visitProposalNumber || null,
+    budget: data.visitExpectedValue || null,
+    negotiationInfo: data.visitNextStep || null,
+    visitNextStep: data.visitNextStep || null,
+    invoiceNumber: data.visitNextStepOwner || null,
+    visitNextStepOwner: data.visitNextStepOwner || null,
+    validityDate: data.visitNextStepDeadline ? new Date(data.visitNextStepDeadline) : null,
+    visitNextStepDeadline: data.visitNextStepDeadline || null,
+    notes: data.vendorFeedback || null,
+    vendorFeedback: data.vendorFeedback || null,
+    lossObservation: data.visitObservations || null,
+    visitObservations: data.visitObservations || null,
+    visitClient: data.visitedClient || null,
+    visitClientContact: data.visitClientContact || null,
+    requiresVisit: true,
+    documents: uploadedDocuments,
+    createdByName,
+    phase: initialPhase || "visita-tecnica",
+  };
+}
+
+function renderSelectItems(values: string[]) {
+  return values.map((item) => (
+    <SelectItem key={item} value={item}>
+      {item}
+    </SelectItem>
+  ));
+}
+
+export default function NewOpportunityModal({ open, onOpenChange, initialPhase = "prospeccao", mode = "lead" }: NewOpportunityModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadedDocuments, setUploadedDocuments] = useState<UploadedFile[]>([]);
   const { toast } = useToast();
-  const queryClient = useQueryClient();
   const { invalidateAllData } = useReportsSync();
   const { user } = useAuth();
+  const formSchema = createFormSchema(mode);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      contact: "",
-      cpf: null,
-      company: "",
-      cnpj: null,
-      phone: "",
-      hasRegistration: false,
-      cadastralUpdate: false,
-      proposalOrigin: null,
-      businessTemperature: null,
-      needCategory: "",
-      clientNeeds: "",
+      clientName: "",
+      contactName: "",
+      contactPhone: "",
+      proposalNumber: "",
+      opportunityFeedback: "",
+      registrationDate: "",
+      leadOrigin: "",
+      city: "",
+      opportunityType: "",
+      leadStatus: "",
+      salespersonName: "",
+      expectedValue: "",
+      leadQuality: "",
+      nextStep: "",
+      nextStepDate: "",
+      handoffStatus: "",
+      sellerReturn: "",
+      leadObservations: "",
+      visitDateField: "",
+      visitVendor: "",
+      visitedClient: "",
+      visitClientContact: "",
+      visitOrigin: "",
+      equipmentDemand: "",
+      visitLocation: "",
+      visitType: "",
+      visitObjective: "",
+      visitStatus: "",
+      visitResult: "",
+      visitProposalNumber: "",
+      visitExpectedValue: "",
+      visitNextStep: "",
+      visitNextStepOwner: "",
+      visitNextStepDeadline: "",
+      vendorFeedback: "",
+      visitObservations: "",
     },
   });
 
   const createOpportunityMutation = useMutation({
-    mutationFn: (data: FormData) => apiRequest("POST", "/api/opportunities", {
-      ...data,
-      phase: initialPhase,
-      documents: uploadedDocuments,
-      createdByName: user?.name || user?.email || "Usuário"
-    }),
+    mutationFn: (data: FormData) => {
+      const createdByName = user?.name || user?.email || "Usuário";
+      const payload = mode === "visit"
+        ? buildVisitPayload(data, uploadedDocuments, createdByName, initialPhase)
+        : buildLeadPayload(data, uploadedDocuments, createdByName, initialPhase);
+      return apiRequest("POST", "/api/opportunities", payload);
+    },
     onSuccess: () => {
       invalidateAllData(); // Sincroniza dashboard e relatórios
       toast({
         title: "Sucesso",
-        description: "Nova oportunidade criada com sucesso!",
+        description: mode === "visit" ? "Registro de visita criado com sucesso!" : "Lead criado com sucesso!",
       });
       form.reset();
       setUploadedDocuments([]);
@@ -153,304 +334,334 @@ export default function NewOpportunityModal({ open, onOpenChange, initialPhase =
   useEffect(() => {
     if (open) {
       // Resetar formulário quando modal abrir
-      form.reset({
-        contact: "",
-        cpf: null,
-        company: "",
-        cnpj: null,
-        phone: "",
-        hasRegistration: false,
-        proposalOrigin: null,
-        businessTemperature: null,
-        needCategory: "",
-        clientNeeds: "",
-      });
+      form.reset();
       setUploadedDocuments([]);
     }
-  }, [open, form]);
+  }, [open, form, mode]);
+
+  const title = mode === "visit" ? "Nova Visita de Vendedor" : "Novo Lead do Mes";
+  const description = mode === "visit"
+    ? "Cadastre uma visita com os campos operacionais da planilha."
+    : "Cadastre um lead com os campos da aba Leads do Mes da planilha.";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto" data-testid="new-opportunity-modal">
         <DialogHeader>
           <DialogTitle className="flex items-center space-x-2">
-            <span>Nova Oportunidade</span>
+            <span>{title}</span>
           </DialogTitle>
-          <DialogDescription>
-            Cadastre uma nova oportunidade no sistema
-          </DialogDescription>
+          <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="contact"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>
-                    <i className="fas fa-user mr-1"></i>Contato *
-                  </FormLabel>
-                  <FormControl>
-                    <Input 
-                      placeholder="Nome do contato" 
-                      {...field} 
-                      data-testid="input-contact"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="cpf"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>
-                    <i className="fas fa-id-card mr-1"></i>CPF
-                  </FormLabel>
-                  <FormControl>
-                    <Input 
-                      placeholder="000.000.000-00" 
-                      {...field}
-                      value={field.value ?? ""}
-                      mask={masks.cpf}
-                      data-testid="input-cpf"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="company"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>
-                    <i className="fas fa-building mr-1"></i>Empresa
-                  </FormLabel>
-                  <FormControl>
-                    <Input 
-                      placeholder="Nome da empresa" 
-                      {...field} 
-                      data-testid="input-company"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="cnpj"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>
-                    <i className="fas fa-building mr-1"></i>CNPJ
-                  </FormLabel>
-                  <FormControl>
-                    <Input 
-                      placeholder="00.000.000/0000-00" 
-                      {...field}
-                      value={field.value ?? ""}
-                      mask={masks.cnpj}
-                      data-testid="input-cnpj"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="phone"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>
-                    <i className="fas fa-phone mr-1"></i>Telefone *
-                  </FormLabel>
-                  <FormControl>
-                    <Input 
-                      placeholder="(00) 00000-0000" 
-                      {...field} 
-                      value={field.value ?? ""}
-                      mask={masks.phone}
-                      data-testid="input-phone"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="hasRegistration"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Possui cadastro no Locador?</FormLabel>
-                  <Select 
-                    onValueChange={(value) => field.onChange(value === "true")} 
-                    value={field.value === true ? "true" : field.value === false ? "false" : ""}
-                  >
-                    <FormControl>
-                      <SelectTrigger data-testid="select-has-registration">
-                        <SelectValue placeholder="Selecione uma opção" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="true">Sim</SelectItem>
-                      <SelectItem value="false">Não</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="cadastralUpdate"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Atualização cadastral</FormLabel>
-                  <Select 
-                    onValueChange={(value) => field.onChange(value === "true")} 
-                    value={field.value === true ? "true" : field.value === false ? "false" : ""}
-                  >
-                    <FormControl>
-                      <SelectTrigger data-testid="select-cadastral-update">
-                        <SelectValue placeholder="Selecione uma opção" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="true">Sim</SelectItem>
-                      <SelectItem value="false">Não</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="proposalOrigin"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>
-                    <i className="fas fa-source mr-1"></i>Origem da oportunidade
-                  </FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value ?? ""}>
-                    <FormControl>
-                      <SelectTrigger data-testid="select-proposal-origin">
-                        <SelectValue placeholder="Selecione a origem" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {PROPOSAL_ORIGINS.map((origin) => (
-                        <SelectItem key={origin} value={origin}>
-                          {origin}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="needCategory"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>
-                    <i className="fas fa-tags mr-1"></i>Categoria de necessidade *
-                  </FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger data-testid="select-need-category">
-                        <SelectValue placeholder="Selecione a categoria" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {NEED_CATEGORIES.map((category) => (
-                        <SelectItem key={category} value={category}>
-                          {category}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="businessTemperature"
-              render={({ field }) => (
-                <FormItem className="space-y-3">
-                  <FormLabel>
-                    <i className="fas fa-thermometer-half mr-1"></i>Temperatura do negócio
-                  </FormLabel>
-                  <FormControl>
-                    <RadioGroup
-                      onValueChange={field.onChange}
-                      value={field.value ?? ""}
-                      className="flex flex-row space-x-6"
-                    >
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="frio" id="frio" />
-                        <Label htmlFor="frio">Frio</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="morno" id="morno" />
-                        <Label htmlFor="morno">Morno</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="quente" id="quente" />
-                        <Label htmlFor="quente">Quente</Label>
-                      </div>
-                    </RadioGroup>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="clientNeeds"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>
-                    <i className="fas fa-clipboard-list mr-1"></i>Necessidades do Cliente *
-                  </FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="Descreva as necessidades específicas do cliente..."
-                      rows={4}
-                      {...field}
-                      data-testid="textarea-client-needs"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {mode === "visit" ? (
+              <>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <FormField control={form.control} name="visitDateField" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Data da visita *</FormLabel>
+                      <FormControl><Input type="date" {...field} value={field.value ?? ""} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={form.control} name="visitVendor" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Vendedor *</FormLabel>
+                      <FormControl><Input placeholder="Nome do vendedor" {...field} value={field.value ?? ""} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={form.control} name="visitedClient" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Cliente visitado *</FormLabel>
+                      <FormControl><Input placeholder="Nome do cliente ou empresa" {...field} value={field.value ?? ""} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={form.control} name="visitClientContact" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Contato do cliente</FormLabel>
+                      <FormControl><Input placeholder="Responsavel ou contato" {...field} value={field.value ?? ""} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={form.control} name="visitOrigin" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Origem do lead</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value || undefined}>
+                        <FormControl>
+                          <SelectTrigger><SelectValue placeholder="Selecione a origem" /></SelectTrigger>
+                        </FormControl>
+                        <SelectContent>{renderSelectItems(ORIGIN_OPTIONS)}</SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={form.control} name="equipmentDemand" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Equipamento / demanda</FormLabel>
+                      <FormControl><Input placeholder="Equipamento, servico ou demanda" {...field} value={field.value ?? ""} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={form.control} name="visitLocation" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Cidade / local / obra</FormLabel>
+                      <FormControl><Input placeholder="Cidade, bairro, obra ou local" {...field} value={field.value ?? ""} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={form.control} name="visitType" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Tipo de visita</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value || undefined}>
+                        <FormControl>
+                          <SelectTrigger><SelectValue placeholder="Selecione o tipo" /></SelectTrigger>
+                        </FormControl>
+                        <SelectContent>{renderSelectItems(VISIT_TYPE_OPTIONS)}</SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={form.control} name="visitStatus" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Status da visita</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value || undefined}>
+                        <FormControl>
+                          <SelectTrigger><SelectValue placeholder="Selecione o status" /></SelectTrigger>
+                        </FormControl>
+                        <SelectContent>{renderSelectItems(VISIT_STATUS_OPTIONS)}</SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={form.control} name="visitProposalNumber" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Numero da proposta</FormLabel>
+                      <FormControl><Input placeholder="Numero da proposta" {...field} value={field.value ?? ""} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={form.control} name="visitExpectedValue" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Valor previsto</FormLabel>
+                      <FormControl><Input placeholder="R$ 0,00" {...field} value={field.value ?? ""} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={form.control} name="visitNextStepOwner" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Responsavel pelo proximo passo</FormLabel>
+                      <FormControl><Input placeholder="Quem vai executar o proximo passo" {...field} value={field.value ?? ""} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={form.control} name="visitNextStepDeadline" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Prazo do proximo passo</FormLabel>
+                      <FormControl><Input type="date" {...field} value={field.value ?? ""} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                </div>
+                <FormField control={form.control} name="visitObjective" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Objetivo da visita</FormLabel>
+                    <FormControl><Textarea rows={3} placeholder="Objetivo comercial da visita" {...field} value={field.value ?? ""} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+                <FormField control={form.control} name="visitResult" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Resultado da visita</FormLabel>
+                    <FormControl><Textarea rows={3} placeholder="Resultado obtido na visita" {...field} value={field.value ?? ""} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+                <FormField control={form.control} name="visitNextStep" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Proximo passo</FormLabel>
+                    <FormControl><Textarea rows={3} placeholder="Qual o proximo passo acordado?" {...field} value={field.value ?? ""} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+                <FormField control={form.control} name="vendorFeedback" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Feedback do vendedor</FormLabel>
+                    <FormControl><Textarea rows={3} placeholder="Feedback do vendedor apos a visita" {...field} value={field.value ?? ""} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+                <FormField control={form.control} name="visitObservations" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Observacoes</FormLabel>
+                    <FormControl><Textarea rows={3} placeholder="Observacoes adicionais" {...field} value={field.value ?? ""} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+              </>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <FormField control={form.control} name="clientName" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nome do cliente *</FormLabel>
+                      <FormControl><Input placeholder="Cliente ou empresa" {...field} value={field.value ?? ""} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={form.control} name="contactName" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Contato *</FormLabel>
+                      <FormControl><Input placeholder="Nome do contato" {...field} value={field.value ?? ""} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={form.control} name="contactPhone" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Numero de contato *</FormLabel>
+                      <FormControl><Input placeholder="(00) 00000-0000" {...field} value={field.value ?? ""} mask={masks.phone} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={form.control} name="proposalNumber" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Numero da proposta *</FormLabel>
+                      <FormControl><Input placeholder="Numero da proposta" {...field} value={field.value ?? ""} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={form.control} name="registrationDate" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Data de cadastro</FormLabel>
+                      <FormControl><Input type="date" {...field} value={field.value ?? ""} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={form.control} name="leadOrigin" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Origem / base do lead</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value || undefined}>
+                        <FormControl>
+                          <SelectTrigger><SelectValue placeholder="Selecione a origem" /></SelectTrigger>
+                        </FormControl>
+                        <SelectContent>{renderSelectItems(ORIGIN_OPTIONS)}</SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={form.control} name="city" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Cidade</FormLabel>
+                      <FormControl><Input placeholder="Cidade do lead" {...field} value={field.value ?? ""} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={form.control} name="opportunityType" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Tipo de oportunidade</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value || undefined}>
+                        <FormControl>
+                          <SelectTrigger><SelectValue placeholder="Selecione o tipo" /></SelectTrigger>
+                        </FormControl>
+                        <SelectContent>{renderSelectItems(OPPORTUNITY_TYPE_OPTIONS)}</SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={form.control} name="leadStatus" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Status</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value || undefined}>
+                        <FormControl>
+                          <SelectTrigger><SelectValue placeholder="Selecione o status" /></SelectTrigger>
+                        </FormControl>
+                        <SelectContent>{renderSelectItems(LEAD_STATUS_OPTIONS)}</SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={form.control} name="salespersonName" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Vendedor responsavel</FormLabel>
+                      <FormControl><Input placeholder="Nome do vendedor" {...field} value={field.value ?? ""} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={form.control} name="expectedValue" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Valor previsto</FormLabel>
+                      <FormControl><Input placeholder="R$ 0,00" {...field} value={field.value ?? ""} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={form.control} name="leadQuality" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Qualidade do lead</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value || undefined}>
+                        <FormControl>
+                          <SelectTrigger><SelectValue placeholder="Selecione a qualidade" /></SelectTrigger>
+                        </FormControl>
+                        <SelectContent>{renderSelectItems(QUALITY_OPTIONS)}</SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={form.control} name="nextStepDate" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Data / horario do proximo contato</FormLabel>
+                      <FormControl><Input type="datetime-local" {...field} value={field.value ?? ""} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={form.control} name="handoffStatus" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Repassado ao vendedor?</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value || undefined}>
+                        <FormControl>
+                          <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                        </FormControl>
+                        <SelectContent>{renderSelectItems(YES_NO_PENDING_OPTIONS)}</SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={form.control} name="sellerReturn" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Retorno do vendedor</FormLabel>
+                      <FormControl><Input placeholder="Feedback ou retorno do vendedor" {...field} value={field.value ?? ""} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                </div>
+                <FormField control={form.control} name="opportunityFeedback" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Feedback da oportunidade *</FormLabel>
+                    <FormControl><Textarea rows={3} placeholder="Descreva o contexto e o feedback da oportunidade" {...field} value={field.value ?? ""} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+                <FormField control={form.control} name="nextStep" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Proximo passo</FormLabel>
+                    <FormControl><Textarea rows={3} placeholder="Informe o proximo passo planejado" {...field} value={field.value ?? ""} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+                <FormField control={form.control} name="leadObservations" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Observacoes</FormLabel>
+                    <FormControl><Textarea rows={3} placeholder="Observacoes complementares" {...field} value={field.value ?? ""} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+              </>
+            )}
 
             <div className="space-y-2">
-              <Label className="text-sm font-medium">
-                <i className="fas fa-file-upload mr-1"></i>Documentos
-              </Label>
+              <Label className="text-sm font-medium">Documentos</Label>
               <FileUpload
                 onFilesChange={setUploadedDocuments}
                 value={uploadedDocuments}
@@ -475,7 +686,7 @@ export default function NewOpportunityModal({ open, onOpenChange, initialPhase =
                 disabled={isSubmitting}
                 data-testid="button-create"
               >
-                {isSubmitting ? "Criando..." : "Criar Oportunidade"}
+                {isSubmitting ? "Salvando..." : mode === "visit" ? "Criar Visita" : "Criar Lead"}
               </Button>
             </div>
           </form>

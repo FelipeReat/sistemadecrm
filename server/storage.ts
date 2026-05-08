@@ -208,6 +208,16 @@ export class MemStorage implements IStorage {
       salesperson: insertOpportunity.salesperson || null,
       requiresVisit: insertOpportunity.requiresVisit || false,
       statement: insertOpportunity.statement || null,
+      leadCity: insertOpportunity.leadCity || null,
+      leadOpportunityType: insertOpportunity.leadOpportunityType || null,
+      leadStatus: insertOpportunity.leadStatus || null,
+      leadQuality: insertOpportunity.leadQuality || null,
+      leadFeedback: insertOpportunity.leadFeedback || null,
+      leadNextStep: insertOpportunity.leadNextStep || null,
+      leadNextContactAt: insertOpportunity.leadNextContactAt || null,
+      leadHandoffStatus: insertOpportunity.leadHandoffStatus || null,
+      leadSellerReturn: insertOpportunity.leadSellerReturn || null,
+      leadObservations: insertOpportunity.leadObservations || null,
 
       // Visit technical data
       visitSchedule: insertOpportunity.visitSchedule || null,
@@ -218,6 +228,21 @@ export class MemStorage implements IStorage {
         insertOpportunity.visitPhotos.map(photo => 
           typeof photo === 'string' ? photo : JSON.stringify(photo)
         ) : null,
+      visitVendor: insertOpportunity.visitVendor || null,
+      visitClient: insertOpportunity.visitClient || null,
+      visitClientContact: insertOpportunity.visitClientContact || null,
+      visitOrigin: insertOpportunity.visitOrigin || null,
+      visitEquipmentDemand: insertOpportunity.visitEquipmentDemand || null,
+      visitLocation: insertOpportunity.visitLocation || null,
+      visitType: insertOpportunity.visitType || null,
+      visitObjective: insertOpportunity.visitObjective || null,
+      visitStatus: insertOpportunity.visitStatus || null,
+      visitResult: insertOpportunity.visitResult || null,
+      visitNextStep: insertOpportunity.visitNextStep || null,
+      visitNextStepOwner: insertOpportunity.visitNextStepOwner || null,
+      visitNextStepDeadline: insertOpportunity.visitNextStepDeadline || null,
+      vendorFeedback: insertOpportunity.vendorFeedback || null,
+      visitObservations: insertOpportunity.visitObservations || null,
 
       // Proposal data
       discount: insertOpportunity.discount || null,
@@ -261,7 +286,12 @@ export class MemStorage implements IStorage {
       'proposalOrigin', 'businessTemperature', 'needCategory', 'clientNeeds',
       'documents', 'visitPhotos', 'createdBy', 'createdAt',
       'opportunityNumber', 'salesperson', 'requiresVisit', 'statement',
+      'leadCity', 'leadOpportunityType', 'leadStatus', 'leadQuality', 'leadFeedback',
+      'leadNextStep', 'leadNextContactAt', 'leadHandoffStatus', 'leadSellerReturn', 'leadObservations',
       'visitSchedule', 'visitDate', 'visitDescription', 'visitRealization',
+      'visitVendor', 'visitClient', 'visitClientContact', 'visitOrigin', 'visitEquipmentDemand',
+      'visitLocation', 'visitType', 'visitObjective', 'visitStatus', 'visitResult',
+      'visitNextStep', 'visitNextStepOwner', 'visitNextStepDeadline', 'vendorFeedback', 'visitObservations',
       'budget', 'budgetNumber', 'validityDate', 'discount', 'discountDescription',
       'finalValue', 'negotiationInfo', 'status', 'contract', 'invoiceNumber',
       'lossReason', 'lossObservation', 'nextActivityDate',
@@ -287,7 +317,7 @@ export class MemStorage implements IStorage {
     });
 
     // Lógica especial para campos críticos que nunca devem ser perdidos
-    const criticalFields = ['contact', 'company', 'businessTemperature', 'needCategory', 'clientNeeds', 'documents', 'isImported', 'importBatchId', 'importSource'];
+    const criticalFields = ['contact', 'company', 'businessTemperature', 'needCategory', 'clientNeeds', 'leadFeedback', 'leadNextStep', 'documents', 'isImported', 'importBatchId', 'importSource'];
     criticalFields.forEach(field => {
       const fieldKey = field as keyof Opportunity;
       if (existing[fieldKey] && (!updates.hasOwnProperty(field) || !updates[field as keyof typeof updates])) {
@@ -297,9 +327,9 @@ export class MemStorage implements IStorage {
 
     // Preservar dados específicos por fase que devem permanecer visíveis
     const phaseSpecificData: Record<string, string[]> = {
-      'prospeccao': ['opportunityNumber', 'salesperson', 'requiresVisit'],
+      'prospeccao': ['opportunityNumber', 'salesperson', 'requiresVisit', 'leadCity', 'leadOpportunityType', 'leadStatus', 'leadQuality', 'leadFeedback', 'leadNextStep', 'leadNextContactAt', 'leadHandoffStatus', 'leadSellerReturn', 'leadObservations'],
       'em-atendimento': ['statement'],
-      'visita-tecnica': ['visitSchedule', 'visitDate', 'visitDescription', 'visitRealization', 'visitPhotos'],
+      'visita-tecnica': ['visitSchedule', 'visitDate', 'visitDescription', 'visitRealization', 'visitPhotos', 'visitVendor', 'visitClient', 'visitClientContact', 'visitOrigin', 'visitEquipmentDemand', 'visitLocation', 'visitType', 'visitObjective', 'visitStatus', 'visitResult', 'visitNextStep', 'visitNextStepOwner', 'visitNextStepDeadline', 'vendorFeedback', 'visitObservations'],
       'proposta': ['budget', 'budgetNumber', 'validityDate', 'discount', 'discountDescription'],
       'negociacao': ['finalValue', 'negotiationInfo', 'status', 'contract', 'invoiceNumber'],
       'perdido': ['lossReason', 'lossObservation']

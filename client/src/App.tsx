@@ -6,13 +6,14 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
 import NotFound from "@/pages/not-found";
 import CrmDashboard from "@/pages/crm-dashboard";
+import SdrWorkspace from "@/pages/sdr-workspace";
 import ReportsDashboard from "@/pages/reports-dashboard";
 import SettingsPage from "@/pages/settings-page";
 import Login from "@/pages/login";
 import UserManagement from "@/pages/user-management";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { LogOut, Users, Home, BarChart3, Settings, Menu } from "lucide-react";
+import { LogOut, Users, Home, BarChart3, Settings, Menu, KanbanSquare } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 
@@ -52,7 +53,8 @@ function NavBar() {
   };
 
   const navItems = [
-    { path: "/", label: "Dashboard", icon: Home },
+    { path: "/", label: "Central SDR", icon: Home },
+    { path: "/kanban", label: "Kanban", icon: KanbanSquare },
     { path: "/reports", label: "Relatórios", icon: BarChart3 },
     { path: "/users", label: "Usuários", icon: Users },
     { path: "/settings", label: "Configurações", icon: Settings },
@@ -64,7 +66,7 @@ function NavBar() {
         <div className="flex justify-between h-16">
           <div className="flex items-center w-full md:w-auto justify-between md:justify-start">
             <div className="flex-shrink-0 flex items-center">
-              <h1 className="text-xl font-bold text-foreground">CRM Dashboard</h1>
+              <h1 className="text-xl font-bold text-foreground">Central Sanmiria SDR</h1>
             </div>
             
             {/* Mobile Menu Trigger */}
@@ -183,11 +185,14 @@ function Router() {
         <Route path="/reports">
           <ProtectedRoute component={ReportsDashboard} />
         </Route>
+        <Route path="/kanban">
+          <ProtectedRoute component={CrmDashboard} />
+        </Route>
         <Route path="/settings">
           <ProtectedRoute component={SettingsPage} />
         </Route>
         <Route path="/">
-          <ProtectedRoute component={CrmDashboard} />
+          <ProtectedRoute component={SdrWorkspace} />
         </Route>
         <Route component={NotFound} />
       </Switch>
